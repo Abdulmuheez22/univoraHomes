@@ -199,13 +199,13 @@ export default function Footer() {
         </motion.div>
       </div>
 
-      <div className="pointer-events-none relative flex justify-center pb-4">
+      {/* <div className="pointer-events-none relative flex justify-center pb-4">
         <p className="flex items-center gap-1.5 text-[11px] text-white/25">
           Crafted with{" "}
           <Heart className="h-3 w-3 fill-[#F59E0B] text-[#F59E0B]" /> by Univora
           Group
-        </p>
-      </div>
+        </p> */}
+      {/* </div> */}
     </footer>
   );
 }

@@ -1,53 +1,96 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { Link, NavLink, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+
+const EASE = [0.22, 1, 0.36, 1];
+
+const NAV_ITEMS = ["Home", "About", "Services", "Contact"];
 
 function Header() {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    document.body.style.overflow = open ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [open]);
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [location.pathname]);
 
   return (
     <>
-      <header className="w-full h-20 bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-gray-100 shadow-sm transition-all duration-300">
+      <header
+        className={`w-full bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-gray-100 shadow-sm transition-all duration-300 ${
+          scrolled ? "h-16" : "h-20"
+        }`}
+      >
         <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-          
-          {/* Logo Section */}
+
           <div className="flex items-center gap-3">
             <img
               className="h-12 w-12 sm:h-14 sm:w-14 object-contain rounded-lg transition-transform duration-300 hover:scale-105"
               src="univora homes logo-1.jpg"
               alt="Univora Homes logo"
             />
-            <h1 className="text-[#004741] hidden sm:block text-2xl sm:text-2xl font-bold tracking-tight">
+            <h1 className="text-[#004741] hidden lg:block text-2xl sm:text-2xl font-bold tracking-tight">
               Univora <span className="text-[#F59E0B]">Homes</span>
             </h1>
           </div>
 
-          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
-            {["Home", "About", "Services", "Contact"].map((item) => (
-              <a
+            {NAV_ITEMS.map((item) => (
+              <NavLink
                 key={item}
-                className="relative text-[#004741] font-semibold text-base transition-colors hover:text-[#F59E0B] py-1 group"
-                href="#"
+                to={item === "Home" ? "/" : `/${item.toLowerCase()}`}
+                className={({ isActive }) =>
+                  `relative font-semibold text-base transition-colors py-1 group ${
+                    isActive ? "text-[#F59E0B]" : "text-[#004741] hover:text-[#F59E0B]"
+                  }`
+                }
               >
-                {item}
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#F59E0B] transition-all duration-300 group-hover:w-full" />
-              </a>
+                {({ isActive }) => (
+                  <>
+                    {item}
+                    <span
+                      className={`absolute bottom-0 left-0 h-0.5 bg-[#F59E0B] transition-all duration-300 ${
+                        isActive ? "w-full" : "w-0 group-hover:w-full"
+                      }`}
+                    />
+                  </>
+                )}
+              </NavLink>
             ))}
           </nav>
 
-          {/* Actions Section */}
           <div className="flex items-center gap-3">
-            {/* Get Started Button */}
-            <a
-              href="#"
-              className="px-5 py-2.5 rounded-xl bg-[#004741] text-[#F0E8D5] font-semibold text-sm shadow-md hover:bg-[#003530] hover:shadow-lg active:scale-95 transition-all duration-200 flex items-center justify-center"
+            <Link
+              to="/signup"
+              className="group relative overflow-hidden px-5 py-2.5 rounded-xl bg-[#004741] text-[#F0E8D5] font-semibold text-sm shadow-md hover:bg-[#003530] hover:shadow-lg active:scale-95 transition-all duration-200 flex items-center justify-center"
             >
-              Get Started
-            </a>
+              <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
+              <span className="relative">Get Started</span>
+            </Link>
 
-            {/* Hamburger Button */}
             <button
               onClick={() => setOpen(!open)}
               aria-label="Toggle menu"
+              aria-expanded={open}
               className="md:hidden cursor-pointer flex flex-col justify-center items-center gap-[5px] p-2 hover:bg-[#004741]/10 rounded-xl active:bg-[#004741]/20 transition-all duration-200"
             >
               <span
@@ -70,33 +113,72 @@ function Header() {
         </div>
       </header>
 
-      {/* Mobile Sidebar */}
-      <aside
-        className={`fixed top-20 left-0 z-50 w-[80%] max-w-sm h-[calc(100vh-5rem)] bg-white/95 backdrop-blur-2xl border-r border-t border-[#004741]/10 shadow-2xl flex flex-col justify-between p-8 rounded-r-3xl transition-transform duration-300 ease-in-out md:hidden ${
-          open ? "translate-x-0" : "-translate-x-full"
-        }`}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 top-20 z-40 bg-[#004741]/30 backdrop-blur-sm md:hidden"
+          />
+        )}
+      </AnimatePresence>
+
+      <motion.aside
+        initial={false}
+        animate={open ? { x: 0 } : { x: "-100%" }}
+        transition={{ duration: 0.35, ease: EASE }}
+        className="fixed top-20 left-0 z-50 w-[80%] max-w-sm h-[calc(100vh-5rem)] bg-white/95 backdrop-blur-2xl border-r border-t border-[#004741]/10 shadow-2xl flex flex-col justify-between p-8 rounded-r-3xl md:hidden"
       >
         <div className="flex flex-col gap-6">
-          <h2 className="text-xs font-bold tracking-widest text-[#004741]/50 uppercase">
+          <motion.h2
+            initial={{ opacity: 0 }}
+            animate={open ? { opacity: 1 } : { opacity: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-xs font-bold tracking-widest text-[#004741]/50 uppercase"
+          >
             Menu
-          </h2>
-          {["Home", "About", "Services", "Contact"].map((item) => (
-            <a
+          </motion.h2>
+          {NAV_ITEMS.map((item, i) => (
+            <motion.div
               key={item}
-              className="text-[#004741] text-lg font-semibold hover:text-[#F59E0B] hover:translate-x-2 active:scale-98 transition-all duration-200"
-              href="#"
+              initial={{ opacity: 0, x: -24 }}
+              animate={open ? { opacity: 1, x: 0 } : { opacity: 0, x: -24 }}
+              transition={{ delay: open ? 0.12 + i * 0.06 : 0, duration: 0.4, ease: EASE }}
             >
-              {item}
-            </a>
+              <NavLink
+                to={item === "Home" ? "/" : `/${item.toLowerCase()}`}
+                className={({ isActive }) =>
+                  `block text-lg font-semibold transition-all duration-200 active:scale-98 ${
+                    isActive
+                      ? "text-[#F59E0B] translate-x-2"
+                      : "text-[#004741] hover:text-[#F59E0B] hover:translate-x-2"
+                  }`
+                }
+              >
+                {item}
+              </NavLink>
+            </motion.div>
           ))}
         </div>
 
-        <div>
-          <button className="w-full bg-[#004741] hover:bg-[#003530] active:scale-95 cursor-pointer py-3 rounded-xl text-white font-bold shadow-md hover:shadow-lg transition-all duration-200">
-            Login
-          </button>
-        </div>
-      </aside>
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={open ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
+          transition={{ delay: open ? 0.4 : 0, duration: 0.4, ease: EASE }}
+          className="space-y-3"
+        >
+          <Link
+            to="/signup"
+            className="block w-full bg-[#004741] hover:bg-[#003530] active:scale-95 cursor-pointer py-3 rounded-xl text-white text-center font-bold shadow-md hover:shadow-lg transition-all duration-200"
+          >
+            Get Started Free
+          </Link>
+          <p className="text-center text-xs text-slate-400">Free for 1 property · No credit card</p>
+        </motion.div>
+      </motion.aside>
     </>
   );
 }
