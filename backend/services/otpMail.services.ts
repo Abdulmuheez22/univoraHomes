@@ -11,7 +11,7 @@ try {
     to: userEmail, // list of recipients
     subject: "OTP VERIFICATION", // subject line
     text: 'Your verification code is: ${otp}', // plain text body
-    html: '<b>Your verification code is: ${otp}</b>', // HTML body
+    html: `<b>Your verification code is: ${otp}</b>`, // HTML body
   });
 
   console.log("Message sent: %s", info.messageId);

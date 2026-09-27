@@ -36,7 +36,7 @@ app.use(express.json())
 app.use(cors({ origin: frontendUrl, credentials: true}))
 app.use(showReqMethod)
 app.use("/createUser", user)
-app.use("/verifyOtp", verifyOtp)
+app.use("/user", verifyOtp)
 
 
 app.listen(port, () => {

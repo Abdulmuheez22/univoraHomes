@@ -70,8 +70,10 @@ export const verifyOtp = async (req: any, res: any) => {
   try {
     const validateOtpData = otpValidator.safeParse(req.body);
     if (!validateOtpData.success) {
+      console.log(validateOtpData.error)
       return res.status(400).json({ message: "Error validating otp" });
     }
+    console.log(validateOtpData.data)
 
     const validatedEmail = validateOtpData.data.email;
     const validatedOtp = validateOtpData.data.otp;
@@ -103,7 +105,7 @@ export const verifyOtp = async (req: any, res: any) => {
     const checkOtp = await confrimHashPassword(validatedOtp, user.otp);
 
     if (!checkOtp) {
-      return res.status(400).json({ message: "Incorrect OTP" });
+      return res.status(400).json({ message: false });
     }
 
     await db
@@ -111,7 +113,15 @@ export const verifyOtp = async (req: any, res: any) => {
       .set({ isVerified: true, otp: null, otpExpiry: null })
       .where(eq(usersTable.email, user.email));
 
-    return res.status(200).json({ message: "Suceess" });
+
+  const jwtUser: object = {
+    "id": user.id,
+    "role": user.role 
+  }
+
+  const token = tokenGenerator(jwtUser, env.jwtSecret)
+
+    return res.status(200).json({ message: true , "token": token});
   } catch (error) {
     console.log("this error is from the verifyOtp catch: ", error);
     return res.status(500).json({ "Verification OTP Error": error });

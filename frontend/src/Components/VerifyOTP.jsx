@@ -1,15 +1,50 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import {
-  Home, MailCheck, ShieldCheck, RotateCcw,
-  CheckCircle2, ArrowRight, KeyRound,
+  Home,
+  MailCheck,
+  ShieldCheck,
+  RotateCcw,
+  CheckCircle2,
+  ArrowRight,
+  KeyRound,
 } from "lucide-react";
 
 const EASE = [0.22, 1, 0.36, 1];
 const OTP_LENGTH = 6;
 const RESEND_SECONDS = 60;
+import { useMutation } from "@tanstack/react-query";
+import { verifyOtp } from "../lib/services/auth.service";
+import { useLocation } from "react-router-dom";
 
-export default function VerifyOTP({ email = "john@example.com", onVerify, onResend }) {
+export default function VerifyOTP({ onResend }) {
+  const { state } = useLocation();
+  const email = state?.email;
+
+  if (!email) {
+    return <div>No email provided. Please go back and try again.</div>;
+  }
+
+  const { mutateAsync, isLoading, isError } = useMutation({
+    mutationFn: verifyOtp,
+    onSuccess: (data) => {
+      console.log("server response: ", data);
+    },
+    onError: (error) => {
+      // console.log("something went wrong fecthing from the db: ", error);
+    },
+  });
+
+  const onVerify = async (code) => {
+    try {
+      const data = await mutateAsync({ email, otp: code });
+      return data?.message === true;
+    } catch (error) {
+      // console.log("something went wrong:", error);
+      return false;
+    }
+  };
+
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-60px" });
   const inputsRef = useRef([]);
@@ -30,23 +65,26 @@ export default function VerifyOTP({ email = "john@example.com", onVerify, onRese
     inputsRef.current[0]?.focus();
   }, []);
 
-  const verify = useCallback(async (code) => {
-    setStatus("loading");
-    setError(false);
-    const ok = await onVerify?.(code);
-    setTimeout(() => {
-      if (ok === false) {
-        setStatus("idle");
-        setError(true);
-        setOtp(Array(OTP_LENGTH).fill(""));
-        setActive(0);
-        inputsRef.current[0]?.focus();
-        setTimeout(() => setError(false), 600);
-      } else {
-        setStatus("done");
-      }
-    }, 1400);
-  }, [onVerify]);
+  const verify = useCallback(
+    async (code) => {
+      setStatus("loading");
+      setError(false);
+      const ok = await onVerify?.(code);
+      setTimeout(() => {
+        if (ok === false) {
+          setStatus("idle");
+          setError(true);
+          setOtp(Array(OTP_LENGTH).fill(""));
+          setActive(0);
+          inputsRef.current[0]?.focus();
+          setTimeout(() => setError(false), 600);
+        } else {
+          setStatus("done");
+        }
+      }, 1400);
+    },
+    [onVerify],
+  );
 
   const setDigit = (i, val) => {
     const digit = val.replace(/\D/g, "").slice(-1);
@@ -68,11 +106,19 @@ export default function VerifyOTP({ email = "john@example.com", onVerify, onRese
     if (e.key === "Backspace") {
       e.preventDefault();
       if (otp[i]) {
-        setOtp((prev) => { const next = [...prev]; next[i] = ""; return next; });
+        setOtp((prev) => {
+          const next = [...prev];
+          next[i] = "";
+          return next;
+        });
       } else if (i > 0) {
         setActive(i - 1);
         inputsRef.current[i - 1]?.focus();
-        setOtp((prev) => { const next = [...prev]; next[i - 1] = ""; return next; });
+        setOtp((prev) => {
+          const next = [...prev];
+          next[i - 1] = "";
+          return next;
+        });
       }
     } else if (e.key === "ArrowLeft" && i > 0) {
       setActive(i - 1);
@@ -85,10 +131,15 @@ export default function VerifyOTP({ email = "john@example.com", onVerify, onRese
 
   const handlePaste = (e) => {
     e.preventDefault();
-    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, OTP_LENGTH);
+    const pasted = e.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, OTP_LENGTH);
     if (!pasted) return;
     const next = Array(OTP_LENGTH).fill("");
-    pasted.split("").forEach((d, idx) => { next[idx] = d; });
+    pasted.split("").forEach((d, idx) => {
+      next[idx] = d;
+    });
     setOtp(next);
     const last = Math.min(pasted.length, OTP_LENGTH - 1);
     setActive(last);
@@ -98,7 +149,15 @@ export default function VerifyOTP({ email = "john@example.com", onVerify, onRese
 
   useEffect(() => {
     const code = otp.join("");
-    if (code.length === OTP_LENGTH && otp.every((d) => d !== "") && status === "idle") {
+    if (
+      code.length === OTP_LENGTH &&
+      otp.every((d) => d !== "") &&
+      status === "idle"
+    ) {
+      const otpData = {
+        email: email,
+        otp: code,
+      };
       verify(code);
     }
   }, [otp, status, verify]);
@@ -129,7 +188,11 @@ export default function VerifyOTP({ email = "john@example.com", onVerify, onRese
         />
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.04]"
-          style={{ backgroundImage: "radial-gradient(circle, #ffffff 1px, transparent 1px)", backgroundSize: "32px 32px" }}
+          style={{
+            backgroundImage:
+              "radial-gradient(circle, #ffffff 1px, transparent 1px)",
+            backgroundSize: "32px 32px",
+          }}
         />
 
         <a href="#" className="relative z-10 flex w-fit items-center gap-2.5">
@@ -165,7 +228,8 @@ export default function VerifyOTP({ email = "john@example.com", onVerify, onRese
             transition={{ delay: 0.6, duration: 0.6 }}
             className="mt-4 max-w-sm text-white/60"
           >
-            We sent a 6-digit code to your inbox. Enter it here and your dashboard unlocks instantly.
+            We sent a 6-digit code to your inbox. Enter it here and your
+            dashboard unlocks instantly.
           </motion.p>
         </div>
 
@@ -177,12 +241,17 @@ export default function VerifyOTP({ email = "john@example.com", onVerify, onRese
         >
           <ShieldCheck className="h-8 w-8 flex-shrink-0 text-[#F59E0B]" />
           <p className="text-sm text-white/70">
-            Codes expire in <span className="font-bold text-white">10 minutes</span> and can only be used once.
+            Codes expire in{" "}
+            <span className="font-bold text-white">10 minutes</span> and can
+            only be used once.
           </p>
         </motion.div>
       </aside>
 
-      <main ref={ref} className="flex flex-1 items-center justify-center px-6 py-12 sm:px-10">
+      <main
+        ref={ref}
+        className="flex flex-1 items-center justify-center px-6 py-12 sm:px-10"
+      >
         <div className="w-full max-w-md">
           <AnimatePresence mode="wait">
             {status === "done" ? (
@@ -196,7 +265,12 @@ export default function VerifyOTP({ email = "john@example.com", onVerify, onRese
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  transition={{ delay: 0.15, type: "spring", stiffness: 280, damping: 16 }}
+                  transition={{
+                    delay: 0.15,
+                    type: "spring",
+                    stiffness: 280,
+                    damping: 16,
+                  }}
                   className="flex h-20 w-20 items-center justify-center rounded-full bg-[#004741]/10"
                 >
                   <CheckCircle2 className="h-10 w-10 text-[#004741]" />
@@ -204,21 +278,38 @@ export default function VerifyOTP({ email = "john@example.com", onVerify, onRese
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  transition={{ delay: 0.35, type: "spring", stiffness: 300, damping: 14 }}
+                  transition={{
+                    delay: 0.35,
+                    type: "spring",
+                    stiffness: 300,
+                    damping: 14,
+                  }}
                   className="-mt-14 ml-14 flex h-8 w-8 items-center justify-center rounded-full bg-[#F59E0B] shadow-lg"
                 >
                   <motion.svg
                     initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
                     transition={{ delay: 0.45, duration: 0.4 }}
-                    width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
                   >
-                    <path d="M5 13l4 4L19 7" stroke="#004741" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                    <path
+                      d="M5 13l4 4L19 7"
+                      stroke="#004741"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </motion.svg>
                 </motion.div>
-                <h1 className="text-3xl font-bold text-slate-900">You're verified!</h1>
+                <h1 className="text-3xl font-bold text-slate-900">
+                  You're verified!
+                </h1>
                 <p className="max-w-sm text-sm leading-relaxed text-slate-500">
-                  Your email is confirmed. Welcome to a calmer way to manage property.
+                  Your email is confirmed. Welcome to a calmer way to manage
+                  property.
                 </p>
                 <motion.a
                   href="/dashboard"
@@ -231,15 +322,26 @@ export default function VerifyOTP({ email = "john@example.com", onVerify, onRese
                 </motion.a>
               </motion.div>
             ) : (
-              <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, y: -16 }}>
+              <motion.div
+                key="form"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, y: -16 }}
+              >
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={inView ? { opacity: 1, y: 0 } : {}}
                   transition={{ duration: 0.6, ease: EASE }}
                 >
-                  <a href="#" className="mb-8 flex w-fit items-center gap-2 lg:hidden">
+                  <a
+                    href="#"
+                    className="mb-8 flex w-fit items-center gap-2 lg:hidden"
+                  >
                     <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#004741]">
-                      <Home className="h-4 w-4 text-[#F59E0B]" strokeWidth={2.5} />
+                      <Home
+                        className="h-4 w-4 text-[#F59E0B]"
+                        strokeWidth={2.5}
+                      />
                     </span>
                     <span className="text-lg font-extrabold text-slate-900">
                       Univora<span className="text-[#004741]"> Homes</span>
@@ -248,10 +350,14 @@ export default function VerifyOTP({ email = "john@example.com", onVerify, onRese
                   <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#004741]/10 lg:hidden">
                     <MailCheck className="h-7 w-7 text-[#004741]" />
                   </div>
-                  <h1 className="text-3xl font-bold tracking-tight text-slate-900">Check your inbox</h1>
+                  <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+                    Check your inbox
+                  </h1>
                   <p className="mt-2 text-sm leading-relaxed text-slate-500">
                     We sent a 6-digit verification code to{" "}
-                    <span className="font-semibold text-slate-700">{email}</span>
+                    <span className="font-semibold text-slate-700">
+                      {email}
+                    </span>
                   </p>
                 </motion.div>
 
@@ -262,7 +368,9 @@ export default function VerifyOTP({ email = "john@example.com", onVerify, onRese
                   className="mt-10"
                 >
                   <motion.div
-                    animate={error ? { x: [0, -12, 12, -8, 8, -4, 4, 0] } : { x: 0 }}
+                    animate={
+                      error ? { x: [0, -12, 12, -8, 8, -4, 4, 0] } : { x: 0 }
+                    }
                     transition={{ duration: 0.5 }}
                     className="flex justify-between gap-2 sm:gap-3"
                   >
@@ -274,13 +382,23 @@ export default function VerifyOTP({ email = "john@example.com", onVerify, onRese
                               ? { scale: [1, 1.08, 1] }
                               : { scale: 1 }
                           }
-                          transition={{ duration: 0.9, repeat: active === i ? Infinity : 0 }}
+                          transition={{
+                            duration: 0.9,
+                            repeat: active === i ? Infinity : 0,
+                          }}
                           className="absolute inset-0 rounded-xl"
                           style={{
                             border: `2px solid ${
-                              error ? "#ef4444" : active === i ? "#004741" : "#e2e8f0"
+                              error
+                                ? "#ef4444"
+                                : active === i
+                                  ? "#004741"
+                                  : "#e2e8f0"
                             }`,
-                            boxShadow: active === i ? "0 0 0 4px rgba(0,71,65,0.08)" : "none",
+                            boxShadow:
+                              active === i
+                                ? "0 0 0 4px rgba(0,71,65,0.08)"
+                                : "none",
                           }}
                         />
                         <input
@@ -339,7 +457,11 @@ export default function VerifyOTP({ email = "john@example.com", onVerify, onRese
                       <p className="flex items-center justify-center gap-2 text-sm font-medium text-slate-500">
                         <motion.span
                           animate={{ rotate: 360 }}
-                          transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+                          transition={{
+                            duration: 0.8,
+                            repeat: Infinity,
+                            ease: "linear",
+                          }}
                           className="h-4 w-4 rounded-full border-2 border-[#004741]/20 border-t-[#004741]"
                         />
                         Verifying your code...
@@ -372,7 +494,10 @@ export default function VerifyOTP({ email = "john@example.com", onVerify, onRese
                   >
                     <ShieldCheck className="h-4 w-4 text-[#004741]" />
                     Wrong email?{" "}
-                    <a href="/signup" className="font-semibold text-[#004741] underline-offset-2 hover:underline">
+                    <a
+                      href="/signup"
+                      className="font-semibold text-[#004741] underline-offset-2 hover:underline"
+                    >
                       Go back and fix it
                     </a>
                   </motion.p>
