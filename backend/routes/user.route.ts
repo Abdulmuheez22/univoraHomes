@@ -8,14 +8,15 @@
 
 
 import { Router } from "express";
-import { verifyOtp, signUp } from "../controller/user.controller";
+import { verifyOtp, signUp, signIn } from "../controller/user.controller";
 
 
-const user = Router();
+const auth = Router();
 
 
-user.post("/signUp", signUp)
-user.post("/verifyOtp", verifyOtp)
+auth.post("/signUp", signUp)
+auth.post("/signIn", signIn)
+auth.post("/verifyOtp", verifyOtp)
 
 
-export default user
+export default auth

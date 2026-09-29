@@ -1,0 +1,840 @@
+import { useEffect, useRef, useState } from "react";
+import {
+  motion,
+  useInView,
+  useSpring,
+  useMotionValue,
+  AnimatePresence,
+} from "framer-motion";
+import {
+  Building2,
+  Layers,
+  CheckCircle2,
+  DoorOpen,
+  Wallet,
+  AlertCircle,
+  Home,
+  LayoutDashboard,
+  Users,
+  Wrench,
+  FileText,
+  Settings,
+  LogOut,
+  Bell,
+  Search,
+  Plus,
+  ChevronRight,
+  TrendingUp,
+  TrendingDown,
+  Clock,
+  CalendarClock,
+  CreditCard,
+  MoreHorizontal,
+  X,
+  ArrowUpRight,
+} from "lucide-react";
+import { Link } from "react-router-dom";
+import { populateDashboard } from "../../lib/services/auth.service";
+
+const EASE = [0.22, 1, 0.36, 1];
+
+const STATS = [
+  {
+    label: "Total Properties",
+    value: 12,
+    icon: Building2,
+    accent: "#004741",
+    delta: "+2",
+    up: true,
+  },
+  {
+    label: "Total Units",
+    value: 28,
+    icon: Layers,
+    accent: "#0F766E",
+    delta: "+4",
+    up: true,
+  },
+  {
+    label: "Occupied Units",
+    value: 24,
+    icon: CheckCircle2,
+    accent: "#004741",
+    delta: "86%",
+    up: true,
+    suffix: "",
+  },
+  {
+    label: "Vacant Units",
+    value: 4,
+    icon: DoorOpen,
+    accent: "#F59E0B",
+    delta: "3 in Lekki",
+    up: false,
+  },
+  {
+    label: "Rent Collected This Month",
+    value: 1850000,
+    icon: Wallet,
+    accent: "#004741",
+    money: true,
+    delta: "+12.4%",
+    up: true,
+  },
+  {
+    label: "Overdue Payments",
+    value: 3,
+    icon: AlertCircle,
+    accent: "#DC2626",
+    delta: "-₦450k",
+    up: false,
+  },
+];
+
+const PAYMENTS = [
+  {
+    tenant: "Adaeze Okonkwo",
+    unit: "Flat 4B, Lekki Phase 1",
+    amount: 450000,
+    date: "Today, 9:41 AM",
+    status: "Paid",
+  },
+  {
+    tenant: "Ibrahim Musa",
+    unit: "Unit 2, Yaba",
+    amount: 320000,
+    date: "Yesterday",
+    status: "Paid",
+  },
+  {
+    tenant: "Chinedu Eze",
+    unit: "Duplex A, V.I",
+    amount: 850000,
+    date: "2 days ago",
+    status: "Paid",
+  },
+  {
+    tenant: "Blessing Adeyemi",
+    unit: "Flat 1C, Ikeja",
+    amount: 280000,
+    date: "3 days ago",
+    status: "Partial",
+  },
+  {
+    tenant: "Tunde Balogun",
+    unit: "Unit 5, Surulere",
+    amount: 300000,
+    date: "5 days ago",
+    status: "Paid",
+  },
+];
+
+const MAINTENANCE = [
+  {
+    title: "Leaking kitchen sink",
+    unit: "Flat 4B, Lekki",
+    priority: "High",
+    time: "2h ago",
+  },
+  {
+    title: "AC not cooling",
+    unit: "Unit 2, Yaba",
+    priority: "Medium",
+    time: "5h ago",
+  },
+  {
+    title: "Broken corridor light",
+    unit: "Flat 1C, Ikeja",
+    priority: "Low",
+    time: "1d ago",
+  },
+  {
+    title: "Water heater fault",
+    unit: "Duplex A, V.I",
+    priority: "High",
+    time: "1d ago",
+  },
+];
+
+const EXPIRING = [
+  { tenant: "Ngozi Nwosu", unit: "Flat 2A, Lekki", days: 5, amount: 450000 },
+  { tenant: "Emeka Obi", unit: "Unit 3, Yaba", days: 12, amount: 320000 },
+  { tenant: "Fatima Bello", unit: "Flat 6D, Ikeja", days: 19, amount: 280000 },
+  { tenant: "Kunle Alabi", unit: "Unit 1, Surulere", days: 27, amount: 300000 },
+];
+
+const CHART = [62, 78, 55, 91, 70, 100];
+
+const ACTIONS = [
+  {
+    icon: Building2,
+    label: "Add New Property",
+    desc: "List a new building",
+    color: "#004741",
+  },
+  {
+    icon: Users,
+    label: "Add Tenant",
+    desc: "Onboard a tenant",
+    color: "#0F766E",
+  },
+  {
+    icon: CreditCard,
+    label: "Record Payment",
+    desc: "Log a rent payment",
+    color: "#F59E0B",
+  },
+  {
+    icon: Wrench,
+    label: "All Maintenance",
+    desc: "View every request",
+    color: "#DC2626",
+  },
+];
+
+const PRIORITY = {
+  High: "bg-red-100 text-red-700",
+  Medium: "bg-amber-100 text-amber-700",
+  Low: "bg-slate-100 text-slate-500",
+};
+
+const naira = (n) => "₦" + n.toLocaleString("en-NG");
+
+function useCountUp(target, start, duration = 1400) {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    if (!start) return;
+    let raf;
+    const t0 = performance.now();
+    const tick = (now) => {
+      const p = Math.min((now - t0) / duration, 1);
+      setValue(Math.round(target * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, start, duration]);
+  return value;
+}
+
+function StatCard({ stat, index }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: "-40px" });
+  const [hovered, setHovered] = useState(false);
+  const value = useCountUp(stat.value, inView);
+  const Icon = stat.icon;
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 28 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ delay: index * 0.07, duration: 0.6, ease: EASE }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="group relative cursor-default overflow-hidden rounded-2xl border border-slate-100 bg-white p-5 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]"
+    >
+      <motion.div
+        animate={{ opacity: hovered ? 1 : 0 }}
+        transition={{ duration: 0.3 }}
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: `radial-gradient(240px circle at 80% 0%, ${stat.accent}0d, transparent 70%)`,
+        }}
+      />
+      <div className="relative flex items-start justify-between">
+        <motion.span
+          animate={
+            hovered ? { rotate: -8, scale: 1.1 } : { rotate: 0, scale: 1 }
+          }
+          transition={{ type: "spring", stiffness: 320, damping: 15 }}
+          className="flex h-10 w-10 items-center justify-center rounded-xl"
+          style={{ background: `${stat.accent}14`, color: stat.accent }}
+        >
+          <Icon className="h-5 w-5" />
+        </motion.span>
+        <span
+          className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${stat.up ? "bg-green-50 text-green-600" : "bg-slate-50 text-slate-500"}`}
+        >
+          {stat.up ? (
+            <TrendingUp className="h-3 w-3" />
+          ) : (
+            <TrendingDown className="h-3 w-3" />
+          )}
+          {stat.delta}
+        </span>
+      </div>
+      <p className="relative mt-4 text-2xl font-extrabold tabular-nums tracking-tight text-slate-900">
+        {stat.money ? naira(value) : value.toLocaleString()}
+      </p>
+      <p className="relative mt-0.5 text-xs font-medium text-slate-500">
+        {stat.label}
+      </p>
+    </motion.div>
+  );
+}
+
+function ChartCard() {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: "-40px" });
+  const months = ["Apr", "May", "Jun", "Jul", "Aug", "Sep"];
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 28 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ delay: 0.2, duration: 0.6, ease: EASE }}
+      className="rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]"
+    >
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h3 className="font-bold text-slate-900">Rent Collection</h3>
+          <p className="text-xs text-slate-400">Last 6 months</p>
+        </div>
+        <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-green-600">
+          +18% vs last month
+        </span>
+      </div>
+      <div className="flex h-36 items-end gap-3 sm:gap-4">
+        {CHART.map((h, i) => (
+          <div
+            key={i}
+            className="group flex flex-1 flex-col items-center gap-2"
+          >
+            <motion.div
+              initial={{ height: 0 }}
+              animate={inView ? { height: `${h}%` } : {}}
+              transition={{ delay: 0.3 + i * 0.08, duration: 0.7, ease: EASE }}
+              className={`relative w-full rounded-t-lg transition-colors duration-300 ${
+                i === CHART.length - 1
+                  ? "bg-gradient-to-t from-[#004741] to-[#0F766E]"
+                  : "bg-slate-100 group-hover:bg-[#004741]/20"
+              }`}
+            >
+              {i === CHART.length - 1 && (
+                <motion.span
+                  animate={{ opacity: [0.4, 1, 0.4] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="absolute -top-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rounded-full bg-[#F59E0B] shadow-[0_0_12px_3px_rgba(245,158,11,0.5)]"
+                />
+              )}
+            </motion.div>
+            <span className="text-[11px] font-medium text-slate-400">
+              {months[i]}
+            </span>
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+function SectionHeader({ title, action, onAction }) {
+  return (
+    <div className="mb-4 flex items-center justify-between">
+      <h3 className="font-bold text-slate-900">{title}</h3>
+      <button
+        onClick={onAction}
+        className="group flex items-center gap-1 text-xs font-semibold text-[#004741] hover:text-[#F59E0B] transition-colors"
+      >
+        {action}
+        <ChevronRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
+      </button>
+    </div>
+  );
+}
+
+function Avatar({ name }) {
+  const initials = name
+    .split(" ")
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+  const colors = ["#004741", "#0F766E", "#F59E0B", "#7C3AED"];
+  const color = colors[name.length % colors.length];
+  return (
+    <span
+      className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+      style={{ background: color }}
+    >
+      {initials}
+    </span>
+  );
+}
+
+const STATUS = {
+  Paid: "text-green-600",
+  Partial: "text-amber-600",
+};
+
+export default function LandlordDashboard() {
+  useEffect(() => {
+    populateDashboard();
+  }, []);
+
+  const MotionLink = motion(Link);
+
+  const [sidebar, setSidebar] = useState(false);
+  const [toast, setToast] = useState(null);
+  const mainRef = useRef(null);
+  const inView = useInView(mainRef, { once: true, margin: "-40px" });
+
+  const notify = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2800);
+  };
+
+  const NAV = [
+    { icon: LayoutDashboard, label: "Dashboard", active: true },
+    { icon: Building2, label: "Properties", active: false },
+    { icon: Users, label: "Tenants", active: false },
+    { icon: Wallet, label: "Payments", active: false },
+    { icon: Wrench, label: "Maintenance", badge: 4, active: false },
+    { icon: FileText, label: "Documents", active: false },
+    { icon: Settings, label: "Settings", active: false },
+  ];
+
+  return (
+    <div className="flex min-h-screen bg-[#f7f5f0]">
+      <motion.aside
+        animate={{ width: sidebar ? 240 : 76 }}
+        transition={{ duration: 0.35, ease: EASE }}
+        onMouseEnter={() => setSidebar(true)}
+        onMouseLeave={() => setSidebar(false)}
+        className="sticky top-0 z-40 hidden h-screen flex-col bg-[#00332F] py-6 md:flex"
+      >
+        <div className="mb-8 flex items-center gap-3 px-5">
+          <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#F59E0B]">
+            <Home className="h-5 w-5 text-[#004741]" strokeWidth={2.5} />
+          </span>
+          <AnimatePresence>
+            {sidebar && (
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="whitespace-nowrap text-lg font-extrabold text-white"
+              >
+                Univora<span className="text-[#F59E0B]"> Homes</span>
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </div>
+        <nav className="flex-1 space-y-1 px-3">
+          {NAV.map((n) => (
+            <button
+              key={n.label}
+              className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-colors duration-200 ${
+                n.active
+                  ? "bg-[#F59E0B] text-[#004741]"
+                  : "text-white/60 hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              <n.icon className="h-5 w-5 flex-shrink-0" />
+              <AnimatePresence>
+                {sidebar && (
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="flex-1 whitespace-nowrap text-left"
+                  >
+                    {n.label}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+              {n.badge && (
+                <span
+                  className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                    n.active
+                      ? "bg-[#004741] text-white"
+                      : "bg-red-500 text-white"
+                  }`}
+                >
+                  {n.badge}
+                </span>
+              )}
+            </button>
+          ))}
+        </nav>
+        <div className="px-3">
+          <button className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-white/60 transition-colors hover:bg-white/5 hover:text-white">
+            <LogOut className="h-5 w-5 flex-shrink-0" />
+            {sidebar && <span>Sign out</span>}
+          </button>
+        </div>
+      </motion.aside>
+
+      <div className="flex-1">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-slate-100 bg-white/80 px-5 backdrop-blur-md lg:px-8">
+          <div>
+            <p className="text-[11px] font-medium text-slate-400">
+              Good morning,
+            </p>
+            <h1 className="-mt-0.5 text-sm font-bold text-slate-900">
+              Adaeze Okonkwo
+            </h1>
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            <div className="relative hidden sm:block">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                placeholder="Search tenants, units..."
+                className="h-10 w-56 rounded-xl border border-slate-200 bg-slate-50/60 pl-10 pr-4 text-sm outline-none transition-all duration-300 focus:border-[#004741] focus:bg-white focus:ring-4 focus:ring-[#004741]/10 lg:w-72"
+              />
+            </div>
+            <button className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:text-[#004741]">
+              <Bell className="h-4.5 w-4.5" />
+              <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-[#F59E0B] ring-2 ring-white" />
+            </button>
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#004741] text-xs font-bold text-white">
+              AO
+            </span>
+          </div>
+        </header>
+
+        <main ref={mainRef} className="space-y-6 p-5 lg:p-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6, ease: EASE }}
+            className="flex flex-wrap items-center justify-between gap-4"
+          >
+            <div>
+              <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">
+                Dashboard
+              </h2>
+              <p className="mt-0.5 text-sm text-slate-500">
+                Here's what's happening across your portfolio today.
+              </p>
+            </div>
+            <MotionLink
+              to="/addproperty"
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => notify("Add Property flow coming right up")}
+              className="flex items-center gap-2 rounded-xl bg-[#004741] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-[#004741]/25"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2.5} />
+              Add New Property
+            </MotionLink>
+          </motion.div>
+
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
+            {STATS.map((s, i) => (
+              <StatCard key={s.label} stat={s} index={i} />
+            ))}
+          </div>
+
+          <div className="grid gap-6 xl:grid-cols-3">
+            <div className="xl:col-span-2">
+              <ChartCard />
+            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 28 }}
+              animate={inView ? { opacity: 1, y: 0 } : {}}
+              transition={{ delay: 0.25, duration: 0.6, ease: EASE }}
+              className="rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]"
+            >
+              <SectionHeader
+                title="Occupancy"
+                action="View units"
+                onAction={() => notify("Units view")}
+              />
+              {[
+                { label: "Occupied", value: 24, total: 28, color: "#004741" },
+                { label: "Vacant", value: 4, total: 28, color: "#F59E0B" },
+                { label: "Overdue", value: 3, total: 28, color: "#DC2626" },
+              ].map((r, i) => (
+                <div key={r.label} className="mb-4 last:mb-0">
+                  <div className="mb-1.5 flex justify-between text-xs font-semibold">
+                    <span className="text-slate-500">{r.label}</span>
+                    <span className="text-slate-900">{r.value} units</span>
+                  </div>
+                  <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={
+                        inView ? { width: `${(r.value / r.total) * 100}%` } : {}
+                      }
+                      transition={{
+                        delay: 0.4 + i * 0.12,
+                        duration: 0.8,
+                        ease: EASE,
+                      }}
+                      className="h-full rounded-full"
+                      style={{ background: r.color }}
+                    />
+                  </div>
+                </div>
+              ))}
+              <div className="mt-5 rounded-xl bg-[#f7f5f0] p-4">
+                <p className="text-xs text-slate-500">
+                  Monthly recurring income
+                </p>
+                <p className="text-xl font-extrabold tabular-nums text-[#004741]">
+                  {naira(2480000)}
+                </p>
+              </div>
+            </motion.div>
+          </div>
+
+          <div className="grid gap-6 xl:grid-cols-3">
+            <motion.div
+              initial={{ opacity: 0, y: 28 }}
+              animate={inView ? { opacity: 1, y: 0 } : {}}
+              transition={{ delay: 0.15, duration: 0.6, ease: EASE }}
+              className="rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]"
+            >
+              <SectionHeader
+                title="Recent Payments"
+                action="View all"
+                onAction={() => notify("All payments")}
+              />
+              <div className="space-y-1">
+                {PAYMENTS.map((p, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -16 }}
+                    animate={inView ? { opacity: 1, x: 0 } : {}}
+                    transition={{
+                      delay: 0.3 + i * 0.08,
+                      duration: 0.5,
+                      ease: EASE,
+                    }}
+                    whileHover={{ x: 4, backgroundColor: "#f7f5f0" }}
+                    className="flex cursor-pointer items-center gap-3 rounded-xl p-2.5 transition-colors duration-200"
+                  >
+                    <Avatar name={p.tenant} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-900">
+                        {p.tenant}
+                      </p>
+                      <p className="truncate text-xs text-slate-400">
+                        {p.unit}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p
+                        className={`text-sm font-bold tabular-nums ${STATUS[p.status]}`}
+                      >
+                        +{naira(p.amount)}
+                      </p>
+                      <p className="text-[11px] text-slate-400">{p.date}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 28 }}
+              animate={inView ? { opacity: 1, y: 0 } : {}}
+              transition={{ delay: 0.2, duration: 0.6, ease: EASE }}
+              className="rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]"
+            >
+              <SectionHeader
+                title="Pending Maintenance"
+                action="View all"
+                onAction={() => notify("All maintenance requests")}
+              />
+              <div className="space-y-3">
+                {MAINTENANCE.map((m, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -16 }}
+                    animate={inView ? { opacity: 1, x: 0 } : {}}
+                    transition={{
+                      delay: 0.35 + i * 0.08,
+                      duration: 0.5,
+                      ease: EASE,
+                    }}
+                    whileHover={{ x: 4 }}
+                    className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-100 p-3.5 transition-colors duration-200 hover:border-[#004741]/20 hover:bg-slate-50/60"
+                  >
+                    <span
+                      className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${PRIORITY[m.priority]}`}
+                    >
+                      <Wrench className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-900">
+                        {m.title}
+                      </p>
+                      <p className="flex items-center gap-1 text-xs text-slate-400">
+                        <Clock className="h-3 w-3" /> {m.unit} · {m.time}
+                      </p>
+                    </div>
+                    <span
+                      className={`rounded-full px-2 py-1 text-[10px] font-bold ${PRIORITY[m.priority]}`}
+                    >
+                      {m.priority}
+                    </span>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 28 }}
+              animate={inView ? { opacity: 1, y: 0 } : {}}
+              transition={{ delay: 0.25, duration: 0.6, ease: EASE }}
+              className="rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]"
+            >
+              <SectionHeader
+                title="Expiring Rent Soon"
+                action="v2"
+                onAction={() => {}}
+              />
+              <div className="space-y-3">
+                {EXPIRING.map((e, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -16 }}
+                    animate={inView ? { opacity: 1, x: 0 } : {}}
+                    transition={{
+                      delay: 0.4 + i * 0.08,
+                      duration: 0.5,
+                      ease: EASE,
+                    }}
+                    whileHover={{ x: 4 }}
+                    className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-100 p-3.5 transition-colors duration-200 hover:border-[#F59E0B]/30 hover:bg-amber-50/40"
+                  >
+                    <div className="relative flex h-11 w-11 flex-shrink-0 items-center justify-center">
+                      <svg
+                        className="absolute inset-0 h-full w-full -rotate-90"
+                        viewBox="0 0 44 44"
+                      >
+                        <circle
+                          cx="22"
+                          cy="22"
+                          r="19"
+                          fill="none"
+                          stroke="#f1f5f9"
+                          strokeWidth="4"
+                        />
+                        <motion.circle
+                          cx="22"
+                          cy="22"
+                          r="19"
+                          fill="none"
+                          stroke={
+                            e.days <= 7
+                              ? "#DC2626"
+                              : e.days <= 14
+                                ? "#F59E0B"
+                                : "#0F766E"
+                          }
+                          strokeWidth="4"
+                          strokeLinecap="round"
+                          strokeDasharray={119.4}
+                          initial={{ strokeDashoffset: 119.4 }}
+                          animate={
+                            inView
+                              ? { strokeDashoffset: 119.4 * (1 - e.days / 30) }
+                              : {}
+                          }
+                          transition={{
+                            delay: 0.5 + i * 0.1,
+                            duration: 0.9,
+                            ease: EASE,
+                          }}
+                        />
+                      </svg>
+                      <span
+                        className={`text-[11px] font-extrabold tabular-nums ${e.days <= 7 ? "text-red-600" : e.days <= 14 ? "text-amber-600" : "text-teal-700"}`}
+                      >
+                        {e.days}d
+                      </span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-900">
+                        {e.tenant}
+                      </p>
+                      <p className="truncate text-xs text-slate-400">
+                        {e.unit}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold tabular-nums text-slate-900">
+                        {naira(e.amount)}
+                      </p>
+                      <p className="text-[11px] text-slate-400">
+                        due in {e.days} days
+                      </p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 28 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ delay: 0.35, duration: 0.6, ease: EASE }}
+            className="grid grid-cols-2 gap-4 lg:grid-cols-4"
+          >
+            {ACTIONS.map((a, i) => (
+              <motion.button
+                key={a.label}
+                initial={{ opacity: 0, scale: 0.92 }}
+                animate={inView ? { opacity: 1, scale: 1 } : {}}
+                transition={{
+                  delay: 0.45 + i * 0.08,
+                  duration: 0.5,
+                  ease: EASE,
+                }}
+                whileHover={{ y: -5 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => notify(`${a.label} — coming up`)}
+                className="group relative flex flex-col items-start gap-3 overflow-hidden rounded-2xl border border-slate-100 bg-white p-5 text-left shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]"
+              >
+                <motion.span
+                  className="absolute left-0 top-0 h-1 w-full origin-left scale-x-0"
+                  style={{ background: a.color }}
+                  whileHover={{ scaleX: 1 }}
+                  transition={{ duration: 0.35, ease: EASE }}
+                />
+                <span
+                  className="flex h-11 w-11 items-center justify-center rounded-xl"
+                  style={{ background: `${a.color}14`, color: a.color }}
+                >
+                  <a.icon className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className="flex items-center gap-1 text-sm font-bold text-slate-900">
+                    {a.label}
+                    <ArrowUpRight className="h-3.5 w-3.5 text-slate-300 transition-all duration-300 group-hover:text-[#F59E0B]" />
+                  </p>
+                  <p className="text-xs text-slate-400">{a.desc}</p>
+                </div>
+              </motion.button>
+            ))}
+          </motion.div>
+        </main>
+      </div>
+
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 24, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 320, damping: 22 }}
+            className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-2xl bg-[#00332F] px-5 py-3.5 text-sm font-semibold text-white shadow-2xl"
+          >
+            <CheckCircle2 className="h-5 w-5 text-[#F59E0B]" />
+            {toast}
+            <button
+              onClick={() => setToast(null)}
+              className="ml-1 text-white/50 hover:text-white"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

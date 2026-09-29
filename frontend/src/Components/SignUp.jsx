@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { signUp } from "../lib/services/auth.service";
-import LoadingState from "./loadingState";
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 
@@ -101,9 +100,9 @@ const STRENGTH = [
 
 export default function SignUp() {
   const navigate = useNavigate();
-  
+
   const handleVerify = () => {
-    navigate('/verifyotp', { state: { email: form.email } });
+    navigate("/verifyotp", { state: { email: form.email } });
   };
 
   const [apiResponse, setApiResponse] = useState({});
@@ -187,7 +186,6 @@ export default function SignUp() {
 
   // if(apiResponse){console.log(apiResponse)}
   // else if(!apiResponse){console.log('no api response')}
-  if (isPending) return <LoadingState />;
   return (
     <div className="flex min-h-screen bg-white">
       <aside className="relative hidden w-[45%] overflow-hidden bg-[#004741] lg:flex lg:flex-col lg:justify-between lg:p-12">
@@ -195,7 +193,8 @@ export default function SignUp() {
           animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.25, 0.15] }}
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
           className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-[#F59E0B]/20 blur-3xl"
-        />j
+        />
+        j
         <motion.div
           animate={{ scale: [1.2, 1, 1.2], opacity: [0.15, 0.25, 0.15] }}
           transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
@@ -209,7 +208,6 @@ export default function SignUp() {
             backgroundSize: "32px 32px",
           }}
         />
-
         {/* <a href="#" className="relative z-10 flex w-fit items-center gap-2.5"> */}
         {/* <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F59E0B]">
             <Home className="h-5 w-5 text-[#004741]" strokeWidth={2.5} />
@@ -219,7 +217,6 @@ export default function SignUp() {
           Univora<span className="text-[#F59E0B]"> Homes</span>
         </span>
         {/* </a> */}
-
         <div className="relative z-10">
           <motion.h2
             initial={{ opacity: 0, y: 24 }}
@@ -263,7 +260,6 @@ export default function SignUp() {
             ))}
           </ul>
         </div>
-
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -357,12 +353,12 @@ export default function SignUp() {
                   </h1>
                   <p className="mt-2 text-sm text-slate-500">
                     Already have one?{" "}
-                    <a
-                      href="/login"
+                    <Link
+                      to="/signin"
                       className="font-semibold text-[#004741] underline-offset-4 hover:underline"
                     >
                       Sign in
-                    </a>
+                    </Link>
                   </p>
                 </motion.div>
 
@@ -741,7 +737,7 @@ export default function SignUp() {
                     transition={{ delay: 0.64, duration: 0.5, ease: EASE }}
                     whileHover={{ scale: isPending ? 1 : 1.02 }}
                     whileTap={{ scale: isPending ? 1 : 0.97 }}
-                    className="group relative w-full overflow-hidden rounded-xl bg-[#004741] py-4 font-bold text-white shadow-lg shadow-[#004741]/25"
+                    className="group cursor-pointer relative w-full overflow-hidden rounded-xl bg-[#004741] py-4 font-bold text-white shadow-lg shadow-[#004741]/25"
                   >
                     <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
                     <span className="relative flex items-center justify-center gap-2">

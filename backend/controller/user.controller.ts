@@ -14,6 +14,7 @@ import crypto from "node:crypto";
 import { sendOtpEmail } from "../services/otpMail.services";
 import { check, date, email, string } from "zod";
 import { id } from "zod/locales";
+import type { Request, Response } from "express";
 
 export const signUp = async (req: any, res: any) => {
   try {
@@ -70,10 +71,10 @@ export const verifyOtp = async (req: any, res: any) => {
   try {
     const validateOtpData = otpValidator.safeParse(req.body);
     if (!validateOtpData.success) {
-      console.log(validateOtpData.error)
+      console.log(validateOtpData.error);
       return res.status(400).json({ message: "Error validating otp" });
     }
-    console.log(validateOtpData.data)
+    console.log(validateOtpData.data);
 
     const validatedEmail = validateOtpData.data.email;
     const validatedOtp = validateOtpData.data.otp;
@@ -113,56 +114,76 @@ export const verifyOtp = async (req: any, res: any) => {
       .set({ isVerified: true, otp: null, otpExpiry: null })
       .where(eq(usersTable.email, user.email));
 
+    const jwtUser: object = {
+      id: user.id,
+      role: user.role,
+    };
 
-  const jwtUser: object = {
-    "id": user.id,
-    "role": user.role 
-  }
+    const token = tokenGenerator(jwtUser, env.jwtSecret);
 
-  const token = tokenGenerator(jwtUser, env.jwtSecret)
-
-    return res.status(200).json({ message: true , "token": token});
+    return res.status(200).json({ message: true, token: token });
   } catch (error) {
     console.log("this error is from the verifyOtp catch: ", error);
     return res.status(500).json({ "Verification OTP Error": error });
   }
 };
 
-export const signIn = async (req: any, res: any) => {
-  try{
-      if(!req.body){ return res.status(404).json({"message": "Invaild request from user"})}
-  const validatedUser = signInValidator.safeParse(req.body);
-  if (!validatedUser.success) {
-    console.log("this error is from the zod validation: ", validatedUser.error);
-    return res.status(400).json({ message: "Error validating user" });
-  }
-  const userEmail = validatedUser.data.email
-  const userPassword = validatedUser.data.password
+export const signIn = async (req: Request, res: Response) => {
+  try {
+    if (!req.body) {
+      return res.status(404).json({ message: "Invaild request from user" });
+    }
+    const validatedUser = signInValidator.safeParse(req.body);
+    if (!validatedUser.success) {
+      console.log(
+        "this error is from the zod validation: ",
+        validatedUser.error,
+      );
+      return res.status(400).json({ message: "Error validating user" });
+    }
+    const userEmail = validatedUser.data.email;
+    const userPassword = validatedUser.data.password;
 
-  const [userDb] = await db.select().from(usersTable).where(eq(usersTable.email, userEmail))
+    const [userDb] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.email, userEmail));
 
-  if(!userDb){ return res.status(404).json({"message": "User not found"})}
+    if (!userDb) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-  if(userDb.isVerified === false){return res.status(401).json({"message": "Unverifield User"})}
+    if (userDb.isVerified === false) {
+      return res.status(401).json({ message: "Unverifield User" });
+    }
 
-  const verifyPassword = await confrimHashPassword(userPassword, userDb.password)
+    const verifyPassword = await confrimHashPassword(
+      userPassword,
+      userDb.password,
+    );
 
-  if(!verifyPassword){return res.status(401).json({"message": "IncorrectValidation"})}
+    if (!verifyPassword) {
+      return res.status(401).json({ message: "IncorrectValidation" });
+    }
 
-  const jwtUser: object = {
-    "id": userDb.id,
-    "role": userDb.role 
-  }
+    const jwtUser: object = {
+      id: userDb.id,
+      role: userDb.role,
+    };
 
-  const token = tokenGenerator(jwtUser, env.jwtSecret)
+    const token = tokenGenerator(jwtUser, env.jwtSecret);
+    const isProduction = process.env.NODE_ENV === "production";
 
-  return res.status(200).json({"message": "SignIn Successful", "token": token})
-
-
-
-  }
-  catch(error){
-    console.log("this error is from signIn catch: ", error)
-res.status(500).json({ message: "error", error }) 
+    return res
+      .status(200)
+      .cookie("token", token, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? "strict" : "lax",
+      })
+      .json({ message: "SignIn Successful" });
+  } catch (error) {
+    console.log("this error is from signIn catch: ", error);
+    res.status(500).json({ message: "error", error });
   }
 };
