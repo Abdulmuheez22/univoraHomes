@@ -17,11 +17,11 @@ export const signIn = async (user) => {
   return response.data
 }
 
-export const populateDashboard = async () => {
-  try {
-  const response = await api.get("/dashboard/populateDashboard")
-  return response.data
-  } catch (error) {
-    console.log("error from populateDashboard catch", error.response.data)
-  }
-}
+// export const populateDashboard = async () => {
+//   try {
+//   const response = await api.get("/dashboard/populateDashboard")
+//   return response.data
+//   } catch (error) {
+//     console.log("error from populateDashboard catch", error.response.data)
+//   }
+// }

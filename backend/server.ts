@@ -25,6 +25,7 @@ import user from "./routes/user.route";
 import dashboard from "./routes/dashboard.route";
 import { showReqMethod } from "./middleware/logger.middleware";
 import cookieParser from "cookie-parser";
+import property from "./routes/propety.route";
 
 const app = express();
 
@@ -38,6 +39,7 @@ app.use(cors({ origin: frontendUrl, credentials: true}))
 app.use(showReqMethod)
 app.use("/api/auth", user)
 app.use("/api/dashboard", dashboard)
+app.use("/api/property", property)
 
 
 app.listen(port, () => {
