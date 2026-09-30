@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { addProperty } from '../../../lib/services/auth.service';
+import { useMutation } from "@tanstack/react-query";
 
-export default function AddPropertyPage({ onBack, onSave }) {
+export default function AddPropertyPage({ onBack}) {
   const [step, setStep] = useState(1);
   const [photos, setPhotos] = useState([]);
   const [formData, setFormData] = useState({
@@ -14,6 +16,16 @@ export default function AddPropertyPage({ onBack, onSave }) {
     description: '',
     targetRent: '',
   });
+
+  const {mutate, isLoading, isError} = useMutation({
+    mutationFn: addProperty,
+    onSuccess: (data) => {
+      console.log("Property added success: ", data)
+    },
+    onError: (error) => {
+      console.log("error Adding property: ", error.message)
+    }
+  })
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -33,7 +45,8 @@ export default function AddPropertyPage({ onBack, onSave }) {
     return null;
   };
 
-  const handleNext = () => {
+  const handleNext = (e) => {
+        e.preventDefault();
     const error = validateStep1();
     if (error) {
       alert(error);
@@ -48,7 +61,8 @@ export default function AddPropertyPage({ onBack, onSave }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave({ ...formData, photos });
+    mutate(formData)
+    // onSave({ ...formData, photos });
   };
 
   return (
@@ -92,7 +106,7 @@ export default function AddPropertyPage({ onBack, onSave }) {
           </div>
 
           {/* Form Body */}
-          <form onSubmit={handleSubmit} className="p-8 space-y-6">
+          <form             className="p-8 space-y-6">
             {step === 1 && (
               <div className="space-y-5 animate-in fade-in duration-300">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -256,14 +270,15 @@ export default function AddPropertyPage({ onBack, onSave }) {
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="px-8 py-3 bg-[#00332F] text-white rounded-xl font-medium text-sm hover:bg-[#00332F]/90 shadow-lg shadow-[#00332F]/20 transition-all"
+                  className="px-8 cursor-pointer py-3 bg-[#00332F] text-white rounded-xl font-medium text-sm hover:bg-[#00332F]/90 shadow-lg shadow-[#00332F]/20 transition-all"
                 >
                   Continue to Units & Media
                 </button>
               ) : (
                 <button
                   type="submit"
-                  className="px-8 py-3 bg-[#F59E0B] text-white rounded-xl font-medium text-sm hover:bg-[#F59E0B]/90 shadow-lg shadow-[#F59E0B]/20 transition-all"
+                  onClick={handleSubmit}
+                  className="px-8 cursor-pointer py-3 bg-[#F59E0B] text-white rounded-xl font-medium text-sm hover:bg-[#F59E0B]/90 shadow-lg shadow-[#F59E0B]/20 transition-all"
                 >
                   Save & Publish Property
                 </button>

@@ -8,8 +8,8 @@ export const authmiddleware = (
   next: NextFunction,
 ) => {
   const token = req.cookies.token;
-  console.log(req.headers.cookie);
-  console.log(req.cookies);
+  // console.log(req.headers.cookie);
+  // console.log(req.cookies);
   if (!token) {
     return res.status(404).json({ message: "no token" });
   }

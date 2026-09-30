@@ -5,6 +5,7 @@ import {
   varchar,
   uuid,
   pgEnum,
+  integer,
 } from "drizzle-orm/pg-core";
 
 export const roleEnum = pgEnum("role", ["landlord", "tenant", "agent"]);
@@ -43,6 +44,8 @@ export const propertyTable = pgTable("properties", {
     landLordId: uuid("landLordId").notNull().references(()=> usersTable.id),
   
     propertyName: varchar().notNull(),
+
+    propertyType: varchar().notNull(),
   
     propertyAddress: varchar().notNull(),
   
@@ -50,7 +53,7 @@ export const propertyTable = pgTable("properties", {
   
     state: varchar().notNull(),
   
-    totalUnits: varchar().notNull(),
+    totalUnits: integer().notNull(),
   
     description: varchar().notNull(),
   
