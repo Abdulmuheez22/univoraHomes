@@ -19,7 +19,7 @@ export const addProperty = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "unauthorized" });
     }
 
-    if (!req.file) {
+    if (!req.files) {
         return res.status(400).json({ message: "Image is required" });
     }
     

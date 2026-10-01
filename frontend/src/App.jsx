@@ -7,6 +7,7 @@ import SignIn from "./Components/SignIn";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Dashboard from "./Components/Dashboard";
+import Properties from "./Components/Properties";
 import AddPropertyModal from "./Components/DashboardComponents/Landlorddashboard/AddPropertyModal";
 
 const router = createBrowserRouter([
@@ -27,12 +28,16 @@ const router = createBrowserRouter([
     element: <SignIn />
   },
   {
-    path: "dashboard",
+    path: "/dashboard",
     element: <Dashboard />
   },
   {
-    path: "addproperty",
+    path: "/addproperty",
     element: <AddPropertyModal />
+  },
+  {
+    path: "/properties",
+    element: <Properties />
   },
   {
     path: "*",
