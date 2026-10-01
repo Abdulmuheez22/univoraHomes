@@ -34,30 +34,32 @@ export const usersTable = pgTable("users", {
   password: varchar("password", { length: 255 }).notNull(),
 });
 
-
-
-
 export const propertyTable = pgTable("properties", {
+  propertyId: uuid("propertyId").primaryKey().defaultRandom(),
 
-    propertyId: uuid("propertyId").primaryKey().defaultRandom(),
+  landLordId: uuid("landLordId")
+    .notNull()
+    .references(() => usersTable.id),
 
-    landLordId: uuid("landLordId").notNull().references(()=> usersTable.id),
-  
-    propertyName: varchar().notNull(),
+  propertyName: varchar().notNull(),
 
-    propertyType: varchar().notNull(),
+  propertyType: varchar().notNull(),
+
+  propertyAddress: varchar().notNull(),
+
+  city: varchar().notNull(),
+
+  state: varchar().notNull(),
+
+  totalUnits: integer().notNull(),
+
+  description: varchar().notNull(),
+
+  targetRent: varchar().notNull(),
+
+  imageUrl: varchar("imageUrl").notNull(),
   
-    propertyAddress: varchar().notNull(),
-  
-    city: varchar().notNull(),
-  
-    state: varchar().notNull(),
-  
-    totalUnits: integer().notNull(),
-  
-    description: varchar().notNull(),
-  
-    targetRent: varchar().notNull(),
+  imagePublicId: varchar("imagePublicId").notNull(),
 });
 
 // {
