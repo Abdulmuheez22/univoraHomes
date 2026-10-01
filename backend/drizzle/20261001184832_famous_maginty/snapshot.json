@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "d96774ab-43ad-4a41-9fb1-00ff04d98282",
+  "id": "02c04d0e-cc03-4c5b-9ceb-895e89fab2ac",
   "prevIds": [
     "00000000-0000-0000-0000-000000000000"
   ],
@@ -18,6 +18,12 @@
     },
     {
       "isRlsEnabled": false,
+      "name": "propertiesImg",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
       "name": "properties",
       "entityType": "tables",
       "schema": "public"
@@ -27,6 +33,58 @@
       "name": "users",
       "entityType": "tables",
       "schema": "public"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "propertiesImg"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "propertyId",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "propertiesImg"
+    },
+    {
+      "type": "varchar",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "imageUrl",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "propertiesImg"
+    },
+    {
+      "type": "varchar",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "imagePublicId",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "propertiesImg"
     },
     {
       "type": "uuid",
@@ -154,32 +212,6 @@
       "generated": null,
       "identity": null,
       "name": "targetRent",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "properties"
-    },
-    {
-      "type": "varchar",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "imageUrl",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "properties"
-    },
-    {
-      "type": "varchar",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "imagePublicId",
       "entityType": "columns",
       "schema": "public",
       "table": "properties"
@@ -330,6 +362,23 @@
     {
       "nameExplicit": false,
       "columns": [
+        "propertyId"
+      ],
+      "schemaTo": "public",
+      "tableTo": "properties",
+      "columnsTo": [
+        "propertyId"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "propertiesImg_propertyId_properties_propertyId_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "propertiesImg"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
         "landLordId"
       ],
       "schemaTo": "public",
@@ -343,6 +392,16 @@
       "entityType": "fks",
       "schema": "public",
       "table": "properties"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "propertiesImg_pkey",
+      "schema": "public",
+      "table": "propertiesImg",
+      "entityType": "pks"
     },
     {
       "columns": [
