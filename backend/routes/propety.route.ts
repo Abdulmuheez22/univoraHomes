@@ -5,6 +5,6 @@ import { upload } from "../middleware/upload.middleware";
 
 const property = Router()
 
-property.post("/addProperty", authmiddleware, upload.single("image"), addProperty)
+property.post("/addProperty", authmiddleware, upload.array("images", 5), addProperty)
 
 export default property

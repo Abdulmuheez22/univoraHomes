@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "d12951d5-4acb-4d38-9d8f-14eb39586b41",
+  "id": "d96774ab-43ad-4a41-9fb1-00ff04d98282",
   "prevIds": [
     "00000000-0000-0000-0000-000000000000"
   ],
@@ -120,7 +120,7 @@
       "table": "properties"
     },
     {
-      "type": "integer",
+      "type": "varchar",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,

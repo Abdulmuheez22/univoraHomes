@@ -1,11 +1,15 @@
+import { db } from './../src/test-db';
 import type { Request, Response } from "express";
 import { eq } from "drizzle-orm";
-import { db } from "../src/test-db";
 import { usersTable, propertyTable } from "../src/db/schema";
 import cloudinary from "../config/cloudinary.config";
+import { propertiesImgTable } from '../src/db/schema';
 
 export const addProperty = async (req: Request, res: Response) => {
   try {
+    console.log("req.body: ", req.body)
+    console.log('req.file: ', req.files)
+      const body = req.body;
     const [user] = await db
       .select()
       .from(usersTable)
@@ -16,24 +20,31 @@ export const addProperty = async (req: Request, res: Response) => {
     }
 
     if (!req.file) {
-      return res.status(400).json({ message: "Image is required" });
+        return res.status(400).json({ message: "Image is required" });
     }
+    
+   const files = req.files as Express.Multer.File[];
 
-   const result: any =  await new Promise((resolve, reject) => {
-      cloudinary.uploader
-        .upload_stream(
-          {
-            folder: "properties",
-            transformation: { width: 1200, crop: "limit", quality: "auto" },
-          },
-          (error, result) => (error ? reject(error) : resolve(result)),
-        )
-        .end(req.file!.buffer);
-    });
+const results = await Promise.all(
+  files.map(
+    (file) =>
+      new Promise<any>((resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream({ folder: "properties" }, (err, result) =>
+            err ? reject(err) : resolve(result)
+          )
+          .end(file.buffer);
+      })
+  )
+);  
 
-    const body = req.body;
+    const images = results.map((r) => ({
+  imageUrl: r.secure_url,
+  imagePublicId: r.public_id,
+}));
 
-    await db.insert(propertyTable).values({
+
+    const [property] = await db.insert(propertyTable).values({
       landLordId: user.id,
       propertyName: body.propertyName,
       propertyType: body.propertyType,
@@ -42,10 +53,15 @@ export const addProperty = async (req: Request, res: Response) => {
       state: body.state,
       totalUnits: body.totalUnits,
       description: body.description,
-      targetRent: body.targetRent,
-      imageUrl: result.secure_url,
-      imagePublicId: result.public_id
-    });
+      targetRent: body.targetRent
+    }).returning({ id: propertyTable.propertyId});
+
+    if (!property) {
+  return res.status(500).json({ message: "could not create property" });
+}
+
+    await db.insert(propertiesImgTable).values(
+        images.map((img: any) => ({ ...img, propertyId: property.id })))
 
     return res.status(201).json({ message: "property added" });
   } catch (error) {

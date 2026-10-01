@@ -11,7 +11,7 @@ export default function AddPropertyPage({ onBack}) {
     propertyType: 'Multi-Family',
     address: '',
     city: '',
-    state: 'Lagos',
+    state: '',
     totalUnits: 1,
     description: '',
     targetRent: '',
@@ -34,7 +34,7 @@ export default function AddPropertyPage({ onBack}) {
 
   const handlePhotoUpload = (e) => {
     const files = Array.from(e.target.files);
-    setPhotos((prev) => [...prev, ...files]);
+    setPhotos((prev) => [...prev, ...files].splice(0, 5));
   };
 
   const validateStep1 = () => {
@@ -61,8 +61,15 @@ export default function AddPropertyPage({ onBack}) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    mutate(formData)
-    // onSave({ ...formData, photos });
+
+    if(photos.length === 0) { alert("Please add at least one photo"); return}
+
+    const body = new FormData();
+    
+    Object.entries(formData).forEach(([key, value]) => body.append(key, value));
+      photos.forEach((photo) => body.append("images", photo))
+
+    mutate(body)
   };
 
   return (
@@ -169,6 +176,7 @@ export default function AddPropertyPage({ onBack}) {
                     <input 
                       type="text" 
                       name="state"
+                      placeholder='e.g., Lagos'
                       value={formData.state}
                       onChange={handleInputChange}
                       className="w-full bg-[#F7F5F0] border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#00332F]/20 focus:border-[#00332F]"
@@ -207,12 +215,12 @@ export default function AddPropertyPage({ onBack}) {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                     <p className="text-sm font-medium text-gray-700">Click to upload or drag and drop property images</p>
-                    <p className="text-xs text-gray-400 mt-1">SVG, PNG, JPG or GIF (max. 10MB)</p>
+                    <p className="text-xs text-gray-400 mt-1">PNG, JPG or GIF (max. 5MB)</p>
                   </label>
                   {photos.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">
                       {photos.map((photo, idx) => (
-                        <span key={idx} className="text-xs bg-[#00332F]/10 text-[#00332F] px-3 py-1.5 rounded-lg font-medium">
+                        <span key={idx} className="text-xs cursor-pointer bg-[#00332F]/10 text-[#00332F] px-3 py-1.5 rounded-lg font-medium">
                           📎 {photo.name}
                         </span>
                       ))}

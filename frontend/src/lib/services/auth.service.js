@@ -17,8 +17,8 @@ export const signIn = async (user) => {
   return response.data
 }
 
-export const addProperty = async (form) => {
-  const response = await api.post("/property/addProperty", form, {withCredentials: true})
+export const addProperty = async (body) => {
+  const response = await api.post("/property/addProperty", body, {withCredentials: true})
   return response.data
 }
 

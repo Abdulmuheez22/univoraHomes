@@ -7,6 +7,7 @@ import {
   pgEnum,
   integer,
 } from "drizzle-orm/pg-core";
+import { id } from "zod/locales";
 
 export const roleEnum = pgEnum("role", ["landlord", "tenant", "agent"]);
 
@@ -51,16 +52,24 @@ export const propertyTable = pgTable("properties", {
 
   state: varchar().notNull(),
 
-  totalUnits: integer().notNull(),
+  totalUnits: varchar().notNull(),
 
   description: varchar().notNull(),
 
   targetRent: varchar().notNull(),
-
-  imageUrl: varchar("imageUrl").notNull(),
-  
-  imagePublicId: varchar("imagePublicId").notNull(),
 });
+
+
+export const propertiesImgTable = pgTable("propertiesImg", {
+  
+  id: uuid("id").primaryKey().defaultRandom(),
+
+  propertyId: uuid("propertyId").notNull().references(() =>  propertyTable.propertyId),
+
+   imageUrl: varchar("imageUrl").notNull(),
+
+  imagePublicId: varchar("imagePublicId").notNull()
+})
 
 // {
 //     propertyName: '',
