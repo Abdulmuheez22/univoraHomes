@@ -5,7 +5,7 @@ import {
   MapPin, Building2, Image as ImageIcon, ArrowRight,
   ArrowUpRight, Loader2, RefreshCw, SearchX, Home,
 } from "lucide-react";
-import { fetchProperties } from "../services/propertyService";
+// import { fetchProperties } from "../services/propertyService";
 
 const EASE = [0.22, 1, 0.36, 1];
 const LIMIT = 12;
@@ -18,6 +18,8 @@ const TYPES = {
   "self-contained": "bg-teal-100 text-teal-700",
   default: "bg-slate-100 text-slate-600",
 };
+
+
 
 function SkeletonCard() {
   return (
