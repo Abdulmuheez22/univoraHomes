@@ -1,3 +1,4 @@
+import { id } from 'zod/locales';
 import { db } from './../src/test-db';
 import type { Request, Response } from "express";
 import { eq } from "drizzle-orm";
@@ -69,3 +70,38 @@ const results = await Promise.all(
     return res.status(500).json({ message: "something went wrong" });
   }
 };
+
+
+
+export const fetchProperties = async (req: Request, res: Response) => {
+  try {
+    if(!req.user.id){return res.status(401).json({message: "Unauthorized"})}
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user.id))
+    if(!user){return res.status(401).json({message: "User not found"})}
+
+    const [properties] = await db.select().from(propertyTable).where(eq(propertyTable.landLordId, user.id))
+
+    if(!properties){return res.status(404).json({messsage: "Properties are not available currently, check In later"})}
+
+    const [propertiesImg] = await db.select().from(propertiesImgTable).where(eq(propertiesImgTable.propertyId, propertyTable.propertyId))
+
+    if(!propertiesImg){ console.log("unable to send property images")}
+
+    const frontendProperties = {
+      propertyName: properties.propertyName,
+      propertyType: properties.propertyType,
+      propertyAddress: properties.propertyAddress,
+      state: properties.state,
+      city: properties.city,
+      totalUnit: properties.totalUnits,
+      description: properties.description,
+      target: properties.targetRent
+
+    }
+    
+    
+  } catch (error) {
+    console.log("this error is from the fetchProperties catch:, error")
+    return res.status(500).json({message: "Error fetching properties"})
+  }
+}
