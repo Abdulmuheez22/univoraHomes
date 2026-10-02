@@ -1,16 +1,15 @@
-import { id } from 'zod/locales';
-import { db } from './../src/test-db';
+import { db } from "./../src/test-db";
 import type { Request, Response } from "express";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { usersTable, propertyTable } from "../src/db/schema";
 import cloudinary from "../config/cloudinary.config";
-import { propertiesImgTable } from '../src/db/schema';
+import { propertiesImgTable } from "../src/db/schema";
 
 export const addProperty = async (req: Request, res: Response) => {
   try {
-    console.log("req.body: ", req.body)
-    console.log('req.file: ', req.files)
-      const body = req.body;
+    console.log("req.body: ", req.body);
+    console.log("req.file: ", req.files);
+    const body = req.body;
     const [user] = await db
       .select()
       .from(usersTable)
@@ -21,48 +20,51 @@ export const addProperty = async (req: Request, res: Response) => {
     }
 
     if (!req.files) {
-        return res.status(400).json({ message: "Image is required" });
+      return res.status(400).json({ message: "Image is required" });
     }
-    
-   const files = req.files as Express.Multer.File[];
 
-const results = await Promise.all(
-  files.map(
-    (file) =>
-      new Promise<any>((resolve, reject) => {
-        cloudinary.uploader
-          .upload_stream({ folder: "properties" }, (err, result) =>
-            err ? reject(err) : resolve(result)
-          )
-          .end(file.buffer);
-      })
-  )
-);  
+    const files = req.files as Express.Multer.File[];
+
+    const results = await Promise.all(
+      files.map(
+        (file) =>
+          new Promise<any>((resolve, reject) => {
+            cloudinary.uploader
+              .upload_stream({ folder: "properties" }, (err, result) =>
+                err ? reject(err) : resolve(result),
+              )
+              .end(file.buffer);
+          }),
+      ),
+    );
 
     const images = results.map((r) => ({
-  imageUrl: r.secure_url,
-  imagePublicId: r.public_id,
-}));
+      imageUrl: r.secure_url,
+      imagePublicId: r.public_id,
+    }));
 
-
-    const [property] = await db.insert(propertyTable).values({
-      landLordId: user.id,
-      propertyName: body.propertyName,
-      propertyType: body.propertyType,
-      propertyAddress: body.address,
-      city: body.city,
-      state: body.state,
-      totalUnits: body.totalUnits,
-      description: body.description,
-      targetRent: body.targetRent
-    }).returning({ id: propertyTable.propertyId});
+    const [property] = await db
+      .insert(propertyTable)
+      .values({
+        landLordId: user.id,
+        propertyName: body.propertyName,
+        propertyType: body.propertyType,
+        propertyAddress: body.address,
+        city: body.city,
+        state: body.state,
+        totalUnits: body.totalUnits,
+        description: body.description,
+        targetRent: body.targetRent,
+      })
+      .returning({ id: propertyTable.propertyId });
 
     if (!property) {
-  return res.status(500).json({ message: "could not create property" });
-}
+      return res.status(500).json({ message: "could not create property" });
+    }
 
-    await db.insert(propertiesImgTable).values(
-        images.map((img: any) => ({ ...img, propertyId: property.id })))
+    await db
+      .insert(propertiesImgTable)
+      .values(images.map((img: any) => ({ ...img, propertyId: property.id })));
 
     return res.status(201).json({ message: "property added" });
   } catch (error) {
@@ -71,37 +73,43 @@ const results = await Promise.all(
   }
 };
 
-
-
 export const fetchProperties = async (req: Request, res: Response) => {
   try {
-    if(!req.user.id){return res.status(401).json({message: "Unauthorized"})}
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user.id))
-    if(!user){return res.status(401).json({message: "User not found"})}
+    const properties = await db.select().from(propertyTable).limit(12);
 
-    const [properties] = await db.select().from(propertyTable).where(eq(propertyTable.landLordId, user.id))
-
-    if(!properties){return res.status(404).json({messsage: "Properties are not available currently, check In later"})}
-
-    const [propertiesImg] = await db.select().from(propertiesImgTable).where(eq(propertiesImgTable.propertyId, propertyTable.propertyId))
-
-    if(!propertiesImg){ console.log("unable to send property images")}
-
-    const frontendProperties = {
-      propertyName: properties.propertyName,
-      propertyType: properties.propertyType,
-      propertyAddress: properties.propertyAddress,
-      state: properties.state,
-      city: properties.city,
-      totalUnit: properties.totalUnits,
-      description: properties.description,
-      target: properties.targetRent
-
+    if (properties.length === 0) {
+      return res.status(404).json({
+        messsage: "Properties are not available currently, check In later",
+      });
     }
-    
-    
+
+    const ids = properties.map((p) => p.propertyId);
+
+    const images = await db
+      .select({
+        propertyId: propertiesImgTable.propertyId,
+        imageUrl: propertiesImgTable.imageUrl,
+      })
+      .from(propertiesImgTable)
+      .where(inArray(propertiesImgTable.propertyId, ids));
+
+    const frontendProperties = properties.map((p) => ({
+      propertyName: p.propertyName,
+      propertyType: p.propertyType,
+      propertyAddress: p.propertyAddress,
+      state: p.state,
+      city: p.city,
+      totalUnit: p.totalUnits,
+      description: p.description,
+      target: p.targetRent,
+      propertyImages: images
+        .filter((image) => image.propertyId === p.propertyId)
+        .map((image) => image.imageUrl),
+    }));
+
+    return res.status(200).json({ properties: frontendProperties });
   } catch (error) {
-    console.log("this error is from the fetchProperties catch:, error")
-    return res.status(500).json({message: "Error fetching properties"})
+    console.log("this error is from the fetchProperties catch: ", error);
+    return res.status(500).json({ message: "Error fetching properties" });
   }
-}
+};

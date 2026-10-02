@@ -2,10 +2,18 @@ import { Link } from "react-router-dom";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
-  MapPin, Building2, Image as ImageIcon, ArrowRight,
-  ArrowUpRight, Loader2, RefreshCw, SearchX, Home,
+  MapPin,
+  Building2,
+  Image as ImageIcon,
+  ArrowRight,
+  ArrowUpRight,
+  Loader2,
+  RefreshCw,
+  SearchX,
+  Home,
 } from "lucide-react";
-// import { fetchProperties } from "../services/propertyService";
+import { useEffect, useState } from "react";
+import api from "../lib/axios";
 
 const EASE = [0.22, 1, 0.36, 1];
 const LIMIT = 12;
@@ -18,8 +26,6 @@ const TYPES = {
   "self-contained": "bg-teal-100 text-teal-700",
   default: "bg-slate-100 text-slate-600",
 };
-
-
 
 function SkeletonCard() {
   return (
@@ -35,14 +41,32 @@ function SkeletonCard() {
   );
 }
 
+const name = property.name || property.propertyName;
+const type = property.type || property.propertyType;
+const city = property.city;
+const state = property.state;
+// etc.
+
 function PropertyCard({ property, index }) {
+  const name = property.name || property.propertyName;
+  const type = property.type || property.propertyType;
+  const city = property.city;
+  const state = property.state;
+  const address = property.address || property.propertyAddress;
+  const description = property.description || "";
+  const rent = property.rent || property.price || 0;
+  const units = property.availableUnits ?? property.units ?? 0;
   const cover = property.photos?.[0]?.url || property.photos?.[0] || null;
   const photoCount = property.photos?.length || 0;
   return (
     <motion.div
       initial={{ opacity: 0, y: 28 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(index % LIMIT, 8) * 0.06, duration: 0.55, ease: EASE }}
+      transition={{
+        delay: Math.min(index % LIMIT, 8) * 0.06,
+        duration: 0.55,
+        ease: EASE,
+      }}
     >
       <Link
         to={`/properties/${property.id}`}
@@ -52,7 +76,7 @@ function PropertyCard({ property, index }) {
           {cover ? (
             <img
               src={cover}
-              alt={property.name}
+              alt={name}
               loading="lazy"
               className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
             />
@@ -62,8 +86,10 @@ function PropertyCard({ property, index }) {
               <span className="text-xs font-medium">No photo yet</span>
             </div>
           )}
-          <span className={`absolute left-3 top-3 rounded-full px-3 py-1 text-[11px] font-bold capitalize backdrop-blur ${TYPES[property.type] || TYPES.default}`}>
-            {property.type || "Property"}
+          <span
+            className={`absolute left-3 top-3 rounded-full px-3 py-1 text-[11px] font-bold capitalize backdrop-blur ${TYPES[type] || TYPES.default}`}
+          >
+            {type || "Property"}
           </span>
           {photoCount > 1 && (
             <span className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur">
@@ -77,11 +103,13 @@ function PropertyCard({ property, index }) {
         </div>
         <div className="p-5">
           <h3 className="truncate text-base font-bold text-slate-900 transition-colors duration-300 group-hover:text-[#004741]">
-            {property.name}
+            {name}
           </h3>
           <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
             <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-[#F59E0B]" />
-            <span className="truncate">{property.city}, {property.state}</span>
+            <span className="truncate">
+              {property.city}, {property.state}
+            </span>
           </p>
           <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-slate-400">
             <Building2 className="h-3.5 w-3.5" />
@@ -108,6 +136,22 @@ function PropertyCard({ property, index }) {
 }
 
 export default function Properties() {
+  // const [fetchProperties, setfetchProperties] = useState({});
+
+  // useEffect(() => {
+  //   const showProperties = async () => {
+  //     try {
+  //       const response = await api.get("/property/fetchProperties");
+  //       setfetchProperties(response);
+  //       console.log("fetchProperties response: ", response);
+  //       return response;
+  //     } catch (error) {
+  //       console.log(error.response.data.message);
+  //     }
+  //   };
+  //   showProperties();
+  // }, []);
+
   const {
     data,
     error,
@@ -118,16 +162,22 @@ export default function Properties() {
     refetch,
   } = useInfiniteQuery({
     queryKey: ["properties"],
-    queryFn: ({ pageParam = 0 }) => fetchProperties({ limit: LIMIT, offset: pageParam }),
-    getNextPageParam: (lastPage, pages) => {
-      const items = Array.isArray(lastPage) ? lastPage : lastPage.properties || [];
-      if (items.length < LIMIT) return undefined;
-      return pages.reduce((sum, p) => sum + (Array.isArray(p) ? p.length : (p.properties || []).length), 0);
+    queryFn: async ({ pageParam = 0 }) => {
+      const response = await api.get("/property/fetchProperties", {
+        params: {
+          limit: LIMIT,
+          offset: pageParam,
+        },
+      });
+
+      return response.data;
     },
   });
 
-  const properties = data?.pages.flatMap((p) => (Array.isArray(p) ? p : p.properties || [])) || [];
+  const properties = data?.pages.flatMap((page) => page.properties || []) || [];
   const empty = !isLoading && !error && properties.length === 0;
+
+  // const propertyNames = await fetchProperties.data.propertiespropertyName
 
   return (
     <div className="min-h-screen bg-[#f7f5f0] pb-20">
@@ -170,13 +220,16 @@ export default function Properties() {
             </span>
           </h1>
           <p className="mt-4 max-w-xl text-slate-500">
-            Browse verified properties across Nigeria — transparent pricing, real photos, no agent wahala.
+            Browse verified properties across Nigeria — transparent pricing,
+            real photos, no agent wahala.
           </p>
         </motion.div>
 
         {isLoading ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+            {Array.from({ length: 6 }).map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
           </div>
         ) : error ? (
           <motion.div
@@ -188,8 +241,12 @@ export default function Properties() {
               <SearchX className="h-7 w-7 text-red-500" />
             </span>
             <div>
-              <h3 className="font-bold text-slate-900">Couldn't load properties</h3>
-              <p className="mt-1 text-sm text-slate-500">Check your connection and try again.</p>
+              <h3 className="font-bold text-slate-900">
+                Couldn't load properties
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Check your connection and try again.
+              </p>
             </div>
             <motion.button
               onClick={() => refetch()}
@@ -211,8 +268,12 @@ export default function Properties() {
               <Home className="h-7 w-7 text-slate-400" />
             </span>
             <div>
-              <h3 className="font-bold text-slate-900">No properties listed yet.</h3>
-              <p className="mt-1 text-sm text-slate-500">New homes go up every day — check back soon.</p>
+              <h3 className="font-bold text-slate-900">
+                No properties listed yet.
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                New homes go up every day — check back soon.
+              </p>
             </div>
             <Link
               to="/signup"
@@ -225,7 +286,7 @@ export default function Properties() {
           <>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {properties.map((p, i) => (
-                <PropertyCard key={p.id} property={p} index={i} />
+                <PropertyCard key={p.id || p._id || 1} property={p} index={i} />
               ))}
             </div>
 
@@ -249,7 +310,8 @@ export default function Properties() {
                 </motion.button>
               ) : (
                 <p className="text-sm font-medium text-slate-400">
-                  You've seen all {properties.length} {properties.length === 1 ? "property" : "properties"}
+                  You've seen all {properties.length}{" "}
+                  {properties.length === 1 ? "property" : "properties"}
                 </p>
               )}
             </div>

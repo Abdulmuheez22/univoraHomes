@@ -8,6 +8,6 @@ const property = Router()
 
 property.post("/addProperty", authmiddleware, upload.array("images", 5), addProperty)
 
-property.get("/fetchProperties", authmiddleware, fetchProperties)
+property.get("/fetchProperties", fetchProperties)
 
 export default property
