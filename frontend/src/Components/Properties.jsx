@@ -12,13 +12,110 @@ import {
   Home,
 } from "lucide-react";
 import api from "../lib/axios";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 
 const EASE = [0.22, 1, 0.36, 1];
 const LIMIT = 12;
 
-const naira = (n) => "₦" + Number(n).toLocaleString("en-NG");
+const naira = (amount) =>
+  `₦${Number(amount || 0).toLocaleString("en-NG")}`;
+
+const LOCATIONS = [
+  "All Locations",
+  "Abia",
+  "Adamawa",
+  "Akwa Ibom",
+  "Anambra",
+  "Bauchi",
+  "Bayelsa",
+  "Benue",
+  "Borno",
+  "Cross River",
+  "Delta",
+  "Ebonyi",
+  "Edo",
+  "Ekiti",
+  "Enugu",
+  "Gombe",
+  "Imo",
+  "Jigawa",
+  "Kaduna",
+  "Kano",
+  "Katsina",
+  "Kebbi",
+  "Kogi",
+  "Kwara",
+  "Lagos",
+  "Nasarawa",
+  "Niger",
+  "Ogun",
+  "Ondo",
+  "Osun",
+  "Oyo",
+  "Plateau",
+  "Rivers",
+  "Sokoto",
+  "Taraba",
+  "Yobe",
+  "Zamfara",
+  "FCT",
+];
+const PROPERTY_TYPES = [
+  "All Types",
+  "Multi-Family",
+  "Single-Family",
+  "Duplex",
+  "Commercial",
+];
+const PRICE_RANGES = ["All Prices", "Under ₦5M", "₦5M - ₦10M", "Above ₦10M"];
+
+const normalize = (value) => String(value ?? "").trim().toLocaleLowerCase();
+const normalizeLocation = (value) => {
+  const location = normalize(value).replace(/\s+state$/, "");
+  return ["fct", "abuja", "federal capital territory"].includes(location)
+    ? "fct"
+    : location;
+};
+
+function getPropertyPrice(property) {
+  const value =
+    property.rent ??
+    property.target ??
+    property.targetRent ??
+    property.price;
+  const parsed = Number(String(value ?? "").replace(/[^\d.-]/g, ""));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function matchesPriceRange(price, range) {
+  if (range === "All Prices") return true;
+  if (price === null) return false;
+  if (range === "Under ₦5M") return price < 5_000_000;
+  if (range === "₦5M - ₦10M") {
+    return price >= 5_000_000 && price <= 10_000_000;
+  }
+  return price > 10_000_000;
+}
+
+function FilterSelect({ label, value, options, onChange }) {
+  return (
+    <label className="flex flex-col gap-1.5 text-xs font-semibold text-slate-600">
+      <span>{label}</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-xl border-0 bg-[#F0E8D5]/30 px-3 py-3 text-sm text-slate-800 focus:ring-2 focus:ring-[#004741]"
+      >
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
 
 const TYPES = {
   flat: "bg-[#004741]/10 text-[#004741]",
@@ -50,6 +147,7 @@ function PropertyCard({ property, index }) {
   const description = property.description || "";
   const rent =
     property.rent ?? property.target ?? property.targetRent ?? property.price ?? 0;
+    // const rent = Number(rawRent)
   const units =
     property.availableUnits ?? property.totalUnit ?? property.units ?? 0;
   const images = property.propertyImages || property.photos || [];
@@ -126,7 +224,7 @@ function PropertyCard({ property, index }) {
           <div className="mt-4 flex items-end justify-between border-t border-slate-100 pt-4">
             <div>
               <p className="text-lg font-extrabold tabular-nums tracking-tight text-[#004741]">
-                ₦ {rent} 
+               ₦ {rent}
               </p>
               <p className="text-[11px] text-slate-400">per year</p>
             </div>
@@ -141,17 +239,13 @@ function PropertyCard({ property, index }) {
 }
 
 export default function Properties() {
-
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("All Locations");
   const [selectedType, setSelectedType] = useState("All Types");
   const [priceRange, setPriceRange] = useState("All Prices");
   const [sortBy, setSortBy] = useState("default");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const locations = ["All Locations", "Lagos", "Ilorin", "Abuja", "Port Harcourt"];
-  const propertyTypes = ["All Types", "Multi-Family", "Single-Family", "Duplex", "Commercial"];
-  const priceRanges = ["All Prices", "Under ₦5M", "₦5M - ₦10M", "Above ₦10M"];
-  
+
   const {
     data,
     error,
@@ -171,8 +265,7 @@ export default function Properties() {
           offset: pageParam,
         },
       });
-      console.log(response.data)
-      return response.data
+      return response.data;
     },
     getNextPageParam: (lastPage, pages) =>
       lastPage.properties.length < LIMIT
@@ -182,23 +275,58 @@ export default function Properties() {
 
   
 
-  const rawProperties = data?.pages.flatMap((page) => page.properties || []) || [];
-  
-  const properties = rawProperties.filter((prop) => {
-    if(selectedType != "All Types"){
-      return prop.propertyType === selectedType
-    }
-     if(selectedLocation != "All Locations "){
-      return prop.state === selectedLocation
-    }
-    return prop
-  })
-  
-  
-  
-  
-  
-  const empty = !isLoading && !error && properties.length === 0;
+  const rawProperties =
+    data?.pages.flatMap((page) => page.properties || []) || [];
+  const normalizedSearch = normalize(searchQuery);
+  const filteredProperties = rawProperties.filter((property) => {
+    const state = normalizeLocation(property.state);
+    const selectedState = normalizeLocation(selectedLocation);
+    const matchesLocation =
+      selectedLocation === "All Locations" || state === selectedState;
+    const matchesType =
+      selectedType === "All Types" ||
+      normalize(property.propertyType ?? property.type) ===
+        normalize(selectedType);
+    const searchableLocation = normalize(
+      `${property.city || ""} ${property.state || ""}`,
+    );
+    const matchesSearch =
+      !normalizedSearch || searchableLocation.includes(normalizedSearch);
+
+    return (
+      matchesLocation &&
+      matchesType &&
+      matchesSearch &&
+      matchesPriceRange(getPropertyPrice(property), priceRange)
+    );
+  });
+  const properties = [...filteredProperties];
+  if (sortBy !== "default") {
+    properties.sort((left, right) => {
+      const leftPrice = getPropertyPrice(left);
+      const rightPrice = getPropertyPrice(right);
+      if (leftPrice === null) return rightPrice === null ? 0 : 1;
+      if (rightPrice === null) return -1;
+      return sortBy === "low-high"
+        ? leftPrice - rightPrice
+        : rightPrice - leftPrice;
+    });
+  }
+  const hasActiveFilters =
+    Boolean(searchQuery.trim()) ||
+    selectedLocation !== "All Locations" ||
+    selectedType !== "All Types" ||
+    priceRange !== "All Prices";
+  const noProperties = !isLoading && !error && rawProperties.length === 0;
+  const noMatches = !isLoading && !error && properties.length === 0;
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setSelectedLocation("All Locations");
+    setSelectedType("All Types");
+    setPriceRange("All Prices");
+    setSortBy("default");
+  };
   return (
     <div className="min-h-screen bg-[#f7f5f0] pb-20">
       <header className="border-b border-slate-100 bg-white/80 backdrop-blur-md">
@@ -260,6 +388,7 @@ export default function Properties() {
           </span>
           <input
             type="text"
+            aria-label="Search by state or city"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by state or city..."
@@ -268,41 +397,33 @@ export default function Properties() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="hidden lg:flex items-center gap-2">
-            <select
+          <div className="hidden lg:flex items-end gap-2">
+            <FilterSelect
+              label="Location"
               value={selectedLocation}
-              onChange={(e) => setSelectedLocation(e.target.value)}
-              className="bg-[#F0E8D5]/30 border-none text-xs font-semibold text-[#111827] rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#004741] cursor-pointer"
-            >
-              {locations.map((loc) => (
-                <option key={loc} value={loc}>{loc}</option>
-              ))}
-            </select>
-
-            <select
+              options={LOCATIONS}
+              onChange={setSelectedLocation}
+            />
+            <FilterSelect
+              label="Property type"
               value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-              className="bg-[#F0E8D5]/30 border-none text-xs font-semibold text-[#111827] rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#004741] cursor-pointer"
-            >
-              {propertyTypes.map((type) => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-
-            <select
+              options={PROPERTY_TYPES}
+              onChange={setSelectedType}
+            />
+            <FilterSelect
+              label="Price range"
               value={priceRange}
-              onChange={(e) => setPriceRange(e.target.value)}
-              className="bg-[#F0E8D5]/30 border-none text-xs font-semibold text-[#111827] rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#004741] cursor-pointer"
-            >
-              {priceRanges.map((range) => (
-                <option key={range} value={range}>{range}</option>
-              ))}
-            </select>
+              options={PRICE_RANGES}
+              onChange={setPriceRange}
+            />
           </div>
 
           <motion.button
+            type="button"
             whileTap={{ scale: 0.96 }}
             onClick={() => setIsFilterOpen(!isFilterOpen)}
+            aria-expanded={isFilterOpen}
+            aria-controls="mobile-property-filters"
             className="lg:hidden flex items-center justify-center gap-2 px-4 py-3 bg-[#F0E8D5]/50 text-[#004741] rounded-xl text-xs font-bold cursor-pointer"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -329,6 +450,7 @@ export default function Properties() {
       <AnimatePresence>
         {isFilterOpen && (
           <motion.div
+            id="mobile-property-filters"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
@@ -343,7 +465,7 @@ export default function Properties() {
                   onChange={(e) => setSelectedLocation(e.target.value)}
                   className="w-full bg-[#F0E8D5]/30 text-xs font-semibold text-[#111827] rounded-xl px-3 py-2.5 border-none focus:ring-2 focus:ring-[#004741]"
                 >
-                  {locations.map((loc) => (
+                  {LOCATIONS.map((loc) => (
                     <option key={loc} value={loc}>{loc}</option>
                   ))}
                 </select>
@@ -355,7 +477,7 @@ export default function Properties() {
                   onChange={(e) => setSelectedType(e.target.value)}
                   className="w-full bg-[#F0E8D5]/30 text-xs font-semibold text-[#111827] rounded-xl px-3 py-2.5 border-none focus:ring-2 focus:ring-[#004741]"
                 >
-                  {propertyTypes.map((type) => (
+                  {PROPERTY_TYPES.map((type) => (
                     <option key={type} value={type}>{type}</option>
                   ))}
                 </select>
@@ -367,7 +489,7 @@ export default function Properties() {
                   onChange={(e) => setPriceRange(e.target.value)}
                   className="w-full bg-[#F0E8D5]/30 text-xs font-semibold text-[#111827] rounded-xl px-3 py-2.5 border-none focus:ring-2 focus:ring-[#004741]"
                 >
-                  {priceRanges.map((range) => (
+                  {PRICE_RANGES.map((range) => (
                     <option key={range} value={range}>{range}</option>
                   ))}
                 </select>
@@ -376,6 +498,20 @@ export default function Properties() {
           </motion.div>
         )}
       </AnimatePresence>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 px-1">
+        <p className="text-sm text-slate-500" aria-live="polite">
+          Showing {properties.length} of {rawProperties.length} loaded{" "}
+          {rawProperties.length === 1 ? "property" : "properties"}
+        </p>
+        <button
+          type="button"
+          onClick={clearFilters}
+          disabled={!hasActiveFilters && sortBy === "default"}
+          className="text-sm font-semibold text-[#004741] underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Clear filters
+        </button>
+      </div>
     </div>
 
         {isLoading ? (
@@ -414,7 +550,7 @@ export default function Properties() {
               {isFetching ? "Retrying..." : "Retry"}
             </motion.button>
           </motion.div>
-        ) : empty ? (
+        ) : noProperties ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -437,6 +573,43 @@ export default function Properties() {
             >
               Are you a landlord? List your property free
             </Link>
+          </motion.div>
+        ) : noMatches ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col items-center gap-4 rounded-3xl border border-slate-100 bg-white py-16 text-center"
+          >
+            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100">
+              <SearchX className="h-7 w-7 text-slate-400" />
+            </span>
+            <div>
+              <h3 className="font-bold text-slate-900">
+                No properties match these filters
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Try changing your search or clearing the filters.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="rounded-xl bg-[#004741] px-5 py-3 text-sm font-bold text-white"
+            >
+              Clear filters
+            </button>
+            {hasNextPage && (
+              <button
+                type="button"
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+                className="rounded-xl border border-[#004741]/25 px-5 py-3 text-sm font-bold text-[#004741] disabled:opacity-60"
+              >
+                {isFetchingNextPage
+                  ? "Loading more..."
+                  : "Load more to search"}
+              </button>
+            )}
           </motion.div>
         ) : (
           <>

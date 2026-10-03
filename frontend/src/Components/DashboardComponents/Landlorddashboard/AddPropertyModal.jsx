@@ -1,13 +1,11 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { addProperty } from '../../../lib/services/auth.service';
 import { useMutation } from "@tanstack/react-query";
-import { useNavigate } from 'react-router-dom';
-import { X } from "lucide-react";
+import { X, ArrowLeft, Building2, Upload, CheckCircle2 } from "lucide-react";
 
-export default function AddPropertyPage({ onBack}) {
-
-  const navigate = useNavigate()
+export default function AddPropertyPage({ onBack }) {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [photos, setPhotos] = useState([]);
   const [formError, setFormError] = useState("");
@@ -36,7 +34,7 @@ export default function AddPropertyPage({ onBack}) {
           "We couldn't save your property. Please try again.",
       );
     }
-  })
+  });
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -82,6 +80,7 @@ export default function AddPropertyPage({ onBack}) {
   };
 
   const handleBackStep = () => {
+    setFormError("");
     setStep(1);
   };
 
@@ -94,51 +93,67 @@ export default function AddPropertyPage({ onBack}) {
     }
 
     const body = new FormData();
-    
     Object.entries(formData).forEach(([key, value]) => body.append(key, value));
-      photos.forEach((photo) => body.append("images", photo))
+    photos.forEach((photo) => body.append("images", photo));
 
     setFormError("");
-    mutate(body)
+    mutate(body);
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F5F0] p-6 lg:p-10">
+    <div className="min-h-screen bg-[#F7F5F0] p-6 lg:p-10 font-sans">
       <div className="max-w-4xl mx-auto space-y-6">
         
         {/* Page Header & Navigation */}
         <div className="flex items-center justify-between">
           <div>
             <Link
-            to="/dashboard"
+              to="/dashboard"
               onClick={onBack}
-              className="inline-flex items-center text-xs font-semibold text-gray-500 hover:text-[#00332F] mb-2 transition-colors"
+              className="inline-flex items-center text-xs font-semibold text-slate-500 hover:text-[#00332F] mb-2 transition-colors group"
             >
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-              </svg>
+              <ArrowLeft className="w-4 h-4 mr-1 transition-transform group-hover:-translate-x-0.5" />
               Back to Dashboard
             </Link>
-            <h1 className="text-2xl font-bold tracking-tight text-[#00332F]">Add New Property</h1>
-            <p className="text-xs text-gray-500 mt-0.5">Expand your real estate portfolio on Univora Homes</p>
+            <h1 className="text-2xl font-extrabold tracking-tight text-[#00332F]">Add New Property</h1>
+            <p className="text-xs text-slate-500 mt-0.5">Expand your real estate portfolio on Univora Homes</p>
           </div>
         </div>
 
         {/* Main Card Container */}
-        <div className="bg-[#FEFDFC] rounded-2xl shadow-xl border border-[#F7F5F0] overflow-hidden">
+        <div className="bg-[#FEFDFC] rounded-3xl shadow-[0_20px_40px_-15px_rgba(0,51,47,0.06)] border border-slate-200/80 overflow-hidden">
           
           {/* Header Banner */}
-          <div className="bg-[#00332F] px-8 py-6 text-white flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold">Property Registration</h2>
-              <p className="text-xs text-gray-300 mt-0.5">Step {step} of 2 — {step === 1 ? 'Basic Information' : 'Units & Media'}</p>
+          <div className="bg-[#00332F] px-8 py-7 text-white flex items-center justify-between relative overflow-hidden">
+            <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 w-48 h-48 rounded-full bg-[#0F766E]/20 pointer-events-none blur-2xl" />
+            
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#F59E0B]/20 text-[#F59E0B]">
+                  <Building2 className="w-4 h-4" />
+                </span>
+                <h2 className="text-lg font-bold tracking-tight">Property Registration</h2>
+              </div>
+              <p className="text-xs text-white/70">
+                Step {step} of 2 — <span className="text-[#F59E0B] font-medium">{step === 1 ? 'Basic Information' : 'Units & Media'}</span>
+              </p>
             </div>
             
             {/* Step Indicators */}
-            <div className="flex items-center space-x-2">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${step >= 1 ? 'bg-[#F59E0B] text-white' : 'bg-white/10 text-gray-300'}`}>1</div>
-              <div className={`w-8 h-0.5 ${step >= 2 ? 'bg-[#F59E0B]' : 'bg-white/20'}`}></div>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${step >= 2 ? 'bg-[#F59E0B] text-white' : 'bg-white/10 text-gray-300'}`}>2</div>
+            <div className="relative z-10 flex items-center space-x-3">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                step >= 1 ? 'bg-[#F59E0B] text-white shadow-md shadow-[#F59E0B]/30' : 'bg-white/10 text-white/60'
+              }`}>
+                1
+              </div>
+              <div className="w-10 h-0.5 bg-white/20 relative overflow-hidden">
+                <div className={`absolute inset-y-0 left-0 bg-[#F59E0B] transition-all duration-300 ${step >= 2 ? 'w-full' : 'w-0'}`} />
+              </div>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                step >= 2 ? 'bg-[#F59E0B] text-white shadow-md shadow-[#F59E0B]/30' : 'bg-white/10 text-white/60'
+              }`}>
+                2
+              </div>
             </div>
           </div>
 
@@ -147,24 +162,28 @@ export default function AddPropertyPage({ onBack}) {
             {formError && (
               <div
                 role="alert"
-                className="flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                className="flex items-start justify-between gap-3 rounded-2xl border border-red-200 bg-red-50/80 px-4 py-3.5 text-sm text-red-700 shadow-sm"
               >
-                <p>{formError}</p>
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600 font-bold text-xs">!</span>
+                  <p className="font-medium">{formError}</p>
+                </div>
                 <button
                   type="button"
                   onClick={() => setFormError("")}
                   aria-label="Dismiss message"
-                  className="shrink-0 rounded-md p-0.5 text-red-500 transition hover:bg-red-100 hover:text-red-700"
+                  className="shrink-0 rounded-lg p-1 text-red-500 transition hover:bg-red-100 hover:text-red-700 cursor-pointer"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
             )}
+
             {step === 1 && (
               <div className="space-y-5 animate-in fade-in duration-300">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">Property Name *</label>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Property Name *</label>
                     <input 
                       type="text" 
                       name="propertyName"
@@ -172,16 +191,16 @@ export default function AddPropertyPage({ onBack}) {
                       placeholder="e.g., Lekki Phase 1 Heights"
                       value={formData.propertyName}
                       onChange={handleInputChange}
-                      className="w-full bg-[#F7F5F0] border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#00332F]/20 focus:border-[#00332F]"
+                      className="w-full bg-[#F7F5F0] border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition-all duration-300 focus:border-[#00332F] focus:bg-white focus:ring-4 focus:ring-[#00332F]/10"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">Property Type</label>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Property Type</label>
                     <select 
                       name="propertyType"
                       value={formData.propertyType}
                       onChange={handleInputChange}
-                      className="w-full bg-[#F7F5F0] border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#00332F]/20 focus:border-[#00332F]"
+                      className="w-full bg-[#F7F5F0] border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition-all duration-300 focus:border-[#00332F] focus:bg-white focus:ring-4 focus:ring-[#00332F]/10 cursor-pointer"
                     >
                       <option value="Multi-Family">Multi-Family Apartments</option>
                       <option value="Single-Family">Single-Family House</option>
@@ -192,7 +211,7 @@ export default function AddPropertyPage({ onBack}) {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">Street Address *</label>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Street Address *</label>
                   <input 
                     type="text" 
                     name="address"
@@ -200,13 +219,13 @@ export default function AddPropertyPage({ onBack}) {
                     placeholder="e.g., Plot 14B, Admiralty Way"
                     value={formData.address}
                     onChange={handleInputChange}
-                    className="w-full bg-[#F7F5F0] border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#00332F]/20 focus:border-[#00332F]"
+                    className="w-full bg-[#F7F5F0] border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition-all duration-300 focus:border-[#00332F] focus:bg-white focus:ring-4 focus:ring-[#00332F]/10"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">City *</label>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">City *</label>
                     <input 
                       type="text" 
                       name="city"
@@ -214,22 +233,22 @@ export default function AddPropertyPage({ onBack}) {
                       placeholder="e.g., Lekki"
                       value={formData.city}
                       onChange={handleInputChange}
-                      className="w-full bg-[#F7F5F0] border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#00332F]/20 focus:border-[#00332F]"
+                      className="w-full bg-[#F7F5F0] border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition-all duration-300 focus:border-[#00332F] focus:bg-white focus:ring-4 focus:ring-[#00332F]/10"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">State</label>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">State</label>
                     <input 
                       type="text" 
                       name="state"
                       placeholder='e.g., Lagos'
                       value={formData.state}
                       onChange={handleInputChange}
-                      className="w-full bg-[#F7F5F0] border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#00332F]/20 focus:border-[#00332F]"
+                      className="w-full bg-[#F7F5F0] border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition-all duration-300 focus:border-[#00332F] focus:bg-white focus:ring-4 focus:ring-[#00332F]/10"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">Total Units *</label>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Total Units *</label>
                     <input 
                       type="number" 
                       name="totalUnits"
@@ -237,7 +256,7 @@ export default function AddPropertyPage({ onBack}) {
                       required
                       value={formData.totalUnits}
                       onChange={handleInputChange}
-                      className="w-full bg-[#F7F5F0] border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#00332F]/20 focus:border-[#00332F]"
+                      className="w-full bg-[#F7F5F0] border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition-all duration-300 focus:border-[#00332F] focus:bg-white focus:ring-4 focus:ring-[#00332F]/10 font-semibold"
                     />
                   </div>
                 </div>
@@ -247,7 +266,7 @@ export default function AddPropertyPage({ onBack}) {
             {step === 2 && (
               <div className="space-y-6 animate-in fade-in duration-300">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">Property Photos</label>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Property Photos</label>
                   <input 
                     type="file" 
                     multiple 
@@ -256,26 +275,27 @@ export default function AddPropertyPage({ onBack}) {
                     onChange={handlePhotoUpload}
                     className="hidden"
                   />
-                  <label htmlFor="photo-upload" className="border-2 border-dashed border-gray-200 bg-[#F7F5F0] rounded-2xl p-8 text-center hover:border-[#00332F] transition-colors cursor-pointer block">
-                    <svg className="w-10 h-10 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <p className="text-sm font-medium text-gray-700">Click to upload or drag and drop property images</p>
-                    <p className="text-xs text-gray-400 mt-1">PNG, JPG or GIF (max. 5MB)</p>
+                  <label htmlFor="photo-upload" className="border-2 border-dashed border-slate-200 bg-[#F7F5F0] rounded-2xl p-8 text-center hover:border-[#00332F] transition-colors cursor-pointer block group">
+                    <span className="flex h-12 w-12 mx-auto items-center justify-center rounded-2xl bg-[#00332F]/5 text-[#00332F] mb-3 group-hover:bg-[#00332F] group-hover:text-white transition-colors">
+                      <Upload className="w-5 h-5" />
+                    </span>
+                    <p className="text-sm font-semibold text-slate-800">Click to upload or drag and drop property images</p>
+                    <p className="text-xs text-slate-400 mt-1">PNG, JPG or GIF (max. 5MB each)</p>
                   </label>
+                  
                   {photos.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">
                       {photos.map((photo, idx) => (
                         <div
                           key={`${photo.name}-${photo.lastModified}-${idx}`}
-                          className="flex items-center gap-2 rounded-lg bg-[#00332F]/10 px-3 py-1.5 text-xs font-medium text-[#00332F]"
+                          className="flex items-center gap-2 rounded-xl bg-[#00332F]/10 px-3.5 py-2 text-xs font-semibold text-[#00332F] border border-[#00332F]/15"
                         >
                           <span className="max-w-48 truncate">📎 {photo.name}</span>
                           <button
                             type="button"
                             onClick={() => handleRemovePhoto(idx)}
                             aria-label={`Remove ${photo.name}`}
-                            className="rounded-full p-0.5 text-[#00332F]/70 transition hover:bg-[#00332F]/10 hover:text-[#00332F] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#00332F]"
+                            className="rounded-full p-1 text-[#00332F]/70 transition hover:bg-[#00332F]/20 hover:text-[#00332F] cursor-pointer"
                           >
                             <X className="h-3.5 w-3.5" />
                           </button>
@@ -283,49 +303,50 @@ export default function AddPropertyPage({ onBack}) {
                       ))}
                     </div>
                   )}
+
                   {photoMessage && (
-                    <p className="mt-2 text-sm text-amber-700" role="status">
+                    <p className="mt-2 text-xs font-medium text-amber-700" role="status">
                       {photoMessage}
                     </p>
                   )}
-                  <p className="mt-2 text-xs text-gray-500">
+                  <p className="mt-2 text-xs font-medium text-slate-400">
                     {photos.length} of 5 photos selected
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">Default Target Rent per Unit (₦)</label>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Default Target Rent per Unit (₦)</label>
                   <input 
                     type="text" 
                     name="targetRent"
                     placeholder="e.g., 450,000"
                     value={formData.targetRent}
                     onChange={handleInputChange}
-                    className="w-full bg-[#F7F5F0] border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#00332F]/20 focus:border-[#00332F]"
+                    className="w-full bg-[#F7F5F0] border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition-all duration-300 focus:border-[#00332F] focus:bg-white focus:ring-4 focus:ring-[#00332F]/10 font-semibold"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">Property Description & Notes</label>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Property Description & Notes</label>
                   <textarea 
                     rows="4"
                     name="description"
                     placeholder="Enter key details about the building, facilities, or security..."
                     value={formData.description}
                     onChange={handleInputChange}
-                    className="w-full bg-[#F7F5F0] border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#00332F]/20 focus:border-[#00332F]"
+                    className="w-full bg-[#F7F5F0] border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition-all duration-300 focus:border-[#00332F] focus:bg-white focus:ring-4 focus:ring-[#00332F]/10 resize-none"
                   ></textarea>
                 </div>
               </div>
             )}
 
             {/* Footer Action Bar */}
-            <div className="flex items-center justify-between pt-6 border-t border-gray-100">
+            <div className="flex items-center justify-between pt-6 border-t border-slate-100">
               {step > 1 ? (
                 <button
                   type="button"
                   onClick={handleBackStep}
-                  className="px-6 py-3 rounded-xl border border-gray-200 text-gray-700 font-medium text-sm hover:bg-gray-50 transition-colors"
+                  className="px-6 py-3 rounded-xl border border-slate-200 text-slate-700 font-bold text-sm hover:bg-slate-50 transition-colors cursor-pointer"
                 >
                   Back
                 </button>
@@ -333,7 +354,7 @@ export default function AddPropertyPage({ onBack}) {
                 <button
                   type="button"
                   onClick={onBack}
-                  className="px-6 py-3 rounded-xl text-gray-500 font-medium text-sm hover:text-gray-700 transition-colors"
+                  className="px-6 py-3 rounded-xl text-slate-500 font-bold text-sm hover:text-slate-700 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -343,7 +364,7 @@ export default function AddPropertyPage({ onBack}) {
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="px-8 cursor-pointer py-3 bg-[#00332F] text-white rounded-xl font-medium text-sm hover:bg-[#00332F]/90 shadow-lg shadow-[#00332F]/20 transition-all"
+                  className="px-8 cursor-pointer py-3 bg-[#00332F] text-white rounded-xl font-bold text-sm hover:bg-[#00332F]/90 shadow-lg shadow-[#00332F]/20 transition-all flex items-center gap-2 group"
                 >
                   Continue to Units & Media
                 </button>
@@ -351,9 +372,19 @@ export default function AddPropertyPage({ onBack}) {
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="px-8 cursor-pointer py-3 bg-[#F59E0B] text-white rounded-xl font-medium text-sm hover:bg-[#F59E0B]/90 shadow-lg shadow-[#F59E0B]/20 transition-all disabled:cursor-wait disabled:opacity-60"
+                  className="px-8 cursor-pointer py-3 bg-[#F59E0B] text-white rounded-xl font-bold text-sm hover:bg-[#F59E0B]/90 shadow-lg shadow-[#F59E0B]/25 transition-all disabled:cursor-wait disabled:opacity-60 flex items-center gap-2"
                 >
-                  {isPending ? "Publishing..." : "Save & Publish Property"}
+                  {isPending ? (
+                    <>
+                      <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                      Publishing...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      Save & Publish Property
+                    </>
+                  )}
                 </button>
               )}
             </div>

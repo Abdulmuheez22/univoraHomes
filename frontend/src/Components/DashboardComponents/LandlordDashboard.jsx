@@ -2,8 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   motion,
   useInView,
-  useSpring,
-  useMotionValue,
   AnimatePresence,
 } from "framer-motion";
 import {
@@ -27,9 +25,7 @@ import {
   TrendingUp,
   TrendingDown,
   Clock,
-  CalendarClock,
   CreditCard,
-  MoreHorizontal,
   X,
   ArrowUpRight,
 } from "lucide-react";
@@ -333,13 +329,14 @@ function SectionHeader({ title, action, onAction }) {
   return (
     <div className="mb-4 flex items-center justify-between">
       <h3 className="font-bold text-slate-900">{title}</h3>
-      <button
+      <motion.button
+        whileHover={{ x: 2 }}
         onClick={onAction}
-        className="group flex items-center gap-1 text-xs font-semibold text-[#004741] hover:text-[#F59E0B] transition-colors"
+        className="group flex items-center gap-1 text-xs font-semibold text-[#004741] hover:text-[#F59E0B] transition-colors cursor-pointer"
       >
         {action}
         <ChevronRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-      </button>
+      </motion.button>
     </div>
   );
 }
@@ -355,7 +352,7 @@ function Avatar({ name }) {
   const color = colors[name.length % colors.length];
   return (
     <span
-      className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+      className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-sm"
       style={{ background: color }}
     >
       {initials}
@@ -386,11 +383,10 @@ export default function LandlordDashboard() {
     runPopulateDashboard();
   }, []);
 
-
-  STATS[0].value = userData.totalProperties
-  STATS[1].value = userData.totalUnit
-  STATS[2].value = userData.occupiedUnits
-  STATS[3].value = userData.vacantUnit
+  STATS[0].value = userData.totalProperties;
+  STATS[1].value = userData.totalUnit;
+  STATS[2].value = userData.occupiedUnits;
+  STATS[3].value = userData.vacantUnit;
 
   const MotionLink = motion(Link);
 
@@ -426,29 +422,37 @@ export default function LandlordDashboard() {
           className="sticky top-0 z-40 hidden h-screen flex-col bg-[#00332F] py-6 md:flex"
         >
           <Link to="/">
-          <div className="mb-8 flex items-center gap-3 px-5">
-            <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#F59E0B]">
-              <Home className="h-5 w-5 text-[#004741]" strokeWidth={2.5} />
-            </span>
-            <AnimatePresence>
-              {sidebar && (
-                <motion.span
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="whitespace-nowrap text-lg font-extrabold text-white"
-                >
-                  Univora<span className="text-[#F59E0B]"> Homes</span>
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </div>
+            <div className="mb-8 flex items-center gap-3 px-5">
+              <motion.span 
+                whileHover={{ rotate: 12, scale: 1.08 }}
+                transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#F59E0B]"
+              >
+                <Home className="h-5 w-5 text-[#004741]" strokeWidth={2.5} />
+              </motion.span>
+              <AnimatePresence>
+                {sidebar && (
+                  <motion.span
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -8 }}
+                    transition={{ duration: 0.2 }}
+                    className="whitespace-nowrap text-lg font-extrabold text-white"
+                  >
+                    Univora<span className="text-[#F59E0B]"> Homes</span>
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </div>
           </Link>
           <nav className="flex-1 space-y-1 px-3">
             {NAV.map((n) => (
-              <button
+              <motion.button
                 key={n.label}
-                className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-colors duration-200 ${
+                whileHover={{ x: 3 }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ duration: 0.2 }}
+                className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-colors duration-200 cursor-pointer ${
                   n.active
                     ? "bg-[#F59E0B] text-[#004741]"
                     : "text-white/60 hover:bg-white/5 hover:text-white"
@@ -458,9 +462,10 @@ export default function LandlordDashboard() {
                 <AnimatePresence>
                   {sidebar && (
                     <motion.span
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -8 }}
+                      transition={{ duration: 0.2 }}
                       className="flex-1 whitespace-nowrap text-left"
                     >
                       {n.label}
@@ -468,7 +473,10 @@ export default function LandlordDashboard() {
                   )}
                 </AnimatePresence>
                 {n.badge && (
-                  <span
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 20 }}
                     className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
                       n.active
                         ? "bg-[#004741] text-white"
@@ -476,19 +484,23 @@ export default function LandlordDashboard() {
                     }`}
                   >
                     {n.badge}
-                  </span>
+                  </motion.span>
                 )}
-              </button>
+              </motion.button>
             ))}
           </nav>
+            <Link to="/">
+            </Link>
           <div className="px-3">
-            <button className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-white/60 transition-colors hover:bg-white/5 hover:text-white">
-              <LogOut className="h-5 w-5 flex-shrink-0" />
-              {sidebar && <span>Sign out</span>}
-            </button>
+            <motion.div whileHover={{ x: 3 }} whileTap={{ scale: 0.97 }}>
+              <button className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-white/60 transition-colors hover:bg-white/5 hover:text-white cursor-pointer">
+                <LogOut className="h-5 w-5 flex-shrink-0" />
+                {sidebar && <span>Sign out</span>}
+              </button>
+            </motion.div>
           </div>
         </motion.aside>
-
+        
         <div className="flex-1">
           <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-slate-100 bg-white/80 px-5 backdrop-blur-md lg:px-8">
             <div>
@@ -502,18 +514,31 @@ export default function LandlordDashboard() {
             <div className="ml-auto flex items-center gap-2">
               <div className="relative hidden sm:block">
                 <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
+                <motion.input
+                  whileFocus={{ scale: 1.01 }}
+                  transition={{ duration: 0.2 }}
                   placeholder="Search tenants, units..."
                   className="h-10 w-56 rounded-xl border border-slate-200 bg-slate-50/60 pl-10 pr-4 text-sm outline-none transition-all duration-300 focus:border-[#004741] focus:bg-white focus:ring-4 focus:ring-[#004741]/10 lg:w-72"
                 />
               </div>
-              <button className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:text-[#004741]">
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:text-[#004741] cursor-pointer"
+              >
                 <Bell className="h-4.5 w-4.5" />
-                <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-[#F59E0B] ring-2 ring-white" />
-              </button>
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#004741] text-xs font-bold text-white">
+                <motion.span 
+                  animate={{ scale: [1, 1.2, 1] }} 
+                  transition={{ repeat: Infinity, duration: 2 }}
+                  className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-[#F59E0B] ring-2 ring-white" 
+                />
+              </motion.button>
+              <motion.span 
+                whileHover={{ scale: 1.05 }}
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#004741] text-xs font-bold text-white shadow-md shadow-[#004741]/20 cursor-pointer"
+              >
                 AO
-              </span>
+              </motion.span>
             </div>
           </header>
 
@@ -816,7 +841,7 @@ export default function LandlordDashboard() {
                   whileHover={{ y: -5 }}
                   whileTap={{ scale: 0.97 }}
                   onClick={() => notify(`${a.label} — coming up`)}
-                  className="group relative flex flex-col items-start gap-3 overflow-hidden rounded-2xl border border-slate-100 bg-white p-5 text-left shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]"
+                  className="group relative flex flex-col items-start gap-3 overflow-hidden rounded-2xl border border-slate-100 bg-white p-5 text-left shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)] cursor-pointer"
                 >
                   <motion.span
                     className="absolute left-0 top-0 h-1 w-full origin-left scale-x-0"
@@ -854,12 +879,14 @@ export default function LandlordDashboard() {
             >
               <CheckCircle2 className="h-5 w-5 text-[#F59E0B]" />
               {toast}
-              <button
+              <motion.button 
+                whileHover={{ scale: 1.2 }}
+                whileTap={{ scale: 0.8 }}
                 onClick={() => setToast(null)}
-                className="ml-1 text-white/50 hover:text-white"
+                className="ml-1 text-white/50 hover:text-white cursor-pointer"
               >
                 <X className="h-4 w-4" />
-              </button>
+              </motion.button>
             </motion.div>
           )}
         </AnimatePresence>
