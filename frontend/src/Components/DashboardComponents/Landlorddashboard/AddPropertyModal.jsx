@@ -186,7 +186,7 @@ export default function AddPropertyPage({ onBack}) {
                       <option value="Multi-Family">Multi-Family Apartments</option>
                       <option value="Single-Family">Single-Family House</option>
                       <option value="Commercial">Commercial Space</option>
-                      <option value="Duplex">Duplex / Triplex</option>
+                      <option value="Duplex">Duplex</option>
                     </select>
                   </div>
                 </div>
