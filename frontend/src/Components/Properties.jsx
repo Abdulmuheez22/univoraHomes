@@ -12,7 +12,6 @@ import {
   SearchX,
   Home,
 } from "lucide-react";
-import { useEffect, useState } from "react";
 import api from "../lib/axios";
 
 const EASE = [0.22, 1, 0.36, 1];
@@ -41,23 +40,25 @@ function SkeletonCard() {
   );
 }
 
-const name = property.name || property.propertyName;
-const type = property.type || property.propertyType;
-const city = property.city;
-const state = property.state;
-// etc.
 
 function PropertyCard({ property, index }) {
   const name = property.name || property.propertyName;
   const type = property.type || property.propertyType;
   const city = property.city;
   const state = property.state;
-  const address = property.address || property.propertyAddress;
   const description = property.description || "";
-  const rent = property.rent || property.price || 0;
-  const units = property.availableUnits ?? property.units ?? 0;
-  const cover = property.photos?.[0]?.url || property.photos?.[0] || null;
-  const photoCount = property.photos?.length || 0;
+  const rent =
+    property.rent ?? property.target ?? property.targetRent ?? property.price ?? 0;
+  const units =
+    property.availableUnits ?? property.totalUnit ?? property.units ?? 0;
+  const images = property.propertyImages || property.photos || [];
+  const firstImage = images[0];
+  const cover =
+    typeof firstImage === "string"
+      ? firstImage
+      : firstImage?.imageUrl || firstImage?.url || null;
+  const photoCount = images.length;
+  const propertyId = property.propertyId || property.id || property._id;
   return (
     <motion.div
       initial={{ opacity: 0, y: 28 }}
@@ -69,7 +70,7 @@ function PropertyCard({ property, index }) {
       }}
     >
       <Link
-        to={`/properties/${property.id}`}
+        to={`/properties/${propertyId}`}
         className="group block overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_24px_50px_-16px_rgba(0,71,65,0.18)]"
       >
         <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
@@ -87,7 +88,7 @@ function PropertyCard({ property, index }) {
             </div>
           )}
           <span
-            className={`absolute left-3 top-3 rounded-full px-3 py-1 text-[11px] font-bold capitalize backdrop-blur ${TYPES[type] || TYPES.default}`}
+            className={`absolute left-3 top-3 rounded-full px-3 py-1 text-[11px] font-bold capitalize backdrop-blur ${TYPES[type?.toLowerCase()] || TYPES.default}`}
           >
             {type || "Property"}
           </span>
@@ -108,20 +109,20 @@ function PropertyCard({ property, index }) {
           <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
             <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-[#F59E0B]" />
             <span className="truncate">
-              {property.city}, {property.state}
+              {city}, {state}
             </span>
           </p>
           <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-slate-400">
             <Building2 className="h-3.5 w-3.5" />
-            {property.availableUnits ?? property.units ?? 0} units available
+            {units} units available
           </p>
           <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-500">
-            {property.description}
+            {description}
           </p>
           <div className="mt-4 flex items-end justify-between border-t border-slate-100 pt-4">
             <div>
               <p className="text-lg font-extrabold tabular-nums tracking-tight text-[#004741]">
-                {naira(property.rent || property.price || 0)}
+                ₦ {rent} 
               </p>
               <p className="text-[11px] text-slate-400">per year</p>
             </div>
@@ -136,32 +137,18 @@ function PropertyCard({ property, index }) {
 }
 
 export default function Properties() {
-  // const [fetchProperties, setfetchProperties] = useState({});
-
-  // useEffect(() => {
-  //   const showProperties = async () => {
-  //     try {
-  //       const response = await api.get("/property/fetchProperties");
-  //       setfetchProperties(response);
-  //       console.log("fetchProperties response: ", response);
-  //       return response;
-  //     } catch (error) {
-  //       console.log(error.response.data.message);
-  //     }
-  //   };
-  //   showProperties();
-  // }, []);
-
   const {
     data,
     error,
     isLoading,
+    isFetching,
     isFetchingNextPage,
     hasNextPage,
     fetchNextPage,
     refetch,
   } = useInfiniteQuery({
     queryKey: ["properties"],
+    initialPageParam: 0,
     queryFn: async ({ pageParam = 0 }) => {
       const response = await api.get("/property/fetchProperties", {
         params: {
@@ -169,15 +156,17 @@ export default function Properties() {
           offset: pageParam,
         },
       });
-
+      console.log(response.data)
       return response.data;
     },
+    getNextPageParam: (lastPage, pages) =>
+      lastPage.properties.length < LIMIT
+        ? undefined
+        : pages.reduce((count, page) => count + page.properties.length, 0),
   });
 
   const properties = data?.pages.flatMap((page) => page.properties || []) || [];
   const empty = !isLoading && !error && properties.length === 0;
-
-  // const propertyNames = await fetchProperties.data.propertiespropertyName
 
   return (
     <div className="min-h-screen bg-[#f7f5f0] pb-20">
@@ -215,7 +204,7 @@ export default function Properties() {
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: 1 }}
                 transition={{ delay: 0.5, duration: 0.7, ease: EASE }}
-                className="absolute -bottom-1 left-0 h-2 w-full origin-left rounded-full bg-amber-400/50"
+                className="absolute -bottom-1 left-0 h-2 w-full origin-left rounded-full bg-[#F59E0B]"
               />
             </span>
           </h1>
@@ -250,12 +239,15 @@ export default function Properties() {
             </div>
             <motion.button
               onClick={() => refetch()}
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
-              className="flex items-center gap-2 rounded-xl bg-[#004741] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#004741]/25"
+              disabled={isFetching}
+              whileHover={{ scale: isFetching ? 1 : 1.04 }}
+              whileTap={{ scale: isFetching ? 1 : 0.96 }}
+              className="flex items-center gap-2 rounded-xl bg-[#004741] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#004741]/25 disabled:cursor-wait disabled:opacity-60"
             >
-              <RefreshCw className="h-4 w-4" />
-              Retry
+              <RefreshCw
+                className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`}
+              />
+              {isFetching ? "Retrying..." : "Retry"}
             </motion.button>
           </motion.div>
         ) : empty ? (
@@ -286,7 +278,11 @@ export default function Properties() {
           <>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {properties.map((p, i) => (
-                <PropertyCard key={p.id || p._id || 1} property={p} index={i} />
+                <PropertyCard
+                  key={p.propertyId || p.id || p._id}
+                  property={p}
+                  index={i}
+                />
               ))}
             </div>
 

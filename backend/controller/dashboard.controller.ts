@@ -3,7 +3,7 @@ import type { Request, Response, NextFunction } from "express"
 import { db } from "../src/test-db"
 import { usersTable } from "../src/db/schema"
 import { eq } from "drizzle-orm"
-import { email } from 'zod';
+import { propertyTable } from '../src/db/schema';
 
 
 
@@ -12,7 +12,15 @@ export const populateDashboard = async (req: Request, res: Response, next: NextF
         const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user.id))
         if(!user){ return res.status(401).json({message: 'unautorized'})}
 
-        console.log(user)
+        // console.log(user)
+
+        const landLordProperty = await db.select().from(propertyTable).where(eq(propertyTable.landLordId, user.id))
+
+        // console.log(landLordProperty.length)
+
+    const frontendTotalUnit =  landLordProperty.map((unit) => unit.totalUnits)
+    const frontendTotalUnitItg = frontendTotalUnit.reduce((acc, val) => acc + Number(val), 0)
+    console.log(frontendTotalUnitItg)
 
        const frontendUser = {
         userName: user.fullName,
@@ -20,7 +28,11 @@ export const populateDashboard = async (req: Request, res: Response, next: NextF
         email: user.email,
         phoneNumber: user.phoneNumber,
         state: user.state,
-        city: user.city 
+        city: user.city,
+        totalProperties: landLordProperty.length,
+        totalUnit: frontendTotalUnitItg,
+        occupiedUnits: "0",
+        vacantUnit: frontendTotalUnitItg
        }
        
        return res.status(200).json({"userData": frontendUser})
@@ -30,6 +42,18 @@ export const populateDashboard = async (req: Request, res: Response, next: NextF
         return res.status(500).json({message: "something went wrong"})
     }
 }
+
+
+    // const landLordProperty = await db.select().from(propertyTable).where(eq(propertyTable.propertyId, user.id))
+
+    // if(landLordProperty.length === 0) { return res.status(404).json({message: "You don't have a Property yet!"})}
+
+    // const frontendLandLordProp = {
+    //   totalProperties: landLordProperty.length,
+    //   totalUnit: landLordProperty.map((unit) => unit.totalUnits),
+    //   occupiedUnits: landLordProperty.map((unit) => unit.totalUnits),
+    // }
+
 
 // {
 //   id: '7a4365c9-62cd-48e1-9bfa-2e33c6df1864',

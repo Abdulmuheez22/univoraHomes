@@ -375,16 +375,22 @@ export default function LandlordDashboard() {
     const runPopulateDashboard = async () => {
       try {
         const response = await api.get("/dashboard/populateDashboard");
-        // console.log(response.data.userData);
+        console.log(response.data.userData);
         setUserData(response.data.userData);
       } catch (error) {
-        console.log("error populating dashboard: ", error);
+        // console.log("error populating dashboard: ", error);
       } finally {
         setIsLoading(false);
       }
     };
     runPopulateDashboard();
   }, []);
+
+
+  STATS[0].value = userData.totalProperties
+  STATS[1].value = userData.totalUnit
+  STATS[2].value = userData.occupiedUnits
+  STATS[3].value = userData.vacantUnit
 
   const MotionLink = motion(Link);
 
@@ -419,6 +425,7 @@ export default function LandlordDashboard() {
           onMouseLeave={() => setSidebar(false)}
           className="sticky top-0 z-40 hidden h-screen flex-col bg-[#00332F] py-6 md:flex"
         >
+          <Link to="/">
           <div className="mb-8 flex items-center gap-3 px-5">
             <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#F59E0B]">
               <Home className="h-5 w-5 text-[#004741]" strokeWidth={2.5} />
@@ -436,6 +443,7 @@ export default function LandlordDashboard() {
               )}
             </AnimatePresence>
           </div>
+          </Link>
           <nav className="flex-1 space-y-1 px-3">
             {NAV.map((n) => (
               <button

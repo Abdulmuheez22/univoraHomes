@@ -1,6 +1,6 @@
 import { db } from "./../src/test-db";
 import type { Request, Response } from "express";
-import { eq, inArray } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import { usersTable, propertyTable } from "../src/db/schema";
 import cloudinary from "../config/cloudinary.config";
 import { propertiesImgTable } from "../src/db/schema";
@@ -75,25 +75,39 @@ export const addProperty = async (req: Request, res: Response) => {
 
 export const fetchProperties = async (req: Request, res: Response) => {
   try {
-    const properties = await db.select().from(propertyTable).limit(12);
+    const requestedLimit = Number(req.query.limit);
+    const requestedOffset = Number(req.query.offset);
+    const limit =
+      Number.isInteger(requestedLimit) && requestedLimit > 0
+        ? Math.min(requestedLimit, 50)
+        : 12;
+    const offset =
+      Number.isInteger(requestedOffset) && requestedOffset >= 0
+        ? requestedOffset
+        : 0;
 
-    if (properties.length === 0) {
-      return res.status(404).json({
-        messsage: "Properties are not available currently, check In later",
-      });
-    }
+    const properties = await db
+      .select()
+      .from(propertyTable)
+      .orderBy(asc(propertyTable.propertyId))
+      .limit(limit)
+      .offset(offset);
 
-    const ids = properties.map((p) => p.propertyId);
+    const ids = properties.map((property) => property.propertyId);
 
-    const images = await db
-      .select({
-        propertyId: propertiesImgTable.propertyId,
-        imageUrl: propertiesImgTable.imageUrl,
-      })
-      .from(propertiesImgTable)
-      .where(inArray(propertiesImgTable.propertyId, ids));
+    const images =
+      ids.length > 0
+        ? await db
+            .select({
+              propertyId: propertiesImgTable.propertyId,
+              imageUrl: propertiesImgTable.imageUrl,
+            })
+            .from(propertiesImgTable)
+            .where(inArray(propertiesImgTable.propertyId, ids))
+        : [];
 
     const frontendProperties = properties.map((p) => ({
+      propertyId: p.propertyId,
       propertyName: p.propertyName,
       propertyType: p.propertyType,
       propertyAddress: p.propertyAddress,
@@ -113,3 +127,76 @@ export const fetchProperties = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Error fetching properties" });
   }
 };
+
+export const fetchPropertyById = async (req: Request, res: Response) => {
+  try {
+    const { propertyId } = req.params;
+    if (typeof propertyId !== "string") {
+      return res.status(400).json({ message: "A property ID is required" });
+    }
+
+    const [property] = await db
+      .select()
+      .from(propertyTable)
+      .where(eq(propertyTable.propertyId, propertyId));
+
+    if (!property) {
+      return res.status(404).json({ message: "Property not found" });
+    }
+
+    const images = await db
+      .select({ imageUrl: propertiesImgTable.imageUrl })
+      .from(propertiesImgTable)
+      .where(eq(propertiesImgTable.propertyId, property.propertyId));
+
+    return res.status(200).json({
+      property: {
+        propertyId: property.propertyId,
+        propertyName: property.propertyName,
+        propertyType: property.propertyType,
+        propertyAddress: property.propertyAddress,
+        state: property.state,
+        city: property.city,
+        totalUnit: property.totalUnits,
+        description: property.description,
+        target: property.targetRent,
+        propertyImages: images.map((image) => image.imageUrl),
+      },
+    });
+  } catch (error) {
+    console.log("this error is from the fetchPropertyById catch: ", error);
+    return res.status(500).json({ message: "Error fetching property" });
+  }
+};
+
+
+
+export const landLordProperties = async (req:Request, res:Response) => {
+  try {
+    if(req.user.id){return res.status(401).json({message: "Unautorized"})}
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user.id))
+
+    if(!user){ return res.status(404).json({message: "User not found"})}
+
+    const landLordProperty = await db.select().from(propertyTable).where(eq(propertyTable.propertyId, user.id))
+
+    if(landLordProperty.length === 0) { return res.status(404).json({message: "You don't have a Property yet!"})}
+
+    const frontendLandLordProp = {
+      totalProperties: landLordProperty.length,
+      totalUnit: landLordProperty.map((unit) => unit.totalUnits),
+      occupiedUnits: landLordProperty.map((unit) => unit.totalUnits),
+    }
+
+
+    return res.status(200).json({landLordproperties: frontendLandLordProp})
+
+
+
+
+
+    
+  } catch (error) {
+    console.log('this error is from landLordProperties catch: ', error)
+  }
+}

@@ -90,11 +90,11 @@ export const verifyOtp = async (req, res) => {
             .set({ isVerified: true, otp: null, otpExpiry: null })
             .where(eq(usersTable.email, user.email));
         const jwtUser = {
-            "id": user.id,
-            "role": user.role
+            id: user.id,
+            role: user.role,
         };
         const token = tokenGenerator(jwtUser, env.jwtSecret);
-        return res.status(200).json({ message: true, "token": token });
+        return res.status(200).json({ message: true, token: token });
     }
     catch (error) {
         console.log("this error is from the verifyOtp catch: ", error);
@@ -104,7 +104,7 @@ export const verifyOtp = async (req, res) => {
 export const signIn = async (req, res) => {
     try {
         if (!req.body) {
-            return res.status(404).json({ "message": "Invaild request from user" });
+            return res.status(404).json({ message: "Invaild request from user" });
         }
         const validatedUser = signInValidator.safeParse(req.body);
         if (!validatedUser.success) {
@@ -113,28 +113,34 @@ export const signIn = async (req, res) => {
         }
         const userEmail = validatedUser.data.email;
         const userPassword = validatedUser.data.password;
-        const [userDb] = await db.select().from(usersTable).where(eq(usersTable.email, userEmail));
+        const [userDb] = await db
+            .select()
+            .from(usersTable)
+            .where(eq(usersTable.email, userEmail));
         if (!userDb) {
-            return res.status(404).json({ "message": "User not found" });
+            return res.status(404).json({ message: "User not found" });
         }
         if (userDb.isVerified === false) {
-            return res.status(401).json({ "message": "Unverifield User" });
+            return res.status(401).json({ message: "Unverifield User" });
         }
         const verifyPassword = await confrimHashPassword(userPassword, userDb.password);
         if (!verifyPassword) {
-            return res.status(401).json({ "message": "IncorrectValidation" });
+            return res.status(401).json({ message: "IncorrectValidation" });
         }
         const jwtUser = {
-            "id": userDb.id,
-            "role": userDb.role
+            id: userDb.id,
+            role: userDb.role,
         };
         const token = tokenGenerator(jwtUser, env.jwtSecret);
         const isProduction = process.env.NODE_ENV === "production";
-        return res.status(200).cookie("token", token, {
+        return res
+            .status(200)
+            .cookie("token", token, {
             httpOnly: true,
             secure: isProduction,
-            sameSite: isProduction ? "none" : "lax"
-        }).json({ "message": "SignIn Successful", });
+            sameSite: isProduction ? "strict" : "lax",
+        })
+            .json({ message: "SignIn Successful" });
     }
     catch (error) {
         console.log("this error is from signIn catch: ", error);

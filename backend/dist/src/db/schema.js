@@ -1,4 +1,5 @@
-import { timestamp, boolean, pgTable, varchar, uuid, pgEnum } from "drizzle-orm/pg-core";
+import { timestamp, boolean, pgTable, varchar, uuid, pgEnum, integer, } from "drizzle-orm/pg-core";
+import { id } from "zod/locales";
 export const roleEnum = pgEnum("role", ["landlord", "tenant", "agent"]);
 export const usersTable = pgTable("users", {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -13,4 +14,34 @@ export const usersTable = pgTable("users", {
     city: varchar("city", { length: 255 }),
     password: varchar("password", { length: 255 }).notNull(),
 });
+export const propertyTable = pgTable("properties", {
+    propertyId: uuid("propertyId").primaryKey().defaultRandom(),
+    landLordId: uuid("landLordId")
+        .notNull()
+        .references(() => usersTable.id),
+    propertyName: varchar().notNull(),
+    propertyType: varchar().notNull(),
+    propertyAddress: varchar().notNull(),
+    city: varchar().notNull(),
+    state: varchar().notNull(),
+    totalUnits: varchar().notNull(),
+    description: varchar().notNull(),
+    targetRent: varchar().notNull(),
+});
+export const propertiesImgTable = pgTable("propertiesImg", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    propertyId: uuid("propertyId").notNull().references(() => propertyTable.propertyId),
+    imageUrl: varchar("imageUrl").notNull(),
+    imagePublicId: varchar("imagePublicId").notNull()
+});
+// {
+//     propertyName: '',
+//     propertyType: 'Multi-Family',
+//     address: '',
+//     city: '',
+//     state: '',
+//     totalUnits: 1,
+//     description: '',
+//     targetRent: '',
+//   });
 //# sourceMappingURL=schema.js.map

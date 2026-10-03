@@ -9,6 +9,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Dashboard from "./Components/Dashboard";
 import Properties from "./Components/Properties";
 import AddPropertyModal from "./Components/DashboardComponents/Landlorddashboard/AddPropertyModal";
+import PropertyDetails from "./Components/PropertyDetails";
 
 const router = createBrowserRouter([
   {
@@ -38,6 +39,10 @@ const router = createBrowserRouter([
   {
     path: "/properties",
     element: <Properties />
+  },
+  {
+    path: "/properties/:propertyId",
+    element: <PropertyDetails />
   },
   {
     path: "*",

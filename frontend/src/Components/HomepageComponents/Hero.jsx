@@ -7,6 +7,8 @@ import {
   useInView,
   AnimatePresence,
 } from "framer-motion";
+import { Link } from "react-router-dom";
+
 
 const EASE = [0.22, 1, 0.36, 1];
 
@@ -179,6 +181,7 @@ function FloatingBadge({ className, delay, children }) {
 }
 
 export default function Hero() {
+  const MotionLink = motion(Link)
   const cardRef = useRef(null);
   const mx = useMotionValue(0.5);
   const my = useMotionValue(0.5);
@@ -255,16 +258,18 @@ export default function Hero() {
           className="flex w-full flex-col gap-4 sm:w-auto sm:flex-row"
         >
           <MagneticButton variant="primary">Start free trial</MagneticButton>
-          <MagneticButton variant="ghost">
+          <Link to="/properties">
+          <MagneticButton variant="ghost" to="/properties">
             <span className="flex items-center gap-0">
               <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
-              Watch demo
+              propertises
             </span>
           </MagneticButton>
+          </Link>
         </motion.div>
-
+        
         <motion.div
           variants={fadeUp}
           initial="hidden"

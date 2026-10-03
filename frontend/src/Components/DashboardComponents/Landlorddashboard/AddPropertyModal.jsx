@@ -1,11 +1,17 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { addProperty } from '../../../lib/services/auth.service';
 import { useMutation } from "@tanstack/react-query";
+import { useNavigate } from 'react-router-dom';
+import { X } from "lucide-react";
 
 export default function AddPropertyPage({ onBack}) {
+
+  const navigate = useNavigate()
   const [step, setStep] = useState(1);
   const [photos, setPhotos] = useState([]);
+  const [formError, setFormError] = useState("");
+  const [photoMessage, setPhotoMessage] = useState("");
   const [formData, setFormData] = useState({
     propertyName: '',
     propertyType: 'Multi-Family',
@@ -17,13 +23,18 @@ export default function AddPropertyPage({ onBack}) {
     targetRent: '',
   });
 
-  const {mutate, isLoading, isError} = useMutation({
+  const { mutate, isPending } = useMutation({
     mutationFn: addProperty,
     onSuccess: (data) => {
-      console.log("Property added success: ", data)
+      console.log("Property added success: ", data);
+      navigate("/dashboard");
     },
     onError: (error) => {
-      console.log("error Adding property: ", error.message)
+      console.error("error Adding property: ", error);
+      setFormError(
+        error.response?.data?.message ||
+          "We couldn't save your property. Please try again.",
+      );
     }
   })
 
@@ -34,7 +45,21 @@ export default function AddPropertyPage({ onBack}) {
 
   const handlePhotoUpload = (e) => {
     const files = Array.from(e.target.files);
-    setPhotos((prev) => [...prev, ...files].splice(0, 5));
+    const remainingSlots = Math.max(0, 5 - photos.length);
+    const acceptedFiles = files.slice(0, remainingSlots);
+    setPhotos((prev) => [...prev, ...acceptedFiles]);
+    setPhotoMessage(
+      files.length > remainingSlots
+        ? "You can upload up to 5 photos. Extra files were not added."
+        : "",
+    );
+    setFormError("");
+    e.target.value = "";
+  };
+
+  const handleRemovePhoto = (indexToRemove) => {
+    setPhotos((prev) => prev.filter((_, index) => index !== indexToRemove));
+    setPhotoMessage("");
   };
 
   const validateStep1 = () => {
@@ -46,12 +71,13 @@ export default function AddPropertyPage({ onBack}) {
   };
 
   const handleNext = (e) => {
-        e.preventDefault();
+    e.preventDefault();
     const error = validateStep1();
     if (error) {
-      alert(error);
+      setFormError(error);
       return;
     }
+    setFormError("");
     setStep(2);
   };
 
@@ -62,13 +88,17 @@ export default function AddPropertyPage({ onBack}) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if(photos.length === 0) { alert("Please add at least one photo"); return}
+    if (photos.length === 0) {
+      setFormError("Add at least one property photo before publishing.");
+      return;
+    }
 
     const body = new FormData();
     
     Object.entries(formData).forEach(([key, value]) => body.append(key, value));
       photos.forEach((photo) => body.append("images", photo))
 
+    setFormError("");
     mutate(body)
   };
 
@@ -113,7 +143,23 @@ export default function AddPropertyPage({ onBack}) {
           </div>
 
           {/* Form Body */}
-          <form             className="p-8 space-y-6">
+          <form onSubmit={handleSubmit} className="p-8 space-y-6">
+            {formError && (
+              <div
+                role="alert"
+                className="flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+              >
+                <p>{formError}</p>
+                <button
+                  type="button"
+                  onClick={() => setFormError("")}
+                  aria-label="Dismiss message"
+                  className="shrink-0 rounded-md p-0.5 text-red-500 transition hover:bg-red-100 hover:text-red-700"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
             {step === 1 && (
               <div className="space-y-5 animate-in fade-in duration-300">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -220,12 +266,31 @@ export default function AddPropertyPage({ onBack}) {
                   {photos.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">
                       {photos.map((photo, idx) => (
-                        <span key={idx} className="text-xs cursor-pointer bg-[#00332F]/10 text-[#00332F] px-3 py-1.5 rounded-lg font-medium">
-                          📎 {photo.name}
-                        </span>
+                        <div
+                          key={`${photo.name}-${photo.lastModified}-${idx}`}
+                          className="flex items-center gap-2 rounded-lg bg-[#00332F]/10 px-3 py-1.5 text-xs font-medium text-[#00332F]"
+                        >
+                          <span className="max-w-48 truncate">📎 {photo.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemovePhoto(idx)}
+                            aria-label={`Remove ${photo.name}`}
+                            className="rounded-full p-0.5 text-[#00332F]/70 transition hover:bg-[#00332F]/10 hover:text-[#00332F] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#00332F]"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       ))}
                     </div>
                   )}
+                  {photoMessage && (
+                    <p className="mt-2 text-sm text-amber-700" role="status">
+                      {photoMessage}
+                    </p>
+                  )}
+                  <p className="mt-2 text-xs text-gray-500">
+                    {photos.length} of 5 photos selected
+                  </p>
                 </div>
 
                 <div>
@@ -285,10 +350,10 @@ export default function AddPropertyPage({ onBack}) {
               ) : (
                 <button
                   type="submit"
-                  onClick={handleSubmit}
-                  className="px-8 cursor-pointer py-3 bg-[#F59E0B] text-white rounded-xl font-medium text-sm hover:bg-[#F59E0B]/90 shadow-lg shadow-[#F59E0B]/20 transition-all"
+                  disabled={isPending}
+                  className="px-8 cursor-pointer py-3 bg-[#F59E0B] text-white rounded-xl font-medium text-sm hover:bg-[#F59E0B]/90 shadow-lg shadow-[#F59E0B]/20 transition-all disabled:cursor-wait disabled:opacity-60"
                 >
-                  Save & Publish Property
+                  {isPending ? "Publishing..." : "Save & Publish Property"}
                 </button>
               )}
             </div>
