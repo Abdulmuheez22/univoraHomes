@@ -1,7 +1,8 @@
+import { property } from "zod";
 import { db } from "./../src/test-db";
 import type { Request, Response } from "express";
 import { asc, eq, inArray } from "drizzle-orm";
-import { usersTable, propertyTable } from "../src/db/schema";
+import { usersTable, propertyTable, tenantSaveTable } from "../src/db/schema";
 import cloudinary from "../config/cloudinary.config";
 import { propertiesImgTable } from "../src/db/schema";
 
@@ -169,34 +170,91 @@ export const fetchPropertyById = async (req: Request, res: Response) => {
   }
 };
 
-
-
-export const landLordProperties = async (req:Request, res:Response) => {
+export const landLordProperties = async (req: Request, res: Response) => {
   try {
-    if(req.user.id){return res.status(401).json({message: "Unautorized"})}
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user.id))
+    if (req.user.id) {
+      return res.status(401).json({ message: "Unautorized" });
+    }
+    const [user] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, req.user.id));
 
-    if(!user){ return res.status(404).json({message: "User not found"})}
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-    const landLordProperty = await db.select().from(propertyTable).where(eq(propertyTable.propertyId, user.id))
+    const landLordProperty = await db
+      .select()
+      .from(propertyTable)
+      .where(eq(propertyTable.propertyId, user.id));
 
-    if(landLordProperty.length === 0) { return res.status(404).json({message: "You don't have a Property yet!"})}
+    if (landLordProperty.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "You don't have a Property yet!" });
+    }
 
     const frontendLandLordProp = {
       totalProperties: landLordProperty.length,
       totalUnit: landLordProperty.map((unit) => unit.totalUnits),
       occupiedUnits: landLordProperty.map((unit) => unit.totalUnits),
+    };
+
+    return res.status(200).json({ landLordproperties: frontendLandLordProp });
+  } catch (error) {
+    console.log("this error is from landLordProperties catch: ", error);
+  }
+};
+
+export const saveProperty = async (req: Request, res: Response) => {
+  try {
+      console.log("req.body", req.body)
+    if (!req.body) {
+      return res.status(400).json({ message: "No Request Read" });
+    }
+    const request = req.body;
+    const [user] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, req.user.id));
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
 
+    const propertyId = request.propertyId;
 
-    return res.status(200).json({landLordproperties: frontendLandLordProp})
+    const userId = user.id;
+
+    const dbSavedProperty = {
+      userId: userId,
+      propertyId: propertyId
+    }
+
+    await db.insert(tenantSaveTable).values(dbSavedProperty)
 
 
+    return res.status(200).json({message: "Property Saved"})
 
-
-
-    
   } catch (error) {
-    console.log('this error is from landLordProperties catch: ', error)
+    console.log("this error is fro the saveProperty catch: ", error);
+    return res.status(500).json({ message: "Erro saving property" });
+  }
+};
+
+export const unSaveProperty = (req: Request, res: Response) => {
+  try {
+    console.log("req.params: ", req.params)
+    if(!req.params){return res.status(400).json({message: "No Request read"})}
+
+    const propertyId = req.params
+
+    //start here
+
+
+  } catch (error) {
+    console.log("this error is from unsaveproperty catch: ", error)
+    res.status(500).json({message: "error unsaving property"})
   }
 }
+// tenantSaveTable

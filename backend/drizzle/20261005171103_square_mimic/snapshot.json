@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "02c04d0e-cc03-4c5b-9ceb-895e89fab2ac",
+  "id": "6aaaf5c1-b573-4a94-a28e-4017bedf0968",
   "prevIds": [
     "00000000-0000-0000-0000-000000000000"
   ],
@@ -25,6 +25,12 @@
     {
       "isRlsEnabled": false,
       "name": "properties",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "tenatSavedProp",
       "entityType": "tables",
       "schema": "public"
     },
@@ -227,6 +233,45 @@
       "name": "id",
       "entityType": "columns",
       "schema": "public",
+      "table": "tenatSavedProp"
+    },
+    {
+      "type": "varchar",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "userId",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "tenatSavedProp"
+    },
+    {
+      "type": "varchar",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "propertyId",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "tenatSavedProp"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
       "table": "users"
     },
     {
@@ -411,6 +456,16 @@
       "name": "properties_pkey",
       "schema": "public",
       "table": "properties",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "tenatSavedProp_pkey",
+      "schema": "public",
+      "table": "tenatSavedProp",
       "entityType": "pks"
     },
     {

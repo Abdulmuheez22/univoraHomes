@@ -23,6 +23,13 @@ export const addProperty = async (body) => {
 }
 
 
-export const showProperties = async () => {
-  // const response = await api.get(/)
+export const saveProperty = async (propertyId) => {
+  const response = await api.post("/property/saveProperty", propertyId, {withCredentials: true})
+  return response.data
+} 
+
+
+export const unSaveProperty = async (propertyId) => {
+  const response = await api.delete("/property/unSaveProperty/propertyId");
+  return response.data
 }

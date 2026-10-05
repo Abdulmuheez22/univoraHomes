@@ -71,6 +71,13 @@ export const propertiesImgTable = pgTable("propertiesImg", {
   imagePublicId: varchar("imagePublicId").notNull()
 })
 
+
+export const tenantSaveTable = pgTable("tenatSavedProp",{
+  id: uuid().primaryKey().defaultRandom(),
+  userId: varchar("userId").notNull(),
+  propertyId: varchar("propertyId").notNull(),
+}) 
+
 // {
 //     propertyName: '',
 //     propertyType: 'Multi-Family',

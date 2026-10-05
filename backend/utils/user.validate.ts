@@ -33,6 +33,8 @@ const password = z
 
 const otp = z.string().length(6, "OTP must be exactly 6 characters");  
 
+// const 
+
 
 export const signUpValidation = z.object({
     fullName,
@@ -54,6 +56,10 @@ export const otpValidator = z.object({
 export const signInValidator = z.object({
   email,
   password
+})
+
+export const savedPropertyValidator = z.object({
+
 })
 
     // .enum(["landlord", "tenant", "agent

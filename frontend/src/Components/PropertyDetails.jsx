@@ -1,16 +1,23 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Building2,
+  CalendarCheck,
+  Check,
   ChevronLeft,
   ChevronRight,
   Home,
+  Link2,
   Loader2,
   MapPin,
+  Share2,
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import api from "../lib/axios";
+import { Bookmark } from "lucide-react";
+import { saveProperty } from "../lib/services/auth.service";
+import { unSaveProperty } from "../lib/services/auth.service";
 
 const formatNaira = (amount) =>
   `₦${Number(amount || 0).toLocaleString("en-NG")}`;
@@ -22,6 +29,9 @@ export default function PropertyDetails() {
     activeImageIndex: 0,
     failedImageIndexes: new Set(),
   });
+  const [save, setSave] = useState(true);
+  const [copied, setCopied] = useState(false);
+  const [PropertyId, setPropertyId] = useState("");
   const gallery =
     galleryState.propertyId === propertyId
       ? galleryState
@@ -37,9 +47,7 @@ export default function PropertyDetails() {
   } = useQuery({
     queryKey: ["property", propertyId],
     queryFn: async () => {
-      const response = await api.get(
-        `/property/fetchProperties/${propertyId}`,
-      );
+      const response = await api.get(`/property/fetchProperties/${propertyId}`);
       return response.data.property;
     },
     enabled: Boolean(propertyId),
@@ -72,6 +80,60 @@ export default function PropertyDetails() {
     updateGallery((current) => ({
       failedImageIndexes: new Set(current.failedImageIndexes).add(index),
     }));
+  };
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard blocked (e.g. non-HTTPS), ignore
+    }
+  };
+
+  const shareProperty = async () => {
+    if (!navigator.share) return copyLink(); // desktop fallback
+    try {
+      await navigator.share({
+        title: property.propertyName,
+        text: `Check out ${property.propertyName}`,
+        url: window.location.href,
+      });
+    } catch {
+      // user closed the share sheet; not a real error
+    }
+  };
+
+  const requestProperty = () => {
+    // TODO: open request modal / call your API
+  };
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: saveProperty,
+    onSuccess: (data) => {
+      console.log(data);
+    },
+    onError: (error) => {
+      console.log("Error saving property : ", error.response.data);
+    },
+  });
+
+  const { mutate: deleteUserMutation, loading } = useMutation({
+    mutationFn: unSaveProperty,
+    onSuccess: () => {
+      // queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+  });
+
+  const savefunction = () => {
+    if(save === true){
+      return  mutate({ propertyId });
+    }
+    else{
+      deleteUserMutation(propertyId)
+    }
+    setSave(!save);
   };
 
   return (
@@ -144,7 +206,10 @@ export default function PropertyDetails() {
                         type="button"
                         aria-label="Show previous photo"
                         onClick={() =>
-                          showImage((activeImageIndex - 1 + images.length) % images.length)
+                          showImage(
+                            (activeImageIndex - 1 + images.length) %
+                              images.length,
+                          )
                         }
                         className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white opacity-100 transition hover:bg-black/70 sm:opacity-0 sm:group-hover:opacity-100"
                       >
@@ -224,11 +289,11 @@ export default function PropertyDetails() {
                   .join(", ")}
               </p>
 
-              <div className="mt-8 grid gap-4 border-y border-slate-100 py-6 sm:grid-cols-2">
+              <div className="mt-8 grid gap-4 border-y border-slate-100 py-6 sm:grid-cols-3">
                 <div>
                   <p className="text-sm text-slate-500">Rent per year</p>
                   <p className="mt-1 text-2xl font-extrabold text-[#004741]">
-                    {formatNaira(property.target)}
+                    ₦ {property.target}
                   </p>
                 </div>
                 <div>
@@ -240,10 +305,43 @@ export default function PropertyDetails() {
                 </div>
               </div>
 
+              <div className="mt-6 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={requestProperty}
+                  className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-2xl bg-amber-500 px-5 text-sm font-bold text-white"
+                >
+                  <CalendarCheck className="h-4 w-4" />
+                  Request
+                </button>
+                <button
+                  type="button"
+                  onClick={savefunction}
+                  className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-2xl border border-[#004741] px-5 text-sm font-bold text-[#004741]"
+                >
+                  <Bookmark className="h-4 w-4" />
+                  {save ? "Save" : "Saved"}
+                </button>
+                <button
+                  type="button"
+                  onClick={copyLink}
+                  className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-2xl border border-[#004741] px-5 text-sm font-bold text-[#004741]"
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Link2 className="h-4 w-4" />
+                  )}
+                  {copied ? "Copied!" : "Copy link"}
+                </button>
+              </div>
+
               <section className="mt-7">
-                <h2 className="text-lg font-bold text-slate-900">
-                  About this property
-                </h2>
+                <div className="flex justify-between align-middle">
+                  <h2 className="text-lg font-bold text-slate-900">
+                    About this property
+                  </h2>
+                </div>
                 <p className="mt-3 whitespace-pre-line leading-relaxed text-slate-600">
                   {property.description || "No description has been provided."}
                 </p>
