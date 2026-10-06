@@ -1,7 +1,10 @@
 import { Router } from "express";
-import { populateDashboard } from "../controller/dashboard.controller";
+import { populateDashboard, userProfile } from "../controller/dashboard.controller";
 import { authmiddleware } from "../middleware/auth.middleware";
+import { fetchSavedProperties } from "../controller/dashboard.controller";
 const dashboard = Router();
 dashboard.get("/populateDashboard", authmiddleware, populateDashboard);
+dashboard.get("/userProfile", authmiddleware, userProfile);
+dashboard.get("/fetchSavedProperties", authmiddleware, fetchSavedProperties);
 export default dashboard;
 //# sourceMappingURL=dashboard.route.js.map

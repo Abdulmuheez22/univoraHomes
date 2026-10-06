@@ -1,8 +1,8 @@
 import { id } from 'zod/locales';
 import { db } from "../src/test-db";
-import { usersTable } from "../src/db/schema";
-import { eq } from "drizzle-orm";
-import { propertyTable } from '../src/db/schema';
+import { tenantSaveTable, usersTable } from "../src/db/schema";
+import { eq, inArray } from "drizzle-orm";
+import { propertiesImgTable, propertyTable } from '../src/db/schema';
 export const populateDashboard = async (req, res, next) => {
     try {
         const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user.id));
@@ -32,6 +32,81 @@ export const populateDashboard = async (req, res, next) => {
     catch (error) {
         console.log("this error is from the populateDashboard catch :", error);
         return res.status(500).json({ message: "something went wrong" });
+    }
+};
+export const userProfile = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+        const [user] = await db
+            .select()
+            .from(usersTable)
+            .where(eq(usersTable.id, userId));
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        const frontendUser = {
+            userName: user.fullName,
+            userEmail: user.email,
+            userPhone: user.phoneNumber,
+            userState: user.state,
+            userCity: user.city,
+            userRole: user.role,
+        };
+        return res.status(200).json({ user: frontendUser });
+    }
+    catch (error) {
+        console.log("this error is from the userProfile catch: ", error);
+        return res.status(500).json({ message: "Unable to fetch user profile" });
+    }
+};
+export const fetchSavedProperties = async (req, res) => {
+    try {
+        const user = req.user.id;
+        if (!user) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+        const savedProperties = await db
+            .select({ propertyId: tenantSaveTable.propertyId })
+            .from(tenantSaveTable)
+            .where(eq(tenantSaveTable.userId, user));
+        const propertyIds = savedProperties.map(({ propertyId }) => propertyId);
+        if (propertyIds.length === 0) {
+            return res.status(200).json({ properties: [] });
+        }
+        const properties = await db
+            .select()
+            .from(propertyTable)
+            .where(inArray(propertyTable.propertyId, propertyIds));
+        const images = await db
+            .select({
+            propertyId: propertiesImgTable.propertyId,
+            imageUrl: propertiesImgTable.imageUrl,
+        })
+            .from(propertiesImgTable)
+            .where(inArray(propertiesImgTable.propertyId, propertyIds));
+        const savedPropertyIds = new Set(propertyIds);
+        const frontendProperties = properties
+            .filter((property) => savedPropertyIds.has(property.propertyId))
+            .map((property) => ({
+            propertyId: property.propertyId,
+            propertyName: property.propertyName,
+            propertyType: property.propertyType,
+            propertyAddress: property.propertyAddress,
+            city: property.city,
+            state: property.state,
+            targetRent: property.targetRent,
+            propertyImages: images
+                .filter((image) => image.propertyId === property.propertyId)
+                .map((image) => image.imageUrl),
+        }));
+        return res.status(200).json({ properties: frontendProperties });
+    }
+    catch (error) {
+        console.log("this error is from fetchSavedProperties catch: ", error);
+        return res.status(500).json({ message: "Unable to fetch saved properties" });
     }
 };
 // const landLordProperty = await db.select().from(propertyTable).where(eq(propertyTable.propertyId, user.id))

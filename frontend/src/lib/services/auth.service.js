@@ -1,4 +1,3 @@
-import axios from "axios";
 import api from "../axios";
 
 export const signUp = async (form) => {
@@ -42,6 +41,11 @@ export const unSaveProperty = async (propertyId) => {
 
 
 export const fetchSavedProperties = async () => {
-  const response = api.get("/dashboard/fetchSavedProperties")
-  return response.data
+  const response = await api.get("/dashboard/fetchSavedProperties");
+  return response.data.properties;
 }
+
+export const fetchUserProfile = async () => {
+  const response = await api.get("/dashboard/userProfile");
+  return response.data.user;
+};

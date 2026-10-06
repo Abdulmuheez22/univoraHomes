@@ -18,14 +18,20 @@ import {
   X,
   ExternalLink,
   MapPin,
-  Phone,
-  Mail,
   LogOut,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { fetchSavedProperties } from "../../lib/services/auth.service";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import {
+  fetchSavedProperties,
+  fetchUserProfile,
+  unSaveProperty,
+} from "../../lib/services/auth.service";
+import ProfileModal from "./ProfileModal";
 
 const EASE = [0.22, 1, 0.36, 1];
 
@@ -35,12 +41,6 @@ const MOCK_INQUIRIES = [
   { id: 1, property: "Flat 4B, Lekki Phase 1", location: "Lagos", price: 4500000, date: "Yesterday, 2:30 PM", status: "Accepted" },
   { id: 2, property: "Duplex A, Victoria Island", location: "Lagos", price: 8500000, date: "3 days ago", status: "Pending" },
   { id: 3, property: "Unit 2, Yaba Commercial Hub", location: "Lagos", price: 3200000, date: "1 week ago", status: "Declined" },
-];
-
-const MOCK_SAVED = [
-  { id: 101, property: "Modern Luxury Villa", location: "Ikeja GRA, Lagos", price: 12000000, type: "Villa" },
-  { id: 102, property: "Cozy Waterfront Apartment", location: "Elegushi, Lagos", price: 5500000, type: "Apartment" },
-  { id: 103, property: "Executive 3-Bedroom Flat", location: "Ilorin, Kwara", price: 2500000, type: "Flat" },
 ];
 
 const MOCK_NOTIFICATIONS = [
@@ -55,24 +55,35 @@ const STATUS_STYLE = {
 };
 
 export default function TenantDashboard({ accountData }) {
-  const [savedProperty, setSavedProperty] = useState({})
-  // useEffect(()=>{
-    const {data, isLoading, isError} = useQuery({
-      queryKey: ["properties"],
-      queryFn: fetchSavedProperties
-    })
-    // setSavedProperty(data)
-  // }, [])
+  const queryClient = useQueryClient();
+  const {
+    data: savedProperties = [],
+    isLoading: isSavedPropertiesLoading,
+    isError: isSavedPropertiesError,
+    refetch: refetchSavedProperties,
+  } = useQuery({
+    queryKey: ["saved-properties"],
+    queryFn: fetchSavedProperties,
+  });
+  const {
+    data: profile,
+    isLoading: isProfileLoading,
+    isError: isProfileError,
+  } = useQuery({
+    queryKey: ["user-profile"],
+    queryFn: fetchUserProfile,
+  });
+  const removeSavedProperty = useMutation({
+    mutationFn: unSaveProperty,
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["saved-properties"] }),
+    onError: () => notify("Couldn't remove saved property. Please try again."),
+  });
 
-  // if(!isLoading){console.log(data)}
-  const [userData, setUserData] = useState(() => ({
-    userName: accountData?.userName || "",
-    phone: accountData?.phoneNumber || "",
-    email: accountData?.email || "",
-  }));
   const [activeTab, setActiveTab] = useState("overview");
   const [sidebar, setSidebar] = useState(false);
   const [toast, setToast] = useState(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const mainRef = useRef(null);
   const inView = useInView(mainRef, { once: true, margin: "-40px" });
 
@@ -84,14 +95,13 @@ export default function TenantDashboard({ accountData }) {
   const NAV = [
     { icon: LayoutDashboard, label: "Overview", id: "overview", active: activeTab === "overview" },
     { icon: MessageSquare, label: "My Inquiries", id: "inquiries", badge: MOCK_INQUIRIES.filter(i => i.status === "Accepted").length, active: activeTab === "inquiries" },
-    { icon: Bookmark, label: "Saved Properties", id: "saved", badge: MOCK_SAVED.length, active: activeTab === "saved" },
+    { icon: Bookmark, label: "Saved Properties", id: "saved", badge: savedProperties.length, active: activeTab === "saved" },
     { icon: Bell, label: "Notifications", id: "notifications", badge: MOCK_NOTIFICATIONS.filter(n => !n.read).length, active: activeTab === "notifications" },
     { icon: User, label: "My Profile", id: "profile", active: activeTab === "profile" },
   ];
 
   return (
     <>
-    {/* {console.log("data: ", savedProperty)} */}
       <div className="flex min-h-screen bg-[#f7f5f0]">
         <motion.aside
           animate={{ width: sidebar ? 240 : 76 }}
@@ -130,7 +140,11 @@ export default function TenantDashboard({ accountData }) {
               return (
                 <motion.button
                   key={n.id}
-                  onClick={() => setActiveTab(n.id)}
+                  onClick={() =>
+                    n.id === "profile"
+                      ? setIsProfileOpen(true)
+                      : setActiveTab(n.id)
+                  }
                   whileHover={{ x: 3 }}
                   whileTap={{ scale: 0.97 }}
                   transition={{ duration: 0.2 }}
@@ -186,7 +200,9 @@ export default function TenantDashboard({ accountData }) {
           <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-slate-100 bg-white/80 px-5 backdrop-blur-md lg:px-8">
             <div>
               <p className="text-[11px] font-medium text-slate-400">Welcome back,</p>
-              <h1 className="-mt-0.5 text-sm font-bold text-slate-900">{userData.userName}</h1>
+              <h1 className="-mt-0.5 text-sm font-bold text-slate-900">
+                {profile?.userName || accountData?.userName || ""}
+              </h1>
             </div>
             <div className="ml-auto flex items-center gap-2">
               <div className="relative hidden sm:block">
@@ -211,12 +227,21 @@ export default function TenantDashboard({ accountData }) {
                   className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-[#F59E0B] ring-2 ring-white" 
                 />
               </motion.button>
-              <motion.span 
+              <motion.button
+                type="button"
+                aria-label="Open your profile"
+                title="My profile"
                 whileHover={{ scale: 1.05 }}
-                className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#004741] text-xs font-bold text-white shadow-md shadow-[#004741]/20 cursor-pointer"
+                onClick={() => setIsProfileOpen(true)}
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#004741] text-xs font-bold text-white shadow-md shadow-[#004741]/20"
               >
-                AY
-              </motion.span>
+                {(profile?.userName || accountData?.userName || "U")
+                  .split(/\s+/)
+                  .slice(0, 2)
+                  .map((part) => part[0])
+                  .join("")
+                  .toUpperCase()}
+              </motion.button>
             </div>
           </header>
 
@@ -239,14 +264,12 @@ export default function TenantDashboard({ accountData }) {
                   {activeTab === "inquiries" && "My Property Inquiries"}
                   {activeTab === "saved" && "Saved Properties"}
                   {activeTab === "notifications" && "Notifications & Updates"}
-                  {activeTab === "profile" && "Tenant Profile"}
                 </motion.h2>
                 <p className="mt-0.5 text-sm text-slate-500">
                   {activeTab === "overview" && "Track your inquiries, saved properties, and landlord messages."}
                   {activeTab === "inquiries" && "Monitor the real-time status of properties you've reached out about."}
                   {activeTab === "saved" && "Quickly access your favorite homes and listings."}
                   {activeTab === "notifications" && "Recent updates regarding your inquiries and housing matches."}
-                  {activeTab === "profile" && "Your contact details are automatically prefilled during new inquiries."}
                 </p>
               </div>
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
@@ -341,14 +364,48 @@ export default function TenantDashboard({ accountData }) {
                         onClick={() => setActiveTab("saved")} 
                         className="text-xs font-semibold text-[#004741] hover:underline cursor-pointer flex items-center gap-1"
                       >
-                        View all ({MOCK_SAVED.length}) <ChevronRight className="h-3 w-3" />
+                        View all ({savedProperties.length}) <ChevronRight className="h-3 w-3" />
                       </motion.button>
                     )}
                   </div>
+                  {isSavedPropertiesLoading ? (
+                    <p className="py-8 text-center text-sm text-slate-500">
+                      Loading saved properties...
+                    </p>
+                  ) : isSavedPropertiesError ? (
+                    <div className="py-8 text-center">
+                      <p className="text-sm text-red-600">
+                        Couldn't load saved properties.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => refetchSavedProperties()}
+                        className="mt-2 text-sm font-semibold text-[#004741] hover:underline"
+                      >
+                        Try again
+                      </button>
+                    </div>
+                  ) : savedProperties.length === 0 ? (
+                    <div className="rounded-xl bg-slate-50 px-5 py-10 text-center">
+                      <Bookmark className="mx-auto h-8 w-8 text-slate-300" />
+                      <p className="mt-3 font-semibold text-slate-700">
+                        No saved properties yet
+                      </p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Save a property while browsing to find it here.
+                      </p>
+                      <Link
+                        to="/properties"
+                        className="mt-4 inline-flex rounded-xl bg-[#004741] px-4 py-2.5 text-sm font-bold text-white"
+                      >
+                        Browse properties
+                      </Link>
+                    </div>
+                  ) : (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {MOCK_SAVED.map((property, idx) => (
+                    {savedProperties.map((property, idx) => (
                       <motion.div 
-                        key={property.id} 
+                        key={property.propertyId}
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: idx * 0.08, duration: 0.4, ease: EASE }}
@@ -357,22 +414,25 @@ export default function TenantDashboard({ accountData }) {
                       >
                         <div>
                           <div className="flex items-center justify-between mb-2">
-                            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-[#004741]/10 text-[#004741]">{property.type}</span>
+                            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-[#004741]/10 text-[#004741]">{property.propertyType}</span>
                             <motion.button 
+                              type="button"
+                              aria-label={`Remove ${property.propertyName} from saved properties`}
                               whileTap={{ scale: 0.8 }}
-                              onClick={() => notify("Removed from favorites")} 
-                              className="text-slate-400 hover:text-red-500 cursor-pointer"
+                              onClick={() => removeSavedProperty.mutate(property.propertyId)}
+                              disabled={removeSavedProperty.isPending}
+                              className="text-slate-400 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               <Bookmark className="h-4 w-4 fill-current text-[#F59E0B]" />
                             </motion.button>
                           </div>
-                          <h4 className="font-bold text-sm text-slate-900">{property.property}</h4>
-                          <p className="text-xs text-slate-500 mt-1 flex items-center gap-1"><MapPin className="h-3 w-3" /> {property.location}</p>
+                          <h4 className="font-bold text-sm text-slate-900">{property.propertyName}</h4>
+                          <p className="text-xs text-slate-500 mt-1 flex items-center gap-1"><MapPin className="h-3 w-3" /> {property.city}, {property.state}</p>
                         </div>
                         <div className="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between">
-                          <span className="text-sm font-extrabold text-[#004741]">{naira(property.price)}</span>
+                          <span className="text-sm font-extrabold text-[#004741]">₦{property.targetRent || 0}</span>
                           <motion.div whileHover={{ x: 2 }}>
-                            <Link to={`#`} className="text-xs font-bold text-[#004741] hover:underline flex items-center gap-1">
+                            <Link to={`/properties/${property.propertyId}`} className="text-xs font-bold text-[#004741] hover:underline flex items-center gap-1">
                               View details <ChevronRight className="h-3 w-3" />
                             </Link>
                           </motion.div>
@@ -380,6 +440,7 @@ export default function TenantDashboard({ accountData }) {
                       </motion.div>
                     ))}
                   </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -433,70 +494,6 @@ export default function TenantDashboard({ accountData }) {
               )}
             </AnimatePresence>
 
-            <AnimatePresence mode="wait">
-              {activeTab === "profile" && (
-                <motion.div
-                  key="profile-section"
-                  initial={{ opacity: 0, y: 16, scale: 0.99 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -16, scale: 0.99 }}
-                  transition={{ duration: 0.4, ease: EASE }}
-                  className="rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)] max-w-2xl"
-                >
-                  <h3 className="font-bold text-slate-900 mb-1">My Profile & Contact Information</h3>
-                  <p className="text-xs text-slate-500 mb-6">These details are automatically prefilled whenever you submit a property inquiry.</p>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Full Name</label>
-                      <div className="relative">
-                        <User className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
-                        <motion.input
-                          whileFocus={{ scale: 1.01 }}
-                          type="text"
-                          value={userData.userName}
-                          onChange={(e) => setUserData({ ...userData, userName: e.target.value })}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#004741]"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Phone Number</label>
-                      <div className="relative">
-                        <Phone className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
-                        <motion.input
-                          whileFocus={{ scale: 1.01 }}
-                          type="text"
-                          value={userData.phone}
-                          onChange={(e) => setUserData({ ...userData, phone: e.target.value })}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#004741]"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Email Address</label>
-                      <div className="relative">
-                        <Mail className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
-                        <motion.input
-                          whileFocus={{ scale: 1.01 }}
-                          type="email"
-                          value={userData.email}
-                          onChange={(e) => setUserData({ ...userData, email: e.target.value })}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#004741]"
-                        />
-                      </div>
-                    </div>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => notify("Profile updated successfully")}
-                      className="mt-4 px-6 py-3 bg-[#004741] text-white text-sm font-bold rounded-xl shadow-md hover:bg-[#00332F] cursor-pointer transition-all"
-                    >
-                      Save Changes
-                    </motion.button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </main>
         </div>
 
@@ -523,6 +520,13 @@ export default function TenantDashboard({ accountData }) {
           )}
         </AnimatePresence>
       </div>
+      <ProfileModal
+        open={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        profile={profile}
+        isLoading={isProfileLoading}
+        isError={isProfileError}
+      />
     </>
   );
 }

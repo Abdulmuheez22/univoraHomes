@@ -20,6 +20,7 @@ import {
   LogOut,
   Bell,
   Search,
+  Bookmark,
   Plus,
   ChevronRight,
   TrendingUp,
@@ -32,8 +33,16 @@ import {
 import { Link } from "react-router-dom";
 import api from "../../lib/axios";
 import LoadingState from "../loadingState";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  fetchSavedProperties,
+  fetchUserProfile,
+  unSaveProperty,
+} from "../../lib/services/auth.service";
+import ProfileModal from "./ProfileModal";
 
 const EASE = [0.22, 1, 0.36, 1];
+const MotionLink = motion(Link);
 
 const STATS = [
   {
@@ -375,7 +384,7 @@ export default function LandlordDashboard() {
         console.log(response.data.userData);
         setUserData(response.data.userData);
       } catch (error) {
-        // console.log("error populating dashboard: ", error);
+        console.error("Unable to load landlord dashboard:", error);
       } finally {
         setIsLoading(false);
       }
@@ -383,22 +392,52 @@ export default function LandlordDashboard() {
     runPopulateDashboard();
   }, []);
 
-  STATS[0].value = userData.totalProperties;
-  STATS[1].value = userData.totalUnit;
-  STATS[2].value = userData.occupiedUnits;
-  STATS[3].value = userData.vacantUnit;
-
-  const MotionLink = motion(Link);
+  const dashboardStatValues = {
+    "Total Properties": userData.totalProperties,
+    "Total Units": userData.totalUnit,
+    "Occupied Units": userData.occupiedUnits,
+    "Vacant Units": userData.vacantUnit,
+  };
+  const dashboardStats = STATS.map((stat) => ({
+    ...stat,
+    value: dashboardStatValues[stat.label] ?? stat.value,
+  }));
 
   const [sidebar, setSidebar] = useState(false);
   const [toast, setToast] = useState(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const mainRef = useRef(null);
   const inView = useInView(mainRef, { once: true, margin: "-40px" });
+  const queryClient = useQueryClient();
+  const {
+    data: profile,
+    isLoading: isProfileLoading,
+    isError: isProfileError,
+  } = useQuery({
+    queryKey: ["user-profile"],
+    queryFn: fetchUserProfile,
+  });
+  const {
+    data: savedProperties = [],
+    isLoading: isSavedPropertiesLoading,
+    isError: isSavedPropertiesError,
+    refetch: refetchSavedProperties,
+  } = useQuery({
+    queryKey: ["saved-properties"],
+    queryFn: fetchSavedProperties,
+  });
 
   const notify = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2800);
   };
+
+  const removeSavedProperty = useMutation({
+    mutationFn: unSaveProperty,
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["saved-properties"] }),
+    onError: () => notify("Couldn't remove saved property. Please try again."),
+  });
 
   const NAV = [
     { icon: LayoutDashboard, label: "Dashboard", active: true },
@@ -508,8 +547,17 @@ export default function LandlordDashboard() {
                 Good morning,
               </p>
               <h1 className="-mt-0.5 text-sm font-bold text-slate-900">
-                {userData.userName}
+                {profile?.userName || userData.userName}
               </h1>
+              {profile?.userEmail && (
+                <p className="text-[10px] text-slate-400">{profile.userEmail}</p>
+              )}
+              {isProfileLoading && (
+                <p className="text-[10px] text-slate-400">Loading profile...</p>
+              )}
+              {isProfileError && (
+                <p className="text-[10px] text-red-600">Profile unavailable</p>
+              )}
             </div>
             <div className="ml-auto flex items-center gap-2">
               <div className="relative hidden sm:block">
@@ -533,12 +581,21 @@ export default function LandlordDashboard() {
                   className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-[#F59E0B] ring-2 ring-white" 
                 />
               </motion.button>
-              <motion.span 
+              <motion.button
+                type="button"
+                aria-label="Open your profile"
+                title="My profile"
                 whileHover={{ scale: 1.05 }}
-                className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#004741] text-xs font-bold text-white shadow-md shadow-[#004741]/20 cursor-pointer"
+                onClick={() => setIsProfileOpen(true)}
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#004741] text-xs font-bold text-white shadow-md shadow-[#004741]/20"
               >
-                AO
-              </motion.span>
+                {(profile?.userName || userData.userName || "U")
+                  .split(/\s+/)
+                  .slice(0, 2)
+                  .map((part) => part[0])
+                  .join("")
+                  .toUpperCase()}
+              </motion.button>
             </div>
           </header>
 
@@ -569,8 +626,116 @@ export default function LandlordDashboard() {
               </MotionLink>
             </motion.div>
 
+            <section className="rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-slate-900">Saved Properties</h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Properties you bookmarked while browsing.
+                  </p>
+                </div>
+                <Bookmark className="h-5 w-5 text-[#F59E0B]" />
+              </div>
+
+              {isSavedPropertiesLoading ? (
+                <p className="py-8 text-center text-sm text-slate-500">
+                  Loading saved properties...
+                </p>
+              ) : isSavedPropertiesError ? (
+                <div className="py-8 text-center">
+                  <p className="text-sm text-red-600">
+                    Couldn't load saved properties.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => refetchSavedProperties()}
+                    className="mt-2 text-sm font-semibold text-[#004741] hover:underline"
+                  >
+                    Try again
+                  </button>
+                </div>
+              ) : savedProperties.length === 0 ? (
+                <div className="rounded-xl bg-slate-50 px-5 py-10 text-center">
+                  <p className="font-semibold text-slate-700">
+                    No saved properties yet
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Bookmark a property while browsing to find it here.
+                  </p>
+                  <Link
+                    to="/properties"
+                    className="mt-4 inline-flex rounded-xl bg-[#004741] px-4 py-2.5 text-sm font-bold text-white"
+                  >
+                    Browse properties
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {savedProperties.map((property) => (
+                    <article
+                      key={property.propertyId}
+                      className="overflow-hidden rounded-xl border border-slate-100 bg-slate-50/50"
+                    >
+                      <Link
+                        to={`/properties/${property.propertyId}`}
+                        className="block"
+                      >
+                        {property.propertyImages?.[0] ? (
+                          <img
+                            src={property.propertyImages[0]}
+                            alt={property.propertyName}
+                            className="h-40 w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-40 items-center justify-center bg-slate-100 text-sm text-slate-400">
+                            No property photo
+                          </div>
+                        )}
+                      </Link>
+                      <div className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <Link
+                              to={`/properties/${property.propertyId}`}
+                              className="font-bold text-slate-900 hover:text-[#004741]"
+                            >
+                              {property.propertyName}
+                            </Link>
+                            <p className="mt-1 text-xs text-slate-500">
+                              {property.propertyType} · {property.city},{" "}
+                              {property.state}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            aria-label={`Remove ${property.propertyName} from saved properties`}
+                            onClick={() =>
+                              removeSavedProperty.mutate(property.propertyId)
+                            }
+                            disabled={removeSavedProperty.isPending}
+                            className="rounded-lg p-2 text-[#F59E0B] hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <Bookmark className="h-4 w-4 fill-current" />
+                          </button>
+                        </div>
+                        <p className="mt-3 text-sm font-extrabold text-[#004741]">
+                          {naira(Number(property.targetRent || 0))}
+                        </p>
+                        <Link
+                          to={`/properties/${property.propertyId}`}
+                          className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#004741] hover:underline"
+                        >
+                          View details <ArrowUpRight className="h-3.5 w-3.5" />
+                        </Link>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
-              {STATS.map((s, i) => (
+              {dashboardStats.map((s, i) => (
                 <StatCard key={s.label} stat={s} index={i} />
               ))}
             </div>
@@ -890,6 +1055,13 @@ export default function LandlordDashboard() {
             </motion.div>
           )}
         </AnimatePresence>
+        <ProfileModal
+          open={isProfileOpen}
+          onClose={() => setIsProfileOpen(false)}
+          profile={profile}
+          isLoading={isProfileLoading}
+          isError={isProfileError}
+        />
       </div>
     </>
   );

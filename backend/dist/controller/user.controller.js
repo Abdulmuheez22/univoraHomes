@@ -140,11 +140,32 @@ export const signIn = async (req, res) => {
             secure: isProduction,
             sameSite: isProduction ? "strict" : "lax",
         })
-            .json({ message: "SignIn Successful" });
+            .json({ message: "SignIn Successful", role: userDb.role });
     }
     catch (error) {
         console.log("this error is from signIn catch: ", error);
         res.status(500).json({ message: "error", error });
+    }
+};
+export const userProfile = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        if (!userId) {
+            return res.status(401).json({ message: "Unautorized" });
+        }
+        const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+        const frontendUser = {
+            userName: user?.fullName,
+            userEmail: user?.email,
+            userPhone: user?.phoneNumber,
+            userState: user?.state,
+            userCity: user?.city,
+            userRole: user?.role,
+        };
+        return res.status(200).json({ user: frontendUser });
+    }
+    catch (error) {
+        console.log("this error is from the userProfile catch: ", error);
     }
 };
 //# sourceMappingURL=user.controller.js.map
