@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   motion,
   useInView,
@@ -23,7 +23,9 @@ import {
   LogOut,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import LoadingState from "../loadingState";
+import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchSavedProperties } from "../../lib/services/auth.service";
 
 const EASE = [0.22, 1, 0.36, 1];
 
@@ -52,9 +54,22 @@ const STATUS_STYLE = {
   Declined: "bg-red-50 text-red-700 border-red-200",
 };
 
-export default function TenantDashboard() {
-  const [userData, setUserData] = useState({ userName: "Amina Yusuf", phone: "+234 803 123 4567", email: "amina.yusuf@example.com" });
-  const [isLoading, setIsLoading] = useState(false);
+export default function TenantDashboard({ accountData }) {
+  const [savedProperty, setSavedProperty] = useState({})
+  // useEffect(()=>{
+    const {data, isLoading, isError} = useQuery({
+      queryKey: ["properties"],
+      queryFn: fetchSavedProperties
+    })
+    // setSavedProperty(data)
+  // }, [])
+
+  // if(!isLoading){console.log(data)}
+  const [userData, setUserData] = useState(() => ({
+    userName: accountData?.userName || "",
+    phone: accountData?.phoneNumber || "",
+    email: accountData?.email || "",
+  }));
   const [activeTab, setActiveTab] = useState("overview");
   const [sidebar, setSidebar] = useState(false);
   const [toast, setToast] = useState(null);
@@ -76,7 +91,7 @@ export default function TenantDashboard() {
 
   return (
     <>
-      <AnimatePresence>{isLoading && <LoadingState />}</AnimatePresence>
+    {/* {console.log("data: ", savedProperty)} */}
       <div className="flex min-h-screen bg-[#f7f5f0]">
         <motion.aside
           animate={{ width: sidebar ? 240 : 76 }}

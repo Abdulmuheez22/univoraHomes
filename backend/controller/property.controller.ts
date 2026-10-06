@@ -1,7 +1,7 @@
 import { property } from "zod";
 import { db } from "./../src/test-db";
 import type { Request, Response } from "express";
-import { asc, eq, inArray } from "drizzle-orm";
+import { asc, eq, inArray, and } from "drizzle-orm";
 import { usersTable, propertyTable, tenantSaveTable } from "../src/db/schema";
 import cloudinary from "../config/cloudinary.config";
 import { propertiesImgTable } from "../src/db/schema";
@@ -209,29 +209,23 @@ export const landLordProperties = async (req: Request, res: Response) => {
 
 export const saveProperty = async (req: Request, res: Response) => {
   try {
-      console.log("req.body", req.body)
-    if (!req.body) {
-      return res.status(400).json({ message: "No Request Read" });
-    }
-    const request = req.body;
-    const [user] = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.id, req.user.id));
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+      // console.log("req.body", req.body)
+    // if (!req.body) {
+    //   return res.status(400).json({ message: "No Request Read" });
+    // }
+    const userId = req.user.id
 
-    const propertyId = request.propertyId;
+    const propertyId = req.body.propertyId;
 
-    const userId = user.id;
+     if (!propertyId) { return res.status(400).json({ message: "propertyId is required" });}
+
 
     const dbSavedProperty = {
       userId: userId,
       propertyId: propertyId
     }
 
-    await db.insert(tenantSaveTable).values(dbSavedProperty)
+    await db.insert(tenantSaveTable).values(dbSavedProperty).onConflictDoNothing();
 
 
     return res.status(200).json({message: "Property Saved"})
@@ -242,19 +236,27 @@ export const saveProperty = async (req: Request, res: Response) => {
   }
 };
 
-export const unSaveProperty = (req: Request, res: Response) => {
+export const unSaveProperty = async (req: Request, res: Response) => {
   try {
-    console.log("req.params: ", req.params)
-    if(!req.params){return res.status(400).json({message: "No Request read"})}
+    if (!req.params.id) { return res.status(400).json({ message: "No Request read" }); }
 
-    const propertyId = req.params
+    const stringPropertyId = req.params.id.toString();
 
-    //start here
+    // Must be scoped to BOTH the user and the property. Deleting by
+    // propertyId alone wipes every other tenant's save for that property.
+    await db
+      .delete(tenantSaveTable)
+      .where(
+        and(
+          eq(tenantSaveTable.userId, req.user.id),
+          eq(tenantSaveTable.propertyId, stringPropertyId)
+        )
+      );
 
-
+    return res.status(200).json({ message: "Property Unsaved" });
   } catch (error) {
-    console.log("this error is from unsaveproperty catch: ", error)
-    res.status(500).json({message: "error unsaving property"})
+    console.log("this error is from unsaveproperty catch: ", error);
+    return res.status(500).json({ message: "error unsaving property" });
   }
-}
+};
 // tenantSaveTable

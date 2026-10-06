@@ -29,8 +29,9 @@ export default function PropertyDetails() {
     activeImageIndex: 0,
     failedImageIndexes: new Set(),
   });
-  const [save, setSave] = useState(true);
+  const [save, setSave] = useState(()=> localStorage.getItem(`saveStatus:${propertyId}`) === "true");
   const [copied, setCopied] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [PropertyId, setPropertyId] = useState("");
   const gallery =
     galleryState.propertyId === propertyId
@@ -109,31 +110,54 @@ export default function PropertyDetails() {
     // TODO: open request modal / call your API
   };
 
-  const { mutate, isPending } = useMutation({
+  const { mutateAsync: savePropertyMutation, isPending: isSaving } = useMutation({
     mutationFn: saveProperty,
     onSuccess: (data) => {
       console.log(data);
     },
     onError: (error) => {
-      console.log("Error saving property : ", error.response.data);
+      console.log("Error saving property : ", error?.response?.data ?? error);
     },
   });
 
-  const { mutate: deleteUserMutation, loading } = useMutation({
+  const { mutateAsync: deleteUserMutation, isPending: isRemoving } = useMutation({
     mutationFn: unSaveProperty,
-    onSuccess: () => {
-      // queryClient.invalidateQueries({ queryKey: ["users"] });
+    onSuccess: (data) => {
+      console.log(data);
     },
   });
 
-  const savefunction = () => {
-    if(save === true){
-      return  mutate({ propertyId });
+  const savefunction = async () => {
+    if (isSaving || isRemoving) return;
+    setSaveError("");
+
+    if (!navigator.onLine) {
+      setSaveError("You're offline. Reconnect and try again.");
+      return;
     }
-    else{
-      deleteUserMutation(propertyId)
+
+    const next = !save;
+
+    try {
+      if (next) {
+        await savePropertyMutation({ propertyId });
+      } else {
+        await deleteUserMutation(propertyId);
+      }
+
+      // Only persist locally once the server confirmed the change,
+      // so local state can never drift from the backend.
+      setSave(next);
+      localStorage.setItem(`saveStatus:${propertyId}`, String(next));
+    } catch (error) {
+      if (!navigator.onLine || error?.code === "ERR_NETWORK") {
+        setSaveError("Network problem — your save status wasn't changed.");
+      } else if (error?.response?.status === 401) {
+        setSaveError("Please log in to save properties.");
+      } else {
+        setSaveError("Couldn't update saved status. Please try again.");
+      }
     }
-    setSave(!save);
   };
 
   return (
@@ -317,10 +341,12 @@ export default function PropertyDetails() {
                 <button
                   type="button"
                   onClick={savefunction}
-                  className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-2xl border border-[#004741] px-5 text-sm font-bold text-[#004741]"
+                  disabled={isSaving || isRemoving}
+                  aria-pressed={save}
+                  className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-2xl border border-[#004741] px-5 text-sm font-bold text-[#004741] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Bookmark className="h-4 w-4" />
-                  {save ? "Save" : "Saved"}
+                  {save ? "Saved" : "Save"}
                 </button>
                 <button
                   type="button"
@@ -335,6 +361,15 @@ export default function PropertyDetails() {
                   {copied ? "Copied!" : "Copy link"}
                 </button>
               </div>
+
+              {saveError && (
+                <p
+                  role="alert"
+                  className="mt-3 text-sm font-semibold text-red-700"
+                >
+                  {saveError}
+                </p>
+              )}
 
               <section className="mt-7">
                 <div className="flex justify-between align-middle">

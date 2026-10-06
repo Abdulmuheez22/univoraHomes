@@ -73,9 +73,13 @@ export const propertiesImgTable = pgTable("propertiesImg", {
 
 
 export const tenantSaveTable = pgTable("tenatSavedProp",{
+
   id: uuid().primaryKey().defaultRandom(),
+
   userId: varchar("userId").notNull(),
+
   propertyId: varchar("propertyId").notNull(),
+  
 }) 
 
 // {

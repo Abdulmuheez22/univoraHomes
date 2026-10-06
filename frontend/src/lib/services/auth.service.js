@@ -7,7 +7,7 @@ export const signUp = async (form) => {
 };
 
 export const verifyOtp = async (otp) => {
-  const response = await api.post("/auth/verifyUser", otp, {withCredentials: true});
+  const response = await api.post("/auth/verifyOtp", otp, { withCredentials: true });
   return response.data;
 };
 
@@ -23,13 +23,25 @@ export const addProperty = async (body) => {
 }
 
 
-export const saveProperty = async (propertyId) => {
-  const response = await api.post("/property/saveProperty", propertyId, {withCredentials: true})
-  return response.data
-} 
-
+export const saveProperty = async ({ propertyId }) => {
+  const response = await api.post(
+    "/property/saveProperty",
+    { propertyId },
+    { withCredentials: true },
+  );
+  return response.data;
+};
 
 export const unSaveProperty = async (propertyId) => {
-  const response = await api.delete("/property/unSaveProperty/propertyId");
+  const response = await api.delete(
+    `/property/unSaveProperty/${propertyId}`,
+    { withCredentials: true },
+  );
+  return response.data;
+};
+
+
+export const fetchSavedProperties = async () => {
+  const response = api.get("/dashboard/fetchSavedProperties")
   return response.data
 }

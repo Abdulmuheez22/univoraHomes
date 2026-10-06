@@ -17,6 +17,8 @@ import { Link } from "react-router-dom";
 import { signIn } from "../lib/services/auth.service";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+// 
+import { useContext } from "react";
 
 const EASE = [0.22, 1, 0.36, 1];
 
@@ -67,10 +69,14 @@ function GoogleIcon() {
 }
 
 export default function SignIn({ onSignIn, onSocial }) {
+  // const {setSharedData } = useContext(ThemeContext)
   const navigate = useNavigate();
 
   const { mutateAsync } = useMutation({
     mutationFn: signIn,
+    onSuccess: (data) => {
+      console.log(data)
+    }
   });
 
   const ref = useRef(null);

@@ -395,4 +395,56 @@ export declare const propertiesImgTable: import("drizzle-orm/pg-core").PgTableWi
     };
     dialect: 'pg';
 }>;
+export declare const tenantSaveTable: import("drizzle-orm/pg-core").PgTableWithColumns<{
+    name: "tenatSavedProp";
+    schema: undefined;
+    columns: {
+        id: import("drizzle-orm/pg-core").PgBuildColumn<"tenatSavedProp", import("drizzle-orm/pg-core").SetHasDefault<import("drizzle-orm/pg-core").SetIsPrimaryKey<import("drizzle-orm/pg-core").PgUUIDBuilder>>, {
+            name: string;
+            tableName: "tenatSavedProp";
+            dataType: "string uuid";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            identity: undefined;
+            generated: undefined;
+        }>;
+        userId: import("drizzle-orm/pg-core").PgBuildColumn<"tenatSavedProp", import("drizzle-orm/pg-core").SetNotNull<import("drizzle-orm/pg-core").PgVarcharBuilder<[string, ...string[]]>>, {
+            name: string;
+            tableName: "tenatSavedProp";
+            dataType: "string";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            identity: undefined;
+            generated: undefined;
+        }>;
+        propertyId: import("drizzle-orm/pg-core").PgBuildColumn<"tenatSavedProp", import("drizzle-orm/pg-core").SetNotNull<import("drizzle-orm/pg-core").PgVarcharBuilder<[string, ...string[]]>>, {
+            name: string;
+            tableName: "tenatSavedProp";
+            dataType: "string";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            identity: undefined;
+            generated: undefined;
+        }>;
+    };
+    dialect: 'pg';
+}>;
 //# sourceMappingURL=schema.d.ts.map

@@ -1,7 +1,7 @@
 import { id } from 'zod/locales';
 import type { Request, Response, NextFunction } from "express"
 import { db } from "../src/test-db"
-import { usersTable } from "../src/db/schema"
+import { tenantSaveTable, usersTable } from "../src/db/schema"
 import { eq } from "drizzle-orm"
 import { propertyTable } from '../src/db/schema';
 
@@ -42,6 +42,21 @@ export const populateDashboard = async (req: Request, res: Response, next: NextF
         return res.status(500).json({message: "something went wrong"})
     }
 }
+
+
+export const fetchSavedProperties = async (req: Request, res: Response) => {
+    try {
+        const user = req.user.id
+        if(!user){return res.status(401).json({message: "Unauthorized"})}
+
+        const properties = await db.select().from(tenantSaveTable).where(eq(tenantSaveTable.userId, user))
+
+        return res.status(200).json({properties: properties})
+        
+    } catch (error) {
+        console.log("this error is from fetchSavedProperties catch: ", error)
+    }
+} 
 
 
     // const landLordProperty = await db.select().from(propertyTable).where(eq(propertyTable.propertyId, user.id))

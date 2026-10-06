@@ -18,6 +18,6 @@ property.get("/fetchLandLordProperties", authmiddleware, landLordProperties)
 
 property.post("/saveProperty", authmiddleware, saveProperty)
 
-property.delete("/unSaveProperty", authmiddleware, unSaveProperty)
+property.delete("/unSaveProperty/:id", authmiddleware, unSaveProperty)
 
 export default property

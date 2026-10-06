@@ -23,6 +23,7 @@ const password = z
     .min(8, "Password must be at least 8 characters")
     .max(128, "Password must be at most 128 characters");
 const otp = z.string().length(6, "OTP must be exactly 6 characters");
+// const 
 export const signUpValidation = z.object({
     fullName,
     role,
@@ -40,6 +41,7 @@ export const signInValidator = z.object({
     email,
     password
 });
+export const savedPropertyValidator = z.object({});
 // .enum(["landlord", "tenant", "agent
 // export const signUpValidation = () => {
 //     fullName: user.name,

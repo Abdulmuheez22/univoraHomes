@@ -181,7 +181,7 @@ export const signIn = async (req: Request, res: Response) => {
         secure: isProduction,
         sameSite: isProduction ? "strict" : "lax",
       })
-      .json({ message: "SignIn Successful" });
+      .json({ message: "SignIn Successful", role: userDb.role});
   } catch (error) {
     console.log("this error is from signIn catch: ", error);
     res.status(500).json({ message: "error", error });

@@ -1,6 +1,7 @@
+import { property } from "zod";
 import { db } from "./../src/test-db";
-import { asc, eq, inArray } from "drizzle-orm";
-import { usersTable, propertyTable } from "../src/db/schema";
+import { asc, eq, inArray, and } from "drizzle-orm";
+import { usersTable, propertyTable, tenantSaveTable } from "../src/db/schema";
 import cloudinary from "../config/cloudinary.config";
 import { propertiesImgTable } from "../src/db/schema";
 export const addProperty = async (req, res) => {
@@ -144,13 +145,21 @@ export const landLordProperties = async (req, res) => {
         if (req.user.id) {
             return res.status(401).json({ message: "Unautorized" });
         }
-        const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user.id));
+        const [user] = await db
+            .select()
+            .from(usersTable)
+            .where(eq(usersTable.id, req.user.id));
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
-        const landLordProperty = await db.select().from(propertyTable).where(eq(propertyTable.propertyId, user.id));
+        const landLordProperty = await db
+            .select()
+            .from(propertyTable)
+            .where(eq(propertyTable.propertyId, user.id));
         if (landLordProperty.length === 0) {
-            return res.status(404).json({ message: "You don't have a Property yet!" });
+            return res
+                .status(404)
+                .json({ message: "You don't have a Property yet!" });
         }
         const frontendLandLordProp = {
             totalProperties: landLordProperty.length,
@@ -160,7 +169,49 @@ export const landLordProperties = async (req, res) => {
         return res.status(200).json({ landLordproperties: frontendLandLordProp });
     }
     catch (error) {
-        console.log('this error is from landLordProperties catch: ', error);
+        console.log("this error is from landLordProperties catch: ", error);
     }
 };
+export const saveProperty = async (req, res) => {
+    try {
+        // console.log("req.body", req.body)
+        // if (!req.body) {
+        //   return res.status(400).json({ message: "No Request Read" });
+        // }
+        const userId = req.user.id;
+        const propertyId = req.body.propertyId;
+        if (!propertyId) {
+            return res.status(400).json({ message: "propertyId is required" });
+        }
+        const dbSavedProperty = {
+            userId: userId,
+            propertyId: propertyId
+        };
+        await db.insert(tenantSaveTable).values(dbSavedProperty).onConflictDoNothing();
+        return res.status(200).json({ message: "Property Saved" });
+    }
+    catch (error) {
+        console.log("this error is fro the saveProperty catch: ", error);
+        return res.status(500).json({ message: "Erro saving property" });
+    }
+};
+export const unSaveProperty = async (req, res) => {
+    try {
+        if (!req.params.id) {
+            return res.status(400).json({ message: "No Request read" });
+        }
+        const stringPropertyId = req.params.id.toString();
+        // Must be scoped to BOTH the user and the property. Deleting by
+        // propertyId alone wipes every other tenant's save for that property.
+        await db
+            .delete(tenantSaveTable)
+            .where(and(eq(tenantSaveTable.userId, req.user.id), eq(tenantSaveTable.propertyId, stringPropertyId)));
+        return res.status(200).json({ message: "Property Unsaved" });
+    }
+    catch (error) {
+        console.log("this error is from unsaveproperty catch: ", error);
+        return res.status(500).json({ message: "error unsaving property" });
+    }
+};
+// tenantSaveTable
 //# sourceMappingURL=property.controller.js.map
