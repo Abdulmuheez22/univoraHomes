@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { addProperty } from '../../../lib/services/auth.service';
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { X, ArrowLeft, Building2, Upload, CheckCircle2 } from "lucide-react";
 
 export default function AddPropertyPage({ onBack }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
   const [photos, setPhotos] = useState([]);
   const [formError, setFormError] = useState("");
@@ -25,6 +26,7 @@ export default function AddPropertyPage({ onBack }) {
     mutationFn: addProperty,
     onSuccess: (data) => {
       console.log("Property added success: ", data);
+      queryClient.invalidateQueries({ queryKey: ["landlord-properties"] });
       navigate("/dashboard");
     },
     onError: (error) => {

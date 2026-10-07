@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Building2,
@@ -16,14 +16,18 @@ import {
 import { Link, useParams } from "react-router-dom";
 import api from "../lib/axios";
 import { Bookmark } from "lucide-react";
-import { saveProperty } from "../lib/services/auth.service";
-import { unSaveProperty } from "../lib/services/auth.service";
+import {
+  fetchSavedProperties,
+  saveProperty,
+  unSaveProperty,
+} from "../lib/services/auth.service";
 
 const formatNaira = (amount) =>
   `₦${Number(amount || 0).toLocaleString("en-NG")}`;
 
 export default function PropertyDetails() {
   const { propertyId } = useParams();
+  const queryClient = useQueryClient();
   const [galleryState, setGalleryState] = useState({
     propertyId,
     activeImageIndex: 0,
@@ -53,6 +57,16 @@ export default function PropertyDetails() {
     },
     enabled: Boolean(propertyId),
   });
+  const { data: savedProperties } = useQuery({
+    queryKey: ["saved-properties"],
+    queryFn: fetchSavedProperties,
+    retry: false,
+  });
+  const isSaved =
+    savedProperties?.some(
+      (savedProperty) => savedProperty.propertyId === propertyId,
+    ) ?? save;
+
   const images = (property?.propertyImages || [])
     .map((image) =>
       typeof image === "string" ? image : image?.imageUrl || image?.url,
@@ -112,8 +126,12 @@ export default function PropertyDetails() {
 
   const { mutateAsync: savePropertyMutation, isPending: isSaving } = useMutation({
     mutationFn: saveProperty,
-    onSuccess: (data) => {
-      console.log(data);
+    onSuccess: () => {
+      queryClient.setQueryData(["saved-properties"], (previous = []) => [
+        ...previous.filter((savedProperty) => savedProperty.propertyId !== propertyId),
+        property,
+      ]);
+      queryClient.invalidateQueries({ queryKey: ["saved-properties"] });
     },
     onError: (error) => {
       console.log("Error saving property : ", error?.response?.data ?? error);
@@ -122,8 +140,11 @@ export default function PropertyDetails() {
 
   const { mutateAsync: deleteUserMutation, isPending: isRemoving } = useMutation({
     mutationFn: unSaveProperty,
-    onSuccess: (data) => {
-      console.log(data);
+    onSuccess: () => {
+      queryClient.setQueryData(["saved-properties"], (previous = []) =>
+        previous.filter((savedProperty) => savedProperty.propertyId !== propertyId),
+      );
+      queryClient.invalidateQueries({ queryKey: ["saved-properties"] });
     },
   });
 
@@ -136,7 +157,7 @@ export default function PropertyDetails() {
       return;
     }
 
-    const next = !save;
+    const next = !isSaved;
 
     try {
       if (next) {
@@ -302,9 +323,17 @@ export default function PropertyDetails() {
               <span className="rounded-full bg-[#004741]/10 px-3 py-1 text-xs font-bold capitalize text-[#004741]">
                 {property.propertyType || "Property"}
               </span>
-              <h1 className="mt-4 text-3xl font-extrabold text-slate-900 sm:text-4xl">
-                {property.propertyName}
-              </h1>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <h1 className="text-3xl font-extrabold text-slate-900 sm:text-4xl">
+                  {property.propertyName}
+                </h1>
+                {isSaved && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#004741]/10 px-3 py-1.5 text-xs font-bold text-[#004741]">
+                    <Bookmark className="h-3.5 w-3.5 fill-current" />
+                    Saved
+                  </span>
+                )}
+              </div>
 
               <p className="mt-3 flex items-center gap-2 text-slate-500">
                 <MapPin className="h-4 w-4 shrink-0 text-amber-500" />
@@ -336,17 +365,19 @@ export default function PropertyDetails() {
                   className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-2xl bg-amber-500 px-5 text-sm font-bold text-white"
                 >
                   <CalendarCheck className="h-4 w-4" />
-                  Request
+                  interested ?
                 </button>
                 <button
                   type="button"
                   onClick={savefunction}
                   disabled={isSaving || isRemoving}
-                  aria-pressed={save}
+                  aria-pressed={isSaved}
                   className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-2xl border border-[#004741] px-5 text-sm font-bold text-[#004741] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <Bookmark className="h-4 w-4" />
-                  {save ? "Saved" : "Save"}
+                  <Bookmark
+                    className={`h-4 w-4 ${isSaved ? "fill-current" : ""}`}
+                  />
+                  {isSaved ? "Saved" : "Save"}
                 </button>
                 <button
                   type="button"

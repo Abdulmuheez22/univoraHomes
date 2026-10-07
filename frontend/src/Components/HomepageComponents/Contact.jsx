@@ -79,7 +79,7 @@ export default function Contact() {
   };
 
   return (
-    <section className="relative overflow-hidden bg-white py-24 lg:py-32">
+    <section id="contact" className="relative overflow-hidden bg-white py-24 lg:py-32">
       <div className="pointer-events-none absolute -right-32 top-0 h-96 w-96 rounded-full bg-[#004741]/5 blur-3xl" />
       <div className="pointer-events-none absolute -left-32 bottom-0 h-80 w-80 rounded-full bg-amber-100/40 blur-3xl" />
 

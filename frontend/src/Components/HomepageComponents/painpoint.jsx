@@ -145,7 +145,7 @@ export default function PainPoints() {
   };
 
   return (
-    <section ref={sectionRef} className="relative overflow-hidden bg-[#f7f5f0] py-24 lg:py-32">
+    <section id="" ref={sectionRef} className="relative overflow-hidden bg-[#f7f5f0] py-24 lg:py-32">
       <motion.div
         animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.6, 0.4] }}
         transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}

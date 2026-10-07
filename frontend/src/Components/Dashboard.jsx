@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import api from "../lib/axios";
 import LandlordDashboard from "./DashboardComponents/LandlordDashboard";
 import TenantDashboard from "./DashboardComponents/TenantDashboard";
+import LoadingState from "./loadingState";
 
 export default function Dashboard() {
   const {
@@ -18,14 +19,15 @@ export default function Dashboard() {
   });
 
   if (isLoading) {
-    return (
-      <main
-        className="flex min-h-screen items-center justify-center bg-[#f7f5f0] text-sm font-medium text-[#004741]"
-        role="status"
-      >
-        Loading your dashboard...
-      </main>
-    );
+    return <LoadingState />
+    // (
+      // <main
+      //   className="flex min-h-screen items-center justify-center bg-[#f7f5f0] text-sm font-medium text-[#004741]"
+      //   role="status"
+      // >
+      //   Loading your dashboard...
+      // </main>
+    // );
   }
 
   if (isError) {

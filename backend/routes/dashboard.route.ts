@@ -6,7 +6,6 @@ import { fetchSavedProperties } from "../controller/dashboard.controller";
 
 const dashboard = Router()
 
-
 dashboard.get("/populateDashboard", authmiddleware, populateDashboard)
 
 dashboard.get("/userProfile", authmiddleware, userProfile)

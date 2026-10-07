@@ -168,21 +168,13 @@ export default function Features() {
   const inView = useInView(headRef, { once: true, margin: "-100px" });
 
   return (
-    <section className="relative overflow-hidden bg-[#f7f5f0] py-24 lg:py-32">
+    <section id="features" className="relative overflow-hidden bg-[#f7f5f0] py-24 lg:py-32">
       <div className="pointer-events-none absolute -left-32 top-1/3 h-96 w-96 rounded-full bg-[#004741]/5 blur-3xl" />
       <div className="pointer-events-none absolute -right-32 bottom-0 h-80 w-80 rounded-full bg-amber-100/40 blur-3xl" />
 
       <div className="relative mx-auto max-w-7xl px-6">
         <div ref={headRef} className="mx-auto mb-16 max-w-3xl text-center lg:mb-20">
-          <motion.span
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={inView ? { opacity: 1, scale: 1 } : {}}
-            transition={{ duration: 0.5, ease: EASE }}
-            className="mb-6 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-semibold tracking-widest text-slate-500"
-          >
-            <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-            FEATURES
-          </motion.span>
+
           <motion.h2
             initial={{ opacity: 0, y: 28 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}

@@ -75,7 +75,7 @@ export default function SignIn({ onSignIn, onSocial }) {
   const { mutateAsync } = useMutation({
     mutationFn: signIn,
     onSuccess: (data) => {
-      console.log(data)
+      // console.log(data)
     }
   });
 

@@ -1,0 +1,24 @@
+Goal: Connect tenants and landlords through properties.
+
+1. Tenant sends a request
+
+The tenant clicks "Request property" on a property.
+A request is created with status pending.
+
+2. Landlord is notified
+
+The landlord gets an email.
+The request shows on a Requests page in both dashboards: the tenant sees "My requests" and the landlord sees "Incoming requests".
+
+3. Landlord decides
+
+Declined: the request is deleted.
+Accepted:
+The tenant is notified.
+The tenant and landlord are now connected.
+Each gets a place in their dashboard: "My landlord" for the tenant and "My tenants" for the landlord.
+Each can see the other's info.
+
+
+later 
+the landlord should be able to edit and delete properties

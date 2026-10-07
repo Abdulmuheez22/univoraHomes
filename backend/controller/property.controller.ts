@@ -172,64 +172,84 @@ export const fetchPropertyById = async (req: Request, res: Response) => {
 
 export const landLordProperties = async (req: Request, res: Response) => {
   try {
-    if (req.user.id) {
-      return res.status(401).json({ message: "Unautorized" });
-    }
-    const [user] = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.id, req.user.id));
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+    const userId = req.user.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const landLordProperty = await db
+    const landlordProperties = await db
       .select()
       .from(propertyTable)
-      .where(eq(propertyTable.propertyId, user.id));
+      .where(eq(propertyTable.landLordId, userId));
 
-    if (landLordProperty.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "You don't have a Property yet!" });
-    }
+    const propertyIds = landlordProperties.map((property) => property.propertyId);
+    const images = propertyIds.length
+      ? await db
+          .select({
+            propertyId: propertiesImgTable.propertyId,
+            imageUrl: propertiesImgTable.imageUrl,
+          })
+          .from(propertiesImgTable)
+          .where(inArray(propertiesImgTable.propertyId, propertyIds))
+      : [];
 
-    const frontendLandLordProp = {
-      totalProperties: landLordProperty.length,
-      totalUnit: landLordProperty.map((unit) => unit.totalUnits),
-      occupiedUnits: landLordProperty.map((unit) => unit.totalUnits),
+    const frontendProperties = landlordProperties.map((property) => ({
+      propertyId: property.propertyId,
+      propertyName: property.propertyName,
+      propertyType: property.propertyType,
+      propertyAddress: property.propertyAddress,
+      targetRent: property.targetRent,
+      totalUnits: property.totalUnits,
+      state: property.state,
+      city: property.city,
+      propertyImages: images
+        .filter((image) => image.propertyId === property.propertyId)
+        .map((image) => image.imageUrl),
+    }));
+
+    const summary = {
+      totalProperties: landlordProperties.length,
+      totalUnits: landlordProperties.reduce(
+        (total, property) => total + Number(property.totalUnits),
+        0,
+      ),
+      occupiedUnits: 0,
     };
 
-    return res.status(200).json({ landLordproperties: frontendLandLordProp });
+    return res.status(200).json({ properties: frontendProperties, summary });
   } catch (error) {
     console.log("this error is from landLordProperties catch: ", error);
+    return res
+      .status(500)
+      .json({ message: "Error fetching landlord properties" });
   }
 };
 
 export const saveProperty = async (req: Request, res: Response) => {
   try {
-      // console.log("req.body", req.body)
+    // console.log("req.body", req.body)
     // if (!req.body) {
     //   return res.status(400).json({ message: "No Request Read" });
     // }
-    const userId = req.user.id
+    const userId = req.user.id;
 
     const propertyId = req.body.propertyId;
 
-     if (!propertyId) { return res.status(400).json({ message: "propertyId is required" });}
-
+    if (!propertyId) {
+      return res.status(400).json({ message: "propertyId is required" });
+    }
 
     const dbSavedProperty = {
       userId: userId,
-      propertyId: propertyId
-    }
+      propertyId: propertyId,
+    };
 
-    await db.insert(tenantSaveTable).values(dbSavedProperty).onConflictDoNothing();
+    await db
+      .insert(tenantSaveTable)
+      .values(dbSavedProperty)
+      .onConflictDoNothing();
 
-
-    return res.status(200).json({message: "Property Saved"})
-
+    return res.status(200).json({ message: "Property Saved" });
   } catch (error) {
     console.log("this error is fro the saveProperty catch: ", error);
     return res.status(500).json({ message: "Erro saving property" });
@@ -238,7 +258,9 @@ export const saveProperty = async (req: Request, res: Response) => {
 
 export const unSaveProperty = async (req: Request, res: Response) => {
   try {
-    if (!req.params.id) { return res.status(400).json({ message: "No Request read" }); }
+    if (!req.params.id) {
+      return res.status(400).json({ message: "No Request read" });
+    }
 
     const stringPropertyId = req.params.id.toString();
 
@@ -249,8 +271,8 @@ export const unSaveProperty = async (req: Request, res: Response) => {
       .where(
         and(
           eq(tenantSaveTable.userId, req.user.id),
-          eq(tenantSaveTable.propertyId, stringPropertyId)
-        )
+          eq(tenantSaveTable.propertyId, stringPropertyId),
+        ),
       );
 
     return res.status(200).json({ message: "Property Unsaved" });

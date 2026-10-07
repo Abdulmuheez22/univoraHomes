@@ -112,13 +112,13 @@ export default function TenantDashboard({ accountData }) {
         >
           <Link to="/">
             <div className="mb-8 flex items-center gap-3 px-5">
-              <motion.span 
+              {/* <motion.span 
                 whileHover={{ rotate: 12, scale: 1.08 }}
                 transition={{ type: "spring", stiffness: 300, damping: 15 }}
                 className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#F59E0B]"
               >
                 <Home className="h-5 w-5 text-[#004741]" strokeWidth={2.5} />
-              </motion.span>
+              </motion.span> */}
               <AnimatePresence>
                 {sidebar && (
                   <motion.span
@@ -140,11 +140,10 @@ export default function TenantDashboard({ accountData }) {
               return (
                 <motion.button
                   key={n.id}
-                  onClick={() =>
-                    n.id === "profile"
-                      ? setIsProfileOpen(true)
-                      : setActiveTab(n.id)
-                  }
+                  onClick={() => {
+                    setActiveTab(n.id);
+                    if (n.id === "profile") setIsProfileOpen(true);
+                  }}
                   whileHover={{ x: 3 }}
                   whileTap={{ scale: 0.97 }}
                   transition={{ duration: 0.2 }}
@@ -232,7 +231,10 @@ export default function TenantDashboard({ accountData }) {
                 aria-label="Open your profile"
                 title="My profile"
                 whileHover={{ scale: 1.05 }}
-                onClick={() => setIsProfileOpen(true)}
+                onClick={() => {
+                  setActiveTab("profile");
+                  setIsProfileOpen(true);
+                }}
                 className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#004741] text-xs font-bold text-white shadow-md shadow-[#004741]/20"
               >
                 {(profile?.userName || accountData?.userName || "U")
@@ -264,12 +266,14 @@ export default function TenantDashboard({ accountData }) {
                   {activeTab === "inquiries" && "My Property Inquiries"}
                   {activeTab === "saved" && "Saved Properties"}
                   {activeTab === "notifications" && "Notifications & Updates"}
+                  {activeTab === "profile" && "My Profile"}
                 </motion.h2>
                 <p className="mt-0.5 text-sm text-slate-500">
                   {activeTab === "overview" && "Track your inquiries, saved properties, and landlord messages."}
                   {activeTab === "inquiries" && "Monitor the real-time status of properties you've reached out about."}
                   {activeTab === "saved" && "Quickly access your favorite homes and listings."}
                   {activeTab === "notifications" && "Recent updates regarding your inquiries and housing matches."}
+                  {activeTab === "profile" && "Manage your account details and preferences."}
                 </p>
               </div>
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
@@ -491,6 +495,54 @@ export default function TenantDashboard({ accountData }) {
                     ))}
                   </div>
                 </motion.div>
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence mode="wait">
+              {activeTab === "profile" && (
+                <motion.section
+                  key="profile-section"
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -16 }}
+                  transition={{ duration: 0.35, ease: EASE }}
+                  className="rounded-2xl border border-slate-100 bg-white p-8 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]"
+                >
+                  <h3 className="font-bold text-slate-900">Account details</h3>
+                  {isProfileLoading ? (
+                    <p className="mt-3 text-sm text-slate-500">Loading profile...</p>
+                  ) : isProfileError ? (
+                    <p className="mt-3 text-sm text-red-600">Couldn't load your profile.</p>
+                  ) : (
+                    <dl className="mt-5 grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Name</dt>
+                        <dd className="mt-1 text-sm font-semibold text-slate-800">{profile?.userName || "—"}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Email</dt>
+                        <dd className="mt-1 text-sm font-semibold text-slate-800">{profile?.userEmail || "—"}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Phone</dt>
+                        <dd className="mt-1 text-sm font-semibold text-slate-800">{profile?.userPhone || "—"}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Location</dt>
+                        <dd className="mt-1 text-sm font-semibold text-slate-800">
+                          {[profile?.userCity, profile?.userState].filter(Boolean).join(", ") || "—"}
+                        </dd>
+                      </div>
+                    </dl>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setIsProfileOpen(true)}
+                    className="mt-6 rounded-xl bg-[#004741] px-5 py-3 text-sm font-bold text-white"
+                  >
+                    Open profile settings
+                  </button>
+                </motion.section>
               )}
             </AnimatePresence>
 

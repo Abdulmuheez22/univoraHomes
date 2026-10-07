@@ -7,9 +7,11 @@ export const authmiddleware = (
   res: Response,
   next: NextFunction,
 ) => {
-  const token = req.cookies.token;
-  // console.log(req.headers.cookie);
-  // console.log(req.cookies);
+  const authorization = req.get("authorization");
+  const bearerMatch = authorization?.match(/^Bearer\s+(.+)$/i);
+  const bearerToken = bearerMatch?.[1]?.trim();
+  const token = authorization ? bearerToken : req.cookies.token;
+
   if (!token) {
     return res.status(401).json({ message: "Unauthorized" });
   }

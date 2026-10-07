@@ -206,7 +206,7 @@ export default function Hero() {
   };
 
   return (
-    <section className="relative flex min-h-screen w-full min-w-0 flex-col items-center justify-between gap-10 overflow-hidden bg-[#F0E8D5] px-3 pt-24 pb-10 sm:gap-14 sm:px-10 sm:pt-28 lg:flex-row md:gap-20 lg:px-16 lg:pt-0">
+    <section id="home" className="relative flex min-h-screen w-full min-w-0 flex-col items-center justify-between gap-10 overflow-hidden bg-[#F0E8D5] px-3 pt-24 pb-10 sm:gap-14 sm:px-10 sm:pt-28 lg:flex-row md:gap-20 lg:px-16 lg:pt-0">
       <div className="pointer-events-none absolute -top-32 -left-32 h-[500px] w-[500px] rounded-full bg-[#004741]/10 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-40 -right-24 h-[420px] w-[420px] rounded-full bg-[#F59E0B]/15 blur-3xl" />
 

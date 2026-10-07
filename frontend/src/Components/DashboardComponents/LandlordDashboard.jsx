@@ -9,13 +9,10 @@ import {
   Layers,
   CheckCircle2,
   DoorOpen,
-  Wallet,
-  AlertCircle,
   Home,
   LayoutDashboard,
   Users,
   Wrench,
-  FileText,
   Settings,
   LogOut,
   Bell,
@@ -38,6 +35,7 @@ import {
   fetchSavedProperties,
   fetchUserProfile,
   unSaveProperty,
+  landLordProperties
 } from "../../lib/services/auth.service";
 import ProfileModal from "./ProfileModal";
 
@@ -47,7 +45,7 @@ const MotionLink = motion(Link);
 const STATS = [
   {
     label: "Total Properties",
-    value: 12,
+    value: 0,
     icon: Building2,
     accent: "#004741",
     delta: "+2",
@@ -55,7 +53,7 @@ const STATS = [
   },
   {
     label: "Total Units",
-    value: 28,
+    value: 0,
     icon: Layers,
     accent: "#0F766E",
     delta: "+4",
@@ -63,7 +61,7 @@ const STATS = [
   },
   {
     label: "Occupied Units",
-    value: 24,
+    value: 0,
     icon: CheckCircle2,
     accent: "#004741",
     delta: "86%",
@@ -72,29 +70,29 @@ const STATS = [
   },
   {
     label: "Vacant Units",
-    value: 4,
+    value: 0,
     icon: DoorOpen,
     accent: "#F59E0B",
     delta: "3 in Lekki",
     up: false,
   },
-  {
-    label: "Rent Collected This Month",
-    value: 1850000,
-    icon: Wallet,
-    accent: "#004741",
-    money: true,
-    delta: "+12.4%",
-    up: true,
-  },
-  {
-    label: "Overdue Payments",
-    value: 3,
-    icon: AlertCircle,
-    accent: "#DC2626",
-    delta: "-₦450k",
-    up: false,
-  },
+  // {
+  //   label: "Rent Collected This Month",
+  //   value: 1850000,
+  //   icon: Wallet,
+  //   accent: "#004741",
+  //   money: true,
+  //   delta: "+12.4%",
+  //   up: true,
+  // },
+  // {
+  //   label: "Overdue Payments",
+  //   value: 3,
+  //   icon: AlertCircle,
+  //   accent: "#DC2626",
+  //   delta: "-₦450k",
+  //   up: false,
+  // },
 ];
 
 const PAYMENTS = [
@@ -375,13 +373,14 @@ const STATUS = {
 };
 
 export default function LandlordDashboard() {
+  // const [landLordProperties, setLandLordProperties] = useState({})
   const [userData, setUserData] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
     const runPopulateDashboard = async () => {
       try {
         const response = await api.get("/dashboard/populateDashboard");
-        console.log(response.data.userData);
+        // console.log(response.data.userData);
         setUserData(response.data.userData);
       } catch (error) {
         console.error("Unable to load landlord dashboard:", error);
@@ -392,18 +391,8 @@ export default function LandlordDashboard() {
     runPopulateDashboard();
   }, []);
 
-  const dashboardStatValues = {
-    "Total Properties": userData.totalProperties,
-    "Total Units": userData.totalUnit,
-    "Occupied Units": userData.occupiedUnits,
-    "Vacant Units": userData.vacantUnit,
-  };
-  const dashboardStats = STATS.map((stat) => ({
-    ...stat,
-    value: dashboardStatValues[stat.label] ?? stat.value,
-  }));
-
   const [sidebar, setSidebar] = useState(false);
+  const [activeNav, setActiveNav] = useState("Dashboard");
   const [toast, setToast] = useState(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const mainRef = useRef(null);
@@ -427,11 +416,37 @@ export default function LandlordDashboard() {
     queryFn: fetchSavedProperties,
   });
 
+  const {
+    data: landLordPropertiesData,
+    isLoading: landLordPropertiesIsLoading,
+    isError: landLordPropertiesIsError,
+    refetch: refetchLandLordProperties,
+  } = useQuery({
+    queryKey: ["landlord-properties"],
+    queryFn: landLordProperties,
+  });
+
+  const propertySummary = landLordPropertiesData?.summary;
+  const dashboardStatValues = {
+    "Total Properties": propertySummary?.totalProperties ?? 0,
+    "Total Units": propertySummary?.totalUnits ?? 0,
+    "Occupied Units": propertySummary?.occupiedUnits ?? 0,
+    "Vacant Units": Math.max(
+      (propertySummary?.totalUnits ?? 0) - (propertySummary?.occupiedUnits ?? 0),
+      0,
+    ),
+  };
+  const dashboardStats = STATS.map((stat) => ({
+    ...stat,
+    value: dashboardStatValues[stat.label] ?? stat.value,
+  }));
+
   const notify = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2800);
   };
 
+  // console.log("landLordPropertiesData: ", landLordPropertiesData)
   const removeSavedProperty = useMutation({
     mutationFn: unSaveProperty,
     onSuccess: () =>
@@ -440,13 +455,17 @@ export default function LandlordDashboard() {
   });
 
   const NAV = [
-    { icon: LayoutDashboard, label: "Dashboard", active: true },
-    { icon: Building2, label: "Properties", active: false },
-    { icon: Users, label: "Tenants", active: false },
-    { icon: Wallet, label: "Payments", active: false },
-    { icon: Wrench, label: "Maintenance", badge: 4, active: false },
-    { icon: FileText, label: "Documents", active: false },
-    { icon: Settings, label: "Settings", active: false },
+    { icon: LayoutDashboard, label: "Dashboard" },
+    { icon: Building2, label: "Properties" },
+    { icon: Users, label: "Tenants" },
+    {
+      icon: Bookmark,
+      label: "Saved Properties",
+      badge: savedProperties.length || null,
+    },
+    // { icon: Wrench, label: "Maintenance", badge: 4, active: false },
+    // { icon: FileText, label: "Documents", active: false },
+    { icon: Settings, label: "Profile", active: false },
   ];
 
   return (
@@ -462,13 +481,13 @@ export default function LandlordDashboard() {
         >
           <Link to="/">
             <div className="mb-8 flex items-center gap-3 px-5">
-              <motion.span 
+              {/* <motion.span 
                 whileHover={{ rotate: 12, scale: 1.08 }}
                 transition={{ type: "spring", stiffness: 300, damping: 15 }}
                 className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#F59E0B]"
               >
                 <Home className="h-5 w-5 text-[#004741]" strokeWidth={2.5} />
-              </motion.span>
+              </motion.span> */}
               <AnimatePresence>
                 {sidebar && (
                   <motion.span
@@ -491,8 +510,14 @@ export default function LandlordDashboard() {
                 whileHover={{ x: 3 }}
                 whileTap={{ scale: 0.97 }}
                 transition={{ duration: 0.2 }}
+                onClick={() => {
+                  setActiveNav(n.label);
+                  if (n.label === "Profile") {
+                    setIsProfileOpen(true);
+                  }
+                }}
                 className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-colors duration-200 cursor-pointer ${
-                  n.active
+                  activeNav === n.label
                     ? "bg-[#F59E0B] text-[#004741]"
                     : "text-white/60 hover:bg-white/5 hover:text-white"
                 }`}
@@ -517,7 +542,7 @@ export default function LandlordDashboard() {
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", stiffness: 400, damping: 20 }}
                     className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
-                      n.active
+                      activeNav === n.label
                         ? "bg-[#004741] text-white"
                         : "bg-red-500 text-white"
                     }`}
@@ -586,7 +611,10 @@ export default function LandlordDashboard() {
                 aria-label="Open your profile"
                 title="My profile"
                 whileHover={{ scale: 1.05 }}
-                onClick={() => setIsProfileOpen(true)}
+                onClick={() => {
+                  setActiveNav("Profile");
+                  setIsProfileOpen(true);
+                }}
                 className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#004741] text-xs font-bold text-white shadow-md shadow-[#004741]/20"
               >
                 {(profile?.userName || userData.userName || "U")
@@ -600,6 +628,17 @@ export default function LandlordDashboard() {
           </header>
 
           <main ref={mainRef} className="space-y-6 p-5 lg:p-8">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={activeNav}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.28, ease: EASE }}
+                className="space-y-6"
+              >
+            {activeNav === "Dashboard" && (
+              <>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
@@ -625,8 +664,106 @@ export default function LandlordDashboard() {
                 Add New Property
               </MotionLink>
             </motion.div>
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
+              {dashboardStats.map((s, i) => (
+                <StatCard key={s.label} stat={s} index={i} />
+              ))}
+            </div>
+              </>
+            )}
 
-            <section className="rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]">
+            {activeNav === "Properties" && (
+            <section
+              id="landlord-properties"
+              className="scroll-mt-20 rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]"
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-slate-900">My Properties</h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Properties listed under your account.
+                  </p>
+                </div>
+                <Building2 className="h-5 w-5 text-[#004741]" />
+              </div>
+              {landLordPropertiesIsLoading ? (
+                <p className="py-8 text-center text-sm text-slate-500">
+                  Loading your properties...
+                </p>
+              ) : landLordPropertiesIsError ? (
+                <div className="py-8 text-center">
+                  <p className="text-sm text-red-600">
+                    Couldn't load your properties.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => refetchLandLordProperties()}
+                    className="mt-2 text-sm font-semibold text-[#004741] hover:underline"
+                  >
+                    Try again
+                  </button>
+                </div>
+              ) : landLordPropertiesData?.properties?.length === 0 ? (
+                <div className="rounded-xl bg-slate-50 px-5 py-10 text-center">
+                  <p className="font-semibold text-slate-700">
+                    You haven't listed any properties yet
+                  </p>
+                  <Link
+                    to="/addproperty"
+                    className="mt-4 inline-flex rounded-xl bg-[#004741] px-4 py-2.5 text-sm font-bold text-white"
+                  >
+                    Add your first property
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {landLordPropertiesData?.properties?.map((property) => (
+                    <article
+                      key={property.propertyId}
+                      className="overflow-hidden rounded-xl border border-slate-100 bg-slate-50/50"
+                    >
+                      <Link to={`/properties/${property.propertyId}`} className="block">
+                        {property.propertyImages?.[0] ? (
+                          <img
+                            src={property.propertyImages[0]}
+                            alt={property.propertyName}
+                            className="h-40 w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-40 items-center justify-center bg-slate-100 text-sm text-slate-400">
+                            No property photo
+                          </div>
+                        )}
+                      </Link>
+                      <div className="p-4">
+                        <Link
+                          to={`/properties/${property.propertyId}`}
+                          className="font-bold text-slate-900 hover:text-[#004741]"
+                        >
+                          {property.propertyName}
+                        </Link>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {property.propertyType} · {property.city}, {property.state}
+                        </p>
+                        <p className="mt-3 text-sm font-semibold text-slate-600">
+                          {property.totalUnits} units
+                        </p>
+                        <p className="mt-1 text-sm font-extrabold text-[#004741]">
+                         ₦ {property.targetRent || 0}
+                        </p>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+            )}
+
+            {activeNav === "Saved Properties" && (
+            <section
+              id="saved-properties"
+              className="scroll-mt-20 rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]"
+            >
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <h3 className="font-bold text-slate-900">Saved Properties</h3>
@@ -733,13 +870,10 @@ export default function LandlordDashboard() {
                 </div>
               )}
             </section>
+            )}
 
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
-              {dashboardStats.map((s, i) => (
-                <StatCard key={s.label} stat={s} index={i} />
-              ))}
-            </div>
-
+            {activeNav === "Dashboard" && (
+              <>
             <div className="grid gap-6 xl:grid-cols-3">
               <div className="xl:col-span-2">
                 <ChartCard />
@@ -794,7 +928,6 @@ export default function LandlordDashboard() {
                 </div>
               </motion.div>
             </div>
-
             <div className="grid gap-6 xl:grid-cols-3">
               <motion.div
                 initial={{ opacity: 0, y: 28 }}
@@ -1030,6 +1163,36 @@ export default function LandlordDashboard() {
                 </motion.button>
               ))}
             </motion.div>
+              </>
+            )}
+
+            {activeNav === "Tenants" && (
+              <section className="rounded-2xl border border-slate-100 bg-white p-8 text-center shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]">
+                <Users className="mx-auto h-10 w-10 text-[#004741]" />
+                <h2 className="mt-4 text-xl font-bold text-slate-900">Tenant management</h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  Tenant management will be available here once tenant records are connected.
+                </p>
+              </section>
+            )}
+
+            {activeNav === "Profile" && (
+              <section className="rounded-2xl border border-slate-100 bg-white p-8 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]">
+                <h2 className="text-xl font-bold text-slate-900">Profile</h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  View and update your account details.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsProfileOpen(true)}
+                  className="mt-5 rounded-xl bg-[#004741] px-5 py-3 text-sm font-bold text-white"
+                >
+                  Open profile details
+                </button>
+              </section>
+            )}
+              </motion.div>
+            </AnimatePresence>
           </main>
         </div>
 

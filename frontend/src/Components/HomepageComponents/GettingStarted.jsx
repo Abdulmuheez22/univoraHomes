@@ -97,7 +97,7 @@ export default function GettingStarted() {
   const lineY = useTransform(lineScale, [0, 1], ["0%", "100%"]);
 
   return (
-    <section ref={sectionRef} className="relative overflow-hidden bg-white py-24 lg:py-32">
+    <section id="how-it-works" ref={sectionRef} className="relative overflow-hidden bg-white py-24 lg:py-32">
       <div className="pointer-events-none absolute right-0 top-0 h-96 w-96 translate-x-1/3 -translate-y-1/3 rounded-full bg-[#004741]/5 blur-3xl" />
       <div className="pointer-events-none absolute bottom-0 left-0 h-80 w-80 -translate-x-1/3 translate-y-1/3 rounded-full bg-amber-100/40 blur-3xl" />
 

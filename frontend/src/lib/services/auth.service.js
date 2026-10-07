@@ -49,3 +49,8 @@ export const fetchUserProfile = async () => {
   const response = await api.get("/dashboard/userProfile");
   return response.data.user;
 };
+
+export const landLordProperties = async () => {
+  const response = await api.get("/property/fetchLandLordProperties");
+  return response.data
+}

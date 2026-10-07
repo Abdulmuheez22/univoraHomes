@@ -1,17 +1,19 @@
 import { Link } from "react-router-dom";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
   MapPin,
   Building2,
   Image as ImageIcon,
   ArrowRight,
   ArrowUpRight,
+  Bookmark,
   Loader2,
   RefreshCw,
   SearchX,
   Home,
 } from "lucide-react";
 import api from "../lib/axios";
+import { fetchSavedProperties } from "../lib/services/auth.service";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 
@@ -139,7 +141,7 @@ function SkeletonCard() {
 }
 
 
-function PropertyCard({ property, index }) {
+function PropertyCard({ property, index, isSaved }) {
   const name = property.name || property.propertyName;
   const type = property.type || property.propertyType;
   const city = property.city;
@@ -194,6 +196,12 @@ function PropertyCard({ property, index }) {
           >
             {type || "Property"}
           </span>
+          {isSaved && (
+            <span className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-[#004741] px-3 py-1.5 text-xs font-bold text-white shadow-md">
+              <Bookmark className="h-3.5 w-3.5 fill-current" />
+              Saved
+            </span>
+          )}
           {photoCount > 1 && (
             <span className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur">
               <ImageIcon className="h-3 w-3" />
@@ -245,6 +253,14 @@ export default function Properties() {
   const [priceRange, setPriceRange] = useState("All Prices");
   const [sortBy, setSortBy] = useState("default");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const { data: savedProperties = [] } = useQuery({
+    queryKey: ["saved-properties"],
+    queryFn: fetchSavedProperties,
+    retry: false,
+  });
+  const savedPropertyIds = new Set(
+    savedProperties.map((property) => property.propertyId),
+  );
 
   const {
     data,
@@ -620,6 +636,7 @@ export default function Properties() {
                   key={p.propertyId || p.id || p._id}
                   property={p}
                   index={i}
+                  isSaved={savedPropertyIds.has(p.propertyId || p.id || p._id)}
                 />
               ))}
             </div>

@@ -180,14 +180,14 @@ export default function Pricing() {
 
       <div className="relative mx-auto max-w-6xl px-6">
         <div className="mx-auto mb-16 max-w-2xl text-center">
-          <motion.span
+          {/* <motion.span
             initial={{ opacity: 0, scale: 0.8 }}
             animate={inView ? { opacity: 1, scale: 1 } : {}}
             transition={{ duration: 0.5, ease: EASE }}
             className="mb-6 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-1.5 text-xs font-semibold tracking-widest text-slate-500"
           >
             PRICING
-          </motion.span>
+          </motion.span> */}
           <motion.h2
             initial={{ opacity: 0, y: 28 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
