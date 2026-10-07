@@ -38,9 +38,7 @@ export const usersTable = pgTable("users", {
 export const propertyTable = pgTable("properties", {
   propertyId: uuid("propertyId").primaryKey().defaultRandom(),
 
-  landLordId: uuid("landLordId")
-    .notNull()
-    .references(() => usersTable.id),
+  landLordId: uuid("landLordId").notNull().references(() => usersTable.id),
 
   propertyName: varchar().notNull(),
 
@@ -81,6 +79,15 @@ export const tenantSaveTable = pgTable("tenatSavedProp",{
   propertyId: varchar("propertyId").notNull(),
   
 }) 
+
+export const connectionTable = pgTable("connectionTable",{
+
+  id: uuid().primaryKey().defaultRandom(),
+
+  propertyId: varchar("propertyId").notNull(),
+
+  userId: varchar("userId").notNull()
+})
 
 // {
 //     propertyName: '',

@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "6aaaf5c1-b573-4a94-a28e-4017bedf0968",
+  "id": "dcc9e768-6db9-426c-aa66-bd1d44fa2e73",
   "prevIds": [
     "00000000-0000-0000-0000-000000000000"
   ],
@@ -14,6 +14,12 @@
       ],
       "name": "role",
       "entityType": "enums",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "connectionTable",
+      "entityType": "tables",
       "schema": "public"
     },
     {
@@ -39,6 +45,45 @@
       "name": "users",
       "entityType": "tables",
       "schema": "public"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "connectionTable"
+    },
+    {
+      "type": "varchar",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "propertyId",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "connectionTable"
+    },
+    {
+      "type": "varchar",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "userId",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "connectionTable"
     },
     {
       "type": "uuid",
@@ -437,6 +482,16 @@
       "entityType": "fks",
       "schema": "public",
       "table": "properties"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "connectionTable_pkey",
+      "schema": "public",
+      "table": "connectionTable",
+      "entityType": "pks"
     },
     {
       "columns": [
