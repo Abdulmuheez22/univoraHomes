@@ -8,7 +8,11 @@ A request is created with status pending.
 2. Landlord is notified
 
 The landlord gets an email.
-The request shows on a Requests page in both dashboards: the tenant sees "My requests" and the landlord sees "Incoming requests".
+The request shows on a Requests page in both dashboards: the tenant sees "My requests" and the landlord sees "Incoming requests".{
+    qestion: how do i update the dashborad automatically
+
+    
+}
 
 3. Landlord decides
 

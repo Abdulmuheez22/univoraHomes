@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "dcc9e768-6db9-426c-aa66-bd1d44fa2e73",
+  "id": "439739f3-75b2-47aa-9b16-88a9f99700fe",
   "prevIds": [
     "00000000-0000-0000-0000-000000000000"
   ],
@@ -67,6 +67,32 @@
       "default": null,
       "generated": null,
       "identity": null,
+      "name": "landLordId",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "connectionTable"
+    },
+    {
+      "type": "varchar",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "tenatId",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "connectionTable"
+    },
+    {
+      "type": "varchar",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
       "name": "propertyId",
       "entityType": "columns",
       "schema": "public",
@@ -80,7 +106,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "userId",
+      "name": "requestStatus",
       "entityType": "columns",
       "schema": "public",
       "table": "connectionTable"

@@ -84,9 +84,13 @@ export const connectionTable = pgTable("connectionTable",{
 
   id: uuid().primaryKey().defaultRandom(),
 
+  landLordId: varchar("landLordId").notNull(),
+
+  tenatId: varchar("tenatId").notNull(),
+
   propertyId: varchar("propertyId").notNull(),
 
-  userId: varchar("userId").notNull()
+  requestStatus: varchar("requestStatus").notNull()
 })
 
 // {

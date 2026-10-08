@@ -17,6 +17,7 @@ import { Link, useParams } from "react-router-dom";
 import api from "../lib/axios";
 import { Bookmark } from "lucide-react";
 import {
+  connectionRequest,
   fetchSavedProperties,
   saveProperty,
   unSaveProperty,
@@ -36,7 +37,8 @@ export default function PropertyDetails() {
   const [save, setSave] = useState(()=> localStorage.getItem(`saveStatus:${propertyId}`) === "true");
   const [copied, setCopied] = useState(false);
   const [saveError, setSaveError] = useState("");
-  const [PropertyId, setPropertyId] = useState("");
+  const [requestedPropertyId, setRequestedPropertyId] = useState(null);
+  const [connectionError, setConnectionError] = useState("");
   const gallery =
     galleryState.propertyId === propertyId
       ? galleryState
@@ -120,8 +122,37 @@ export default function PropertyDetails() {
     }
   };
 
-  const requestProperty = () => {
-    // TODO: open request modal / call your API
+  const {
+    mutateAsync: sendConnectionRequest,
+    isPending: isSendingConnectionRequest,
+  } = useMutation({
+    mutationFn: connectionRequest,
+    onSuccess: () => setRequestedPropertyId(propertyId),
+  });
+
+  const requestProperty = async () => {
+    if (isSendingConnectionRequest || requestedPropertyId === propertyId) return;
+    setConnectionError("");
+
+    if (!navigator.onLine) {
+      setConnectionError("You're offline. Reconnect and try again.");
+      return;
+    }
+
+    try {
+      await sendConnectionRequest(propertyId);
+    } catch (error) {
+      if (!navigator.onLine || error?.code === "ERR_NETWORK") {
+        setConnectionError("Network problem — your request wasn't sent.");
+      } else if (error?.response?.status === 401) {
+        setConnectionError("Please log in to express your interest.");
+      } else {
+        setConnectionError(
+          error?.response?.data?.message ||
+            "Couldn't send your request. Please try again.",
+        );
+      }
+    }
   };
 
   const { mutateAsync: savePropertyMutation, isPending: isSaving } = useMutation({
@@ -362,10 +393,22 @@ export default function PropertyDetails() {
                 <button
                   type="button"
                   onClick={requestProperty}
-                  className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-2xl bg-amber-500 px-5 text-sm font-bold text-white"
+                  disabled={
+                    isSendingConnectionRequest ||
+                    requestedPropertyId === propertyId
+                  }
+                  className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-2xl bg-amber-500 px-5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <CalendarCheck className="h-4 w-4" />
-                  interested ?
+                  {isSendingConnectionRequest ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CalendarCheck className="h-4 w-4" />
+                  )}
+                  {isSendingConnectionRequest
+                    ? "Sending..."
+                    : requestedPropertyId === propertyId
+                      ? "Interest sent"
+                      : "Interested"}
                 </button>
                 <button
                   type="button"
@@ -399,6 +442,22 @@ export default function PropertyDetails() {
                   className="mt-3 text-sm font-semibold text-red-700"
                 >
                   {saveError}
+                </p>
+              )}
+              {connectionError && (
+                <p
+                  role="alert"
+                  className="mt-3 text-sm font-semibold text-red-700"
+                >
+                  {connectionError}
+                </p>
+              )}
+              {requestedPropertyId === propertyId && (
+                <p
+                  role="status"
+                  className="mt-3 text-sm font-semibold text-[#004741]"
+                >
+                  Your interest has been sent to the landlord.
                 </p>
               )}
 

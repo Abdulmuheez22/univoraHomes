@@ -54,3 +54,12 @@ export const landLordProperties = async () => {
   const response = await api.get("/property/fetchLandLordProperties");
   return response.data
 }
+
+export const connectionRequest = async (propertyId) => {
+  const response = await api.post(
+    "/connection/connectionRequest",
+    { propertyId },
+    { withCredentials: true },
+  );
+  return response.data;
+};
