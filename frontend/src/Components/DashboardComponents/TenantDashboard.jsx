@@ -5,7 +5,7 @@ import {
   AnimatePresence,
 } from "framer-motion";
 import {
-  Home,
+  Building2,
   LayoutDashboard,
   Bell,
   Search,
@@ -14,7 +14,6 @@ import {
   MessageSquare,
   User,
   CheckCircle2,
-  Clock,
   X,
   ExternalLink,
   MapPin,
@@ -28,20 +27,15 @@ import {
 } from "@tanstack/react-query";
 import {
   fetchSavedProperties,
+  fetchTenantConnectionRequests,
   fetchUserProfile,
   unSaveProperty,
 } from "../../lib/services/auth.service";
 import ProfileModal from "./ProfileModal";
+import SignOutConfirmation from "./SignOutConfirmation";
+import TenantPropertyBrowser from "./TenantPropertyBrowser";
 
 const EASE = [0.22, 1, 0.36, 1];
-
-const naira = (n) => "₦" + n.toLocaleString("en-NG");
-
-const MOCK_INQUIRIES = [
-  { id: 1, property: "Flat 4B, Lekki Phase 1", location: "Lagos", price: 4500000, date: "Yesterday, 2:30 PM", status: "Accepted" },
-  { id: 2, property: "Duplex A, Victoria Island", location: "Lagos", price: 8500000, date: "3 days ago", status: "Pending" },
-  { id: 3, property: "Unit 2, Yaba Commercial Hub", location: "Lagos", price: 3200000, date: "1 week ago", status: "Declined" },
-];
 
 const MOCK_NOTIFICATIONS = [
   { id: 1, title: "Inquiry Accepted!", desc: "Landlord accepted your inquiry for Flat 4B, Lekki Phase 1.", time: "2 hours ago", read: false },
@@ -73,6 +67,15 @@ export default function TenantDashboard({ accountData }) {
     queryKey: ["user-profile"],
     queryFn: fetchUserProfile,
   });
+  const {
+    data: inquiries = [],
+    isLoading: areInquiriesLoading,
+    isError: areInquiriesError,
+    refetch: refetchInquiries,
+  } = useQuery({
+    queryKey: ["tenant-connection-requests"],
+    queryFn: fetchTenantConnectionRequests,
+  });
   const removeSavedProperty = useMutation({
     mutationFn: unSaveProperty,
     onSuccess: () =>
@@ -84,6 +87,7 @@ export default function TenantDashboard({ accountData }) {
   const [sidebar, setSidebar] = useState(false);
   const [toast, setToast] = useState(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSignOutOpen, setIsSignOutOpen] = useState(false);
   const mainRef = useRef(null);
   const inView = useInView(mainRef, { once: true, margin: "-40px" });
 
@@ -94,7 +98,8 @@ export default function TenantDashboard({ accountData }) {
 
   const NAV = [
     { icon: LayoutDashboard, label: "Overview", id: "overview", active: activeTab === "overview" },
-    { icon: MessageSquare, label: "My Inquiries", id: "inquiries", badge: MOCK_INQUIRIES.filter(i => i.status === "Accepted").length, active: activeTab === "inquiries" },
+    { icon: Building2, label: "Browse Homes", id: "browse", active: activeTab === "browse" },
+    { icon: MessageSquare, label: "My Inquiries", id: "inquiries", badge: inquiries.length, active: activeTab === "inquiries" },
     { icon: Bookmark, label: "Saved Properties", id: "saved", badge: savedProperties.length, active: activeTab === "saved" },
     { icon: Bell, label: "Notifications", id: "notifications", badge: MOCK_NOTIFICATIONS.filter(n => !n.read).length, active: activeTab === "notifications" },
     { icon: User, label: "My Profile", id: "profile", active: activeTab === "profile" },
@@ -187,10 +192,14 @@ export default function TenantDashboard({ accountData }) {
           </nav>
           <div className="px-3">
             <motion.div whileHover={{ x: 3 }} whileTap={{ scale: 0.97 }}>
-              <Link to="/" className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-white/60 transition-colors hover:bg-white/5 hover:text-white">
+              <button
+                type="button"
+                onClick={() => setIsSignOutOpen(true)}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-white/60 transition-colors hover:bg-white/5 hover:text-white"
+              >
                 <LogOut className="h-5 w-5 flex-shrink-0" />
                 {sidebar && <span>Sign out</span>}
-              </Link>
+              </button>
             </motion.div>
           </div>
         </motion.aside>
@@ -263,6 +272,7 @@ export default function TenantDashboard({ accountData }) {
                   className="text-2xl font-extrabold tracking-tight text-slate-900"
                 >
                   {activeTab === "overview" && "Tenant Dashboard"}
+                  {activeTab === "browse" && "Find Your Next Home"}
                   {activeTab === "inquiries" && "My Property Inquiries"}
                   {activeTab === "saved" && "Saved Properties"}
                   {activeTab === "notifications" && "Notifications & Updates"}
@@ -270,6 +280,7 @@ export default function TenantDashboard({ accountData }) {
                 </motion.h2>
                 <p className="mt-0.5 text-sm text-slate-500">
                   {activeTab === "overview" && "Track your inquiries, saved properties, and landlord messages."}
+                  {activeTab === "browse" && "Discover and shortlist properties without leaving your dashboard."}
                   {activeTab === "inquiries" && "Monitor the real-time status of properties you've reached out about."}
                   {activeTab === "saved" && "Quickly access your favorite homes and listings."}
                   {activeTab === "notifications" && "Recent updates regarding your inquiries and housing matches."}
@@ -277,15 +288,18 @@ export default function TenantDashboard({ accountData }) {
                 </p>
               </div>
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                <Link
-                  to="/properties"
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("browse")}
                   className="flex items-center gap-2 rounded-xl bg-[#004741] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-[#004741]/25 hover:bg-[#00332F] transition-colors"
                 >
                   <Search className="h-4 w-4" strokeWidth={2.5} />
                   Browse Properties
-                </Link>
+                </button>
               </motion.div>
             </motion.div>
+
+            {activeTab === "browse" && <TenantPropertyBrowser />}
 
             <AnimatePresence mode="wait">
               {(activeTab === "overview" || activeTab === "inquiries") && (
@@ -305,47 +319,119 @@ export default function TenantDashboard({ accountData }) {
                         onClick={() => setActiveTab("inquiries")} 
                         className="text-xs font-semibold text-[#004741] hover:underline cursor-pointer flex items-center gap-1"
                       >
-                        View all ({MOCK_INQUIRIES.length}) <ChevronRight className="h-3 w-3" />
+                        View all ({inquiries.length}) <ChevronRight className="h-3 w-3" />
                       </motion.button>
                     )}
                   </div>
-                  <div className="space-y-3">
-                    {MOCK_INQUIRIES.map((item, idx) => (
-                      <motion.div 
-                        key={item.id} 
-                        initial={{ opacity: 0, x: -12 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 0.08, duration: 0.4, ease: EASE }}
-                        whileHover={{ x: 4, backgroundColor: "rgba(240, 232, 213, 0.15)" }}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-slate-100 transition-all bg-slate-50/50"
+                  {areInquiriesLoading ? (
+                    <p className="py-8 text-center text-sm text-slate-500">
+                      Loading your inquiries...
+                    </p>
+                  ) : areInquiriesError ? (
+                    <div className="py-8 text-center">
+                      <p className="text-sm text-red-600">
+                        Couldn't load your inquiries.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => refetchInquiries()}
+                        className="mt-2 text-sm font-semibold text-[#004741] hover:underline"
                       >
-                        <div>
-                          <h4 className="font-bold text-sm text-slate-900">{item.property}</h4>
-                          <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
-                            <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {item.location}</span>
-                            <span>•</span>
-                            <span className="font-bold text-[#004741]">{naira(item.price)}/yr</span>
-                            <span>•</span>
-                            <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {item.date}</span>
+                        Try again
+                      </button>
+                    </div>
+                  ) : inquiries.length === 0 ? (
+                    <div className="rounded-xl bg-slate-50 px-5 py-10 text-center">
+                      <p className="font-semibold text-slate-700">
+                        You haven't sent any property inquiries yet
+                      </p>
+                      <Link
+                        to="/properties"
+                        className="mt-4 inline-flex rounded-xl bg-[#004741] px-4 py-2.5 text-sm font-bold text-white"
+                      >
+                        Browse properties
+                      </Link>
+                    </div>
+                  ) : (
+                  <div className="space-y-3">
+                    {inquiries.map((item, idx) => {
+                      const status = item.requestStatus || "Pending";
+                      const statusStyle =
+                        STATUS_STYLE[status] ||
+                        "bg-slate-50 text-slate-700 border-slate-200";
+                      const location = [
+                        item.propertyAddress,
+                        item.city,
+                        item.state,
+                      ]
+                        .filter(Boolean)
+                        .join(", ");
+
+                      return (
+                        <motion.div
+                          key={item.requestId}
+                          initial={{ opacity: 0, x: -12 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: idx * 0.08, duration: 0.4, ease: EASE }}
+                          whileHover={{ x: 4, backgroundColor: "rgba(240, 232, 213, 0.15)" }}
+                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-slate-100 transition-all bg-slate-50/50"
+                        >
+                          <div>
+                            <h4 className="font-bold text-sm text-slate-900">
+                              {item.propertyName || "Property"}
+                            </h4>
+                            <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
+                              {location && (
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="h-3.5 w-3.5" /> {location}
+                                </span>
+                              )}
+                              {item.targetRent && (
+                                <>
+                                  {location && <span>•</span>}
+                                  <span className="font-bold text-[#004741]">
+                                   ₦ {item.targetRent}/yr
+                                  </span>
+                                </>
+                              )}
+                              {item.landlordName && (
+                                <>
+                                  {(location || item.targetRent) && <span>•</span>}
+                                  <span>Landlord: {item.landlordName}</span>
+                                </>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <motion.span 
-                            initial={{ scale: 0.9 }}
-                            animate={{ scale: 1 }}
-                            className={`px-3 py-1 rounded-full text-xs font-bold border ${STATUS_STYLE[item.status]}`}
-                          >
-                            {item.status}
-                          </motion.span>
-                          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                            <Link to={`#`} className="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-[#004741] hover:border-[#004741] transition-colors flex items-center justify-center shadow-sm">
-                              <ExternalLink className="h-4 w-4" />
-                            </Link>
-                          </motion.div>
-                        </div>
-                      </motion.div>
-                    ))}
+                          <div className="flex items-center gap-3">
+                            <motion.span
+                              initial={{ scale: 0.9 }}
+                              animate={{ scale: 1 }}
+                              className={`px-3 py-1 rounded-full text-xs font-bold border ${statusStyle}`}
+                            >
+                              {status}
+                            </motion.span>
+                            <motion.div
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                            >
+                              <Link
+                                to={
+                                  item.propertyId
+                                    ? `/properties/${item.propertyId}`
+                                    : "/properties"
+                                }
+                                aria-label={`View ${item.propertyName || "property"}`}
+                                className="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-[#004741] hover:border-[#004741] transition-colors flex items-center justify-center shadow-sm"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </Link>
+                            </motion.div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
                   </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -578,6 +664,10 @@ export default function TenantDashboard({ accountData }) {
         profile={profile}
         isLoading={isProfileLoading}
         isError={isProfileError}
+      />
+      <SignOutConfirmation
+        open={isSignOutOpen}
+        onClose={() => setIsSignOutOpen(false)}
       />
     </>
   );

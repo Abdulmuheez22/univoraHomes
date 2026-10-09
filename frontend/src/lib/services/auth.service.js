@@ -16,6 +16,11 @@ export const signIn = async (user) => {
   return response.data
 }
 
+export const signOut = async () => {
+  const response = await api.post("/auth/signOut", {}, { withCredentials: true });
+  return response.data;
+};
+
 export const addProperty = async (body) => {
   const response = await api.post("/property/addProperty", body, {withCredentials: true})
   return response.data
@@ -34,7 +39,7 @@ export const saveProperty = async ({ propertyId }) => {
 export const unSaveProperty = async (propertyId) => {
   const response = await api.delete(
     `/property/unSaveProperty/${propertyId}`,
-    { withCredentials: true },
+    { withCredentials: true },  
   );
   return response.data;
 };
@@ -62,4 +67,27 @@ export const connectionRequest = async (propertyId) => {
     { withCredentials: true },
   );
   return response.data;
+};
+
+export const fetchConnectionRequestStatus = async (propertyId) => {
+  const response = await api.get(
+    `/connection/connectionRequest/status/${propertyId}`,
+    { withCredentials: true },
+  );
+  return response.data.requested;
+};
+
+export const fetchLandlordConnectionRequests = async () => {
+  const response = await api.get(
+    "/connection/updateLandLordConnectionRequest",
+    { withCredentials: true },
+  );
+  return response.data.requests;
+};
+
+export const fetchTenantConnectionRequests = async () => {
+  const response = await api.get("/connection/myConnectionRequests", {
+    withCredentials: true,
+  });
+  return response.data.requests;
 };

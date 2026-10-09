@@ -9,7 +9,6 @@ import {
   Layers,
   CheckCircle2,
   DoorOpen,
-  Home,
   LayoutDashboard,
   Users,
   Wrench,
@@ -35,9 +34,11 @@ import {
   fetchSavedProperties,
   fetchUserProfile,
   unSaveProperty,
-  landLordProperties
+  landLordProperties,
+  fetchLandlordConnectionRequests,
 } from "../../lib/services/auth.service";
 import ProfileModal from "./ProfileModal";
+import SignOutConfirmation from "./SignOutConfirmation";
 
 const EASE = [0.22, 1, 0.36, 1];
 const MotionLink = motion(Link);
@@ -395,6 +396,7 @@ export default function LandlordDashboard() {
   const [activeNav, setActiveNav] = useState("Dashboard");
   const [toast, setToast] = useState(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSignOutOpen, setIsSignOutOpen] = useState(false);
   const mainRef = useRef(null);
   const inView = useInView(mainRef, { once: true, margin: "-40px" });
   const queryClient = useQueryClient();
@@ -424,6 +426,15 @@ export default function LandlordDashboard() {
   } = useQuery({
     queryKey: ["landlord-properties"],
     queryFn: landLordProperties,
+  });
+  const {
+    data: connectionRequests = [],
+    isLoading: areConnectionRequestsLoading,
+    isError: areConnectionRequestsError,
+    refetch: refetchConnectionRequests,
+  } = useQuery({
+    queryKey: ["landlord-connection-requests"],
+    queryFn: fetchLandlordConnectionRequests,
   });
 
   const propertySummary = landLordPropertiesData?.summary;
@@ -457,6 +468,13 @@ export default function LandlordDashboard() {
   const NAV = [
     { icon: LayoutDashboard, label: "Dashboard" },
     { icon: Building2, label: "Properties" },
+    {
+      icon: Bell,
+      label: "Connection Requests",
+      badge: connectionRequests.filter(
+        (request) => request.requestStatus?.toLowerCase() === "pending",
+      ).length || null,
+    },
     { icon: Users, label: "Tenants" },
     {
       icon: Bookmark,
@@ -557,7 +575,11 @@ export default function LandlordDashboard() {
             </Link>
           <div className="px-3">
             <motion.div whileHover={{ x: 3 }} whileTap={{ scale: 0.97 }}>
-              <button className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-white/60 transition-colors hover:bg-white/5 hover:text-white cursor-pointer">
+              <button
+                type="button"
+                onClick={() => setIsSignOutOpen(true)}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-white/60 transition-colors hover:bg-white/5 hover:text-white cursor-pointer"
+              >
                 <LogOut className="h-5 w-5 flex-shrink-0" />
                 {sidebar && <span>Sign out</span>}
               </button>
@@ -757,6 +779,114 @@ export default function LandlordDashboard() {
                 </div>
               )}
             </section>
+            )}
+
+            {activeNav === "Connection Requests" && (
+              <section className="rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]">
+                <div className="mb-5 flex items-center justify-between">
+                  <div>
+                    <h2 className="font-bold text-slate-900">
+                      Connection Requests
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-500">
+                      People interested in your properties.
+                    </p>
+                  </div>
+                  <Bell className="h-5 w-5 text-[#004741]" />
+                </div>
+
+                {areConnectionRequestsLoading ? (
+                  <p className="py-8 text-center text-sm text-slate-500">
+                    Loading connection requests...
+                  </p>
+                ) : areConnectionRequestsError ? (
+                  <div className="py-8 text-center">
+                    <p className="text-sm text-red-600">
+                      Couldn't load connection requests.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => refetchConnectionRequests()}
+                      className="mt-2 text-sm font-semibold text-[#004741] hover:underline"
+                    >
+                      Try again
+                    </button>
+                  </div>
+                ) : connectionRequests.length === 0 ? (
+                  <div className="rounded-xl bg-slate-50 px-5 py-10 text-center">
+                    <p className="font-semibold text-slate-700">
+                      No connection requests yet
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      New tenant interest in your listings will appear here.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {connectionRequests.map((request) => (
+                      <article
+                        key={request.requestId}
+                        className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-slate-100 p-4"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-semibold text-slate-900">
+                            {request.tenantName || "Tenant"}
+                          </p>
+                          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500">
+                            {request.tenantEmail && (
+                              <a
+                                href={`mailto:${request.tenantEmail}`}
+                                className="hover:text-[#004741] hover:underline"
+                              >
+                                {request.tenantEmail}
+                              </a>
+                            )}
+                            {request.tenantPhoneNumber && (
+                              <a
+                                href={`tel:${request.tenantPhoneNumber}`}
+                                className="hover:text-[#004741] hover:underline"
+                              >
+                                {request.tenantPhoneNumber}
+                              </a>
+                            )}
+                          </div>
+                          <p className="mt-3 text-sm text-slate-600">
+                            Interested in{" "}
+                            {request.propertyId ? (
+                              <Link
+                                to={`/properties/${request.propertyId}`}
+                                className="font-semibold text-[#004741] hover:underline"
+                              >
+                                {request.propertyName || "a property"}
+                              </Link>
+                            ) : (
+                              <span className="font-semibold">
+                                {request.propertyName || "a property"}
+                              </span>
+                            )}
+                          </p>
+                          {(request.propertyAddress ||
+                            request.city ||
+                            request.state) && (
+                            <p className="mt-1 text-xs text-slate-500">
+                              {[
+                                request.propertyAddress,
+                                request.city,
+                                request.state,
+                              ]
+                                .filter(Boolean)
+                                .join(", ")}
+                            </p>
+                          )}
+                        </div>
+                        <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold capitalize text-amber-700">
+                          {request.requestStatus || "Pending"}
+                        </span>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
             )}
 
             {activeNav === "Saved Properties" && (
@@ -1224,6 +1354,10 @@ export default function LandlordDashboard() {
           profile={profile}
           isLoading={isProfileLoading}
           isError={isProfileError}
+        />
+        <SignOutConfirmation
+          open={isSignOutOpen}
+          onClose={() => setIsSignOutOpen(false)}
         />
       </div>
     </>

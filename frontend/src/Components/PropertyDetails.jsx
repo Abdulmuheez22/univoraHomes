@@ -18,6 +18,7 @@ import api from "../lib/axios";
 import { Bookmark } from "lucide-react";
 import {
   connectionRequest,
+  fetchConnectionRequestStatus,
   fetchSavedProperties,
   saveProperty,
   unSaveProperty,
@@ -37,7 +38,6 @@ export default function PropertyDetails() {
   const [save, setSave] = useState(()=> localStorage.getItem(`saveStatus:${propertyId}`) === "true");
   const [copied, setCopied] = useState(false);
   const [saveError, setSaveError] = useState("");
-  const [requestedPropertyId, setRequestedPropertyId] = useState(null);
   const [connectionError, setConnectionError] = useState("");
   const gallery =
     galleryState.propertyId === propertyId
@@ -64,6 +64,20 @@ export default function PropertyDetails() {
     queryFn: fetchSavedProperties,
     retry: false,
   });
+  const {
+    data: hasRequestedProperty,
+    isError: isConnectionStatusError,
+    error: connectionStatusError,
+    isFetching: isFetchingConnectionStatus,
+  } = useQuery({
+    queryKey: ["connection-request-status", propertyId],
+    queryFn: () => fetchConnectionRequestStatus(propertyId),
+    enabled: Boolean(propertyId),
+    retry: false,
+    refetchOnMount: "always",
+  });
+  const isConnectionRequestSent =
+    !isFetchingConnectionStatus && hasRequestedProperty === true;
   const isSaved =
     savedProperties?.some(
       (savedProperty) => savedProperty.propertyId === propertyId,
@@ -127,11 +141,22 @@ export default function PropertyDetails() {
     isPending: isSendingConnectionRequest,
   } = useMutation({
     mutationFn: connectionRequest,
-    onSuccess: () => setRequestedPropertyId(propertyId),
+    onSuccess: () => {
+      queryClient.setQueryData(
+        ["connection-request-status", propertyId],
+        true,
+      );
+    },
   });
 
   const requestProperty = async () => {
-    if (isSendingConnectionRequest || requestedPropertyId === propertyId) return;
+    if (
+      isSendingConnectionRequest ||
+      isFetchingConnectionStatus ||
+      isConnectionRequestSent
+    ) {
+      return;
+    }
     setConnectionError("");
 
     if (!navigator.onLine) {
@@ -395,18 +420,21 @@ export default function PropertyDetails() {
                   onClick={requestProperty}
                   disabled={
                     isSendingConnectionRequest ||
-                    requestedPropertyId === propertyId
+                    isFetchingConnectionStatus ||
+                    isConnectionRequestSent
                   }
                   className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-2xl bg-amber-500 px-5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {isSendingConnectionRequest ? (
+                  {isSendingConnectionRequest || isFetchingConnectionStatus ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <CalendarCheck className="h-4 w-4" />
                   )}
                   {isSendingConnectionRequest
                     ? "Sending..."
-                    : requestedPropertyId === propertyId
+                    : isFetchingConnectionStatus
+                      ? "Checking..."
+                    : isConnectionRequestSent
                       ? "Interest sent"
                       : "Interested"}
                 </button>
@@ -452,7 +480,17 @@ export default function PropertyDetails() {
                   {connectionError}
                 </p>
               )}
-              {requestedPropertyId === propertyId && (
+              {isConnectionStatusError &&
+                connectionStatusError?.response?.status !== 401 && (
+                  <p
+                    role="alert"
+                    className="mt-3 text-sm font-semibold text-red-700"
+                  >
+                    Could not check your previous interest. You can still try
+                    sending a request.
+                  </p>
+                )}
+              {isConnectionRequestSent && (
                 <p
                   role="status"
                   className="mt-3 text-sm font-semibold text-[#004741]"

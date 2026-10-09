@@ -214,3 +214,16 @@ export const userProfile = async (req: Request, res: Response) => {
     console.log("this error is from the userProfile catch: ", error)
   }
 }
+
+export const signOut = (_req: Request, res: Response) => {
+  const isProduction = process.env.NODE_ENV === "production";
+
+  return res
+    .clearCookie("token", {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "strict" : "lax",
+    })
+    .status(200)
+    .json({ message: "Signed out successfully" });
+};
