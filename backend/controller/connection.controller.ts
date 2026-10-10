@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import { db } from "../src/test-db";
 import { connectionTable, propertyTable, usersTable } from "../src/db/schema";
 import { and, eq, inArray } from "drizzle-orm";
-import { notifyLandlord } from "../services/otpMail.services";
+import { notifyLandlord, notifyTenant, notifyTenantOnDecline } from "../services/otpMail.services";
 
 export const connectionRequest = async (req: Request, res: Response) => {
   try {
@@ -184,53 +184,6 @@ export const getTenantConnectionRequests = async (
   }
 };
 
-export const acceptConnectionRequest = async (
-  req: Request,
-  res: Response,
-) => {
-  try {
-    const landlordId = req.user.id;
-    const requestId = String(req.params.requestId);
-    const status = req.body.status;
-
-    if (!requestId) {
-      return res.status(400).json({ message: "Request ID is required" });
-    }
-
-    if (status !== "Accepted") {
-      return res.status(400).json({ message: "Invalid request status" });
-    }
-
-    const [request] = await db
-      .select()
-      .from(connectionTable)
-      .where(
-        and(
-          eq(connectionTable.id, requestId),
-          eq(connectionTable.landLordId, landlordId),
-        ),
-      );
-
-    if (!request) {
-      return res.status(404).json({ message: "Connection request not found" });
-    }
-
-    await db
-      .update(connectionTable)
-      .set({ requestStatus: status })
-      .where(eq(connectionTable.id, requestId));
-
-    return res.status(200).json({
-      message: `Connection request ${status.toLowerCase()}`,
-      requestStatus: status,
-    });
-  } catch (error) {
-    console.log("this error is from respondToConnectionRequest: ", error);
-    return res
-      .status(500)
-      .json({ message: "Unable to update connection request" });
-  }
-};
 
 export const updateLandLordConnectionRequest = async (
   req: Request,
@@ -294,5 +247,124 @@ export const updateLandLordConnectionRequest = async (
     return res
       .status(500)
       .json({ message: "Unable to fetch connection requests" });
+  }
+};
+
+
+
+export const acceptConnectionRequest = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const landlordId = req.user.id;
+    const requestId = String(req.params.requestId);
+    const status = req.body.status;
+
+    if (!requestId) {
+      return res.status(400).json({ message: "Request ID is required" });
+    }
+
+    if (status !== "Accepted") {
+      return res.status(400).json({ message: "Invalid request status" });
+    }
+
+    const [request] = await db
+      .select()
+      .from(connectionTable)
+      .where(
+        and(
+          eq(connectionTable.id, requestId),
+          eq(connectionTable.landLordId, landlordId),
+        ),
+      );
+
+    if (!request) {
+      return res.status(404).json({ message: "Connection request not found" });
+    }
+
+    const [tenant] = await db.select().from(usersTable).where(eq(usersTable.id, request.tenatId))
+
+    if(!tenant){ return res.status(404).json({message: "Tenant not found"})}
+
+    const [property] = await db.select().from(propertyTable).where(eq(propertyTable.propertyId, request.propertyId))
+
+    if(!property){return res.status(404).json({message: "Property not found"})}
+
+    await notifyTenant(tenant.email, tenant.fullName, property.propertyName, property.propertyAddress) 
+
+    await db
+      .update(connectionTable)
+      .set({ requestStatus: status })
+      .where(eq(connectionTable.id, requestId));
+
+    return res.status(200).json({
+      message: `Connection request ${status.toLowerCase()}`,
+      requestStatus: status,
+    });
+  } catch (error) {
+    console.log("this error is from respondToConnectionRequest: ", error);
+    return res
+      .status(500)
+      .json({ message: "Unable to update connection request" });
+  }
+};
+
+
+export const declineConnectionRequest = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const landlordId = req.user.id;
+    const requestId = String(req.params.requestId);
+    const status = req.body.status;
+
+    if (!requestId) {
+      return res.status(400).json({ message: "Request ID is required" });
+    }
+
+    if (status !== "Declined") {
+      return res.status(400).json({ message: "Invalid request status" });
+    }
+
+    const [request] = await db
+      .select()
+      .from(connectionTable)
+      .where(
+        and(
+          eq(connectionTable.id, requestId),
+          eq(connectionTable.landLordId, landlordId),
+        ),
+      );
+
+    if (!request) {
+      return res.status(404).json({ message: "Connection request not found" });
+    }
+
+    const [tenant] = await db.select().from(usersTable).where(eq(usersTable.id, request.tenatId))
+
+    if(!tenant){ return res.status(404).json({message: "Tenant not found"})}
+
+    const [property] = await db.select().from(propertyTable).where(eq(propertyTable.propertyId, request.propertyId))
+
+    if(!property){return res.status(404).json({message: "Property not found"})}
+
+    await notifyTenantOnDecline(tenant.email, tenant.fullName, property.propertyName, property.propertyAddress) 
+
+    await db
+      .update(connectionTable)
+      .set({ requestStatus: status })
+      .where(eq(connectionTable.id, requestId));
+
+    return res.status(200).json({
+      message: `Connection request ${status.toLowerCase()}`,
+      requestStatus: status,
+    });
+  } catch (error) {
+    console.log("this error is from respondToConnectionRequest: ", error);
+    return res
+      .status(500)
+      .json({ message: "Unable to update connection request" });
   }
 };

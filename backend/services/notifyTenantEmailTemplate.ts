@@ -1,4 +1,4 @@
-const notifyTenant = () => {
+export const notifyTenantEmailTemplate = (tenantName: string, propertyName: string, propertyAddress: string ) => {
     return `Put your HTML text here<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -43,11 +43,11 @@ const notifyTenant = () => {
               </table>
 
               <h2 style="color: #00332F; font-size: 20px; font-weight: 800; margin: 0 0 16px 0; letter-spacing: -0.3px;">
-                Hi [Tenant Name],
+                Hi ${tenantName},
               </h2>
               
               <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 24px 0;">
-                Good news! Your property, <strong style="color: #00332F;">[Property Name] at [Address]</strong>, has been reviewed and officially accepted on Univora Homes.
+                Good news! Your property, <strong style="color: #00332F;">${propertyName} at ${propertyAddress}</strong>, has been reviewed and officially accepted on Univora Homes.
               </p>
 
               <!-- Next Steps Card -->
@@ -108,6 +108,118 @@ const notifyTenant = () => {
                   Best regards,<br>
                   <span style="color: #F59E0B;">Abdulmuheez</span><br>
                   <span style="font-[#64748B] font-size: 12px; font-weight: 600;">Univora Homes</span>
+                </p>
+              </div>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="background-color: #F7F5F0; padding: 24px; border-top: 1px solid #E2E8F0; text-align: center;">
+              <p style="color: #94A3B8; font-size: 12px; margin: 0; font-weight: 500;">
+                &copy; 2026 Univora Homes. All rights reserved.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
+}
+
+
+
+
+export const notifyTenantEmailOnDecline = (tenantName: string, propertyName: string, propertyAddress: string ) => {
+  return`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Update on your request</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #F7F5F0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #F7F5F0; table-layout: fixed;">
+    <tr>
+      <td align="center" style="padding: 20px 8px;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #FEFDFC; border-radius: 24px; border: 1px solid #E2E8F0; overflow: hidden; box-shadow: 0 10px 30px -10px rgba(0,51,47,0.06);">
+          
+          <!-- Header Banner -->
+          <tr>
+            <td align="center" style="background-color: #00332F; padding: 36px 20px; text-align: center;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+  
+              </table>
+              <h1 style="color: #FFFFFF; font-size: 22px; font-weight: 800; margin: 16px 0 4px 0; letter-spacing: -0.5px;">
+                Univora <span style="color: #F59E0B;">Homes</span>
+              </h1>
+              <p style="color: rgba(255, 255, 255, 0.7); font-size: 11px; margin: 0; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">
+                Application Status Update
+              </p>
+            </td>
+          </tr>
+
+          <!-- Body Content -->
+          <tr>
+            <td style="padding: 32px 24px;">
+              
+              <!-- Status Badge -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+                <tr>
+                  <td style="background-color: #FEF2F2; border: 1px solid #FECACA; border-radius: 20px; padding: 6px 14px;">
+                    <span style="color: #DC2626; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
+                      Request Declined
+                    </span>
+                  </td>
+                </tr>
+              </table>
+
+              <h2 style="color: #00332F; font-size: 20px; font-weight: 800; margin: 0 0 16px 0; letter-spacing: -0.3px;">
+                Hi ${tenantName},
+              </h2>
+              
+              <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;">
+                Thank you for your interest in <strong style="color: #00332F;">${propertyName} at ${propertyAddress}</strong> on Univora Homes.
+              </p>
+
+              <!-- Notice Card -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #F7F5F0; border-radius: 18px; border: 1px solid #E2E8F0; margin-bottom: 28px;">
+                <tr>
+                  <td style="padding: 24px 20px;">
+                    <p style="color: #334155; font-size: 14px; line-height: 1.6; margin: 0 0 16px 0;">
+                      After review, we're sorry to let you know that your request for this property has been declined. This is not a reflection on you, as the property may no longer be available or may not have been the right fit.
+                    </p>
+                    <p style="color: #00332F; font-size: 13px; font-weight: 700; margin: 0; line-height: 1.5;">
+                      We'd encourage you to browse similar properties on Univora Homes that match what you're looking for. New listings are added regularly, so there are plenty of other options.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Call to Action Button -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td align="center">
+                    <a href="#" target="_blank" style="background-color: #00332F; color: #FFFFFF; padding: 14px 32px; border-radius: 14px; font-size: 14px; font-weight: 800; text-decoration: none; display: inline-block; box-shadow: 0 4px 14px rgba(0, 51, 47, 0.25); text-align: center;">
+                      Browse Similar Properties &rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Sign Off -->
+              <div style="margin-top: 36px; padding-top: 24px; border-top: 1px solid #F1F5F9;">
+                <p style="color: #64748B; font-size: 14px; line-height: 1.5; margin: 0 0 12px 0;">
+                  If you have any questions, just reply to this email.
+                </p>
+                <p style="color: #00332F; font-size: 14px; font-weight: 800; margin: 0; line-height: 1.4;">
+                  Best regards,<br>
+                  <span style="color: #F59E0B;">Abdulmuheez</span><br>
+                  <span style="color: #64748B; font-size: 12px; font-weight: 600;">Univora Homes</span>
                 </p>
               </div>
 

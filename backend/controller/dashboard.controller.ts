@@ -1,8 +1,8 @@
 import { id } from 'zod/locales';
 import type { Request, Response, NextFunction } from "express"
 import { db } from "../src/test-db"
-import { tenantSaveTable, usersTable } from "../src/db/schema"
-import { eq, inArray } from "drizzle-orm"
+import { connectionTable, tenantSaveTable, usersTable } from "../src/db/schema"
+import { and, eq, inArray } from "drizzle-orm"
 import { propertiesImgTable, propertyTable } from '../src/db/schema';
 
 
@@ -128,28 +128,139 @@ export const fetchSavedProperties = async (req: Request, res: Response) => {
     }
 } 
 
+export const fetchLandlordTenant = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
 
-    // const landLordProperty = await db.select().from(propertyTable).where(eq(propertyTable.propertyId, user.id))
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
 
-    // if(landLordProperty.length === 0) { return res.status(404).json({message: "You don't have a Property yet!"})}
+    const connections = await db
+      .select()
+      .from(connectionTable)
+      .where(
+        and(
+          eq(connectionTable.landLordId, userId),
+          eq(connectionTable.requestStatus, "Accepted"),
+        ),
+      );
 
-    // const frontendLandLordProp = {
-    //   totalProperties: landLordProperty.length,
-    //   totalUnit: landLordProperty.map((unit) => unit.totalUnits),
-    //   occupiedUnits: landLordProperty.map((unit) => unit.totalUnits),
-    // }
+    if (connections.length === 0) {
+      return res.status(200).json({ tenants: [] });
+    }
+    const propertyIds = connections.map((c) => c.propertyId);
+    const tenantIds = connections.map((c) => c.tenatId);
+
+    const [properties, tenants] = await Promise.all([
+      db
+        .select()
+        .from(propertyTable)
+        .where(inArray(propertyTable.propertyId, propertyIds)),
+      db
+        .select()
+        .from(usersTable)
+        .where(inArray(usersTable.id, tenantIds)),
+    ]);
+
+    const propertyMap = new Map(
+      properties.map((p) => [p.propertyId, p])
+    );
+    const tenantMap = new Map(
+      tenants.map((t) => [t.id, t])
+    );
+
+    const result = connections.map((conn) => {
+      const property = propertyMap.get(conn.propertyId);
+      const landlord = tenantMap.get(conn.tenatId);
+
+      return {
+        property: {
+          propertyName: property?.propertyName ?? null,
+          propertyAddress: property?.propertyAddress ?? null,
+          propertyType: property?.propertyType ?? null,
+        },
+        landlord: {
+          tenantName: landlord?.fullName ?? null,
+          tenantEmail: landlord?.email ?? null,
+          tenantNumber: landlord?.phoneNumber ?? null,
+        },
+      };
+    });
+
+    return res.status(200).json({ tenants: result });
+  } catch (error) {
+    console.error("fetchLandlordTenant error:", error);
+    return res.status(500).json({ message: "Unable to fetch landlord tenants" });
+  }
+};
 
 
-// {
-//   id: '7a4365c9-62cd-48e1-9bfa-2e33c6df1864',
-//   fullName: 'Abdulmuheez kannike',
-//   role: 'landlord',
-//   email: 'abdulmuheezdev@gmail.com',
-//   otp: null,
-//   otpExpiry: null,
-//   isVerified: true,
-//   phoneNumber: '90234567545',
-//   state: 'Lagos',
-//   city: 'lekki',
-//   password: '$2b$10$eRId1pWsgPE9w9nB32118eg/2RNCf6.EVylANHtwkA4NTltuNS9bW'
-// }
+
+
+export const fetchTenantLandLord = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const connections = await db
+      .select()
+      .from(connectionTable)
+      .where(
+        and(
+          eq(connectionTable.tenatId, userId),
+          eq(connectionTable.requestStatus, "Accepted"),
+        ),
+      );
+
+    if (connections.length === 0) {
+      return res.status(200).json({ landlords: [] });
+    }
+    const propertyIds = connections.map((c) => c.propertyId);
+    const landlordId = connections.map((c) => c.landLordId);
+
+    const [properties, landlord] = await Promise.all([
+      db
+        .select()
+        .from(propertyTable)
+        .where(inArray(propertyTable.propertyId, propertyIds)),
+      db
+        .select()
+        .from(usersTable)
+        .where(inArray(usersTable.id, landlordId)),
+    ]);
+
+    const propertyMap = new Map(
+      properties.map((p) => [p.propertyId, p])
+    );
+    const landlordMap = new Map(
+      landlord.map((t) => [t.id, t])
+    );
+
+    const result = connections.map((conn) => {
+      const property = propertyMap.get(conn.propertyId);
+      const landlord = landlordMap.get(conn.landLordId);
+
+      return {
+        property: {
+          propertyName: property?.propertyName ?? null,
+          propertyAddress: property?.propertyAddress ?? null,
+          propertyType: property?.propertyType ?? null,
+        },
+        landlord: {
+          landlordName: landlord?.fullName ?? null,
+          landlordEmail: landlord?.email ?? null,
+          landlordNumber: landlord?.phoneNumber ?? null,
+        },
+      };
+    });
+
+    return res.status(200).json({ landlords: result });
+  } catch (error) {
+    console.error("fetchTenantLandLord error:", error);
+    return res.status(500).json({ message: "Unable to fetch landlords" });
+  }
+};

@@ -1,7 +1,11 @@
 import { Router } from "express";
 import { authmiddleware } from "../middleware/auth.middleware";
 import {  connectionRequest,  getConnectionRequestStatus,  getTenantConnectionRequests,} from "../controller/connection.controller";
-import {  acceptConnectionRequest,  updateLandLordConnectionRequest,} from "../controller/connection.controller";
+import {
+  acceptConnectionRequest,
+  declineConnectionRequest,
+  updateLandLordConnectionRequest,
+} from "../controller/connection.controller";
 
 const connection = Router()
 
@@ -14,5 +18,10 @@ connection.get(  "/myConnectionRequests",  authmiddleware,  getTenantConnectionR
 connection.get("/updateLandLordConnectionRequest", authmiddleware, updateLandLordConnectionRequest)
 
 connection.patch(  "/connectionRequest/:requestId",  authmiddleware,  acceptConnectionRequest,)
+connection.patch(
+  "/connectionRequest/:requestId/decline",
+  authmiddleware,
+  declineConnectionRequest,
+)
 
 export default connection

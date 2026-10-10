@@ -26,6 +26,8 @@ import {
   X,
   ArrowUpRight,
   Loader2,
+  MessageCircle,
+  Phone,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import api from "../../lib/axios";
@@ -36,6 +38,7 @@ import {
   fetchUserProfile,
   unSaveProperty,
   landLordProperties,
+  fetchLandlordTenant,
   fetchLandlordConnectionRequests,
   respondToConnectionRequest,
 } from "../../lib/services/auth.service";
@@ -206,6 +209,13 @@ const PRIORITY = {
 };
 
 const naira = (n) => "₦" + n.toLocaleString("en-NG");
+
+const toWhatsAppNumber = (number) => {
+  const digits = String(number).replace(/\D/g, "");
+  if (digits.startsWith("00")) return digits.slice(2);
+  if (digits.startsWith("0")) return `234${digits.slice(1)}`;
+  return digits;
+};
 
 function useCountUp(target, start, duration = 1400) {
   const [value, setValue] = useState(0);
@@ -397,6 +407,7 @@ export default function LandlordDashboard() {
   const [sidebar, setSidebar] = useState(false);
   const [activeNav, setActiveNav] = useState("Dashboard");
   const [toast, setToast] = useState(null);
+  const [dismissedNotifications, setDismissedNotifications] = useState([]);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSignOutOpen, setIsSignOutOpen] = useState(false);
   const mainRef = useRef(null);
@@ -438,6 +449,15 @@ export default function LandlordDashboard() {
     queryKey: ["landlord-connection-requests"],
     queryFn: fetchLandlordConnectionRequests,
   });
+  const {
+    data: landlordTenants = [],
+    isLoading: areLandlordTenantsLoading,
+    isError: areLandlordTenantsError,
+    refetch: refetchLandlordTenants,
+  } = useQuery({
+    queryKey: ["landlord-tenants"],
+    queryFn: fetchLandlordTenant,
+  });
 
   const propertySummary = landLordPropertiesData?.summary;
   const dashboardStatValues = {
@@ -459,6 +479,16 @@ export default function LandlordDashboard() {
     setTimeout(() => setToast(null), 2800);
   };
 
+  const connectionNotifications = (connectionRequests || []).filter(
+    (request) =>
+      ["accepted", "declined"].includes(String(request.requestStatus || "").toLowerCase()) &&
+      !dismissedNotifications.includes(request.requestId),
+  );
+
+  const removeNotification = (requestId) => {
+    setDismissedNotifications((prev) => [...prev, requestId]);
+  };
+
   // console.log("landLordPropertiesData: ", landLordPropertiesData)
   const removeSavedProperty = useMutation({
     mutationFn: unSaveProperty,
@@ -477,15 +507,22 @@ export default function LandlordDashboard() {
       notify("Couldn't update connection request. Please try again."),
   });
 
+  const pendingConnectionRequests = (connectionRequests || []).filter(
+    (request) => String(request.requestStatus || "").toLowerCase() === "pending",
+  );
+
   const NAV = [
     { icon: LayoutDashboard, label: "Dashboard" },
     { icon: Building2, label: "Properties" },
     {
       icon: Bell,
       label: "Connection Requests",
-      badge: connectionRequests.filter(
-        (request) => request.requestStatus?.toLowerCase() === "pending",
-      ).length || null,
+      badge: pendingConnectionRequests.length || null,
+    },
+    {
+      icon: Bell,
+      label: "Notifications",
+      badge: connectionNotifications.length || null,
     },
     { icon: Users, label: "Tenants" },
     {
@@ -628,17 +665,21 @@ export default function LandlordDashboard() {
                   className="h-10 w-56 rounded-xl border border-slate-200 bg-slate-50/60 pl-10 pr-4 text-sm outline-none transition-all duration-300 focus:border-[#004741] focus:bg-white focus:ring-4 focus:ring-[#004741]/10 lg:w-72"
                 />
               </div>
-              <motion.button 
+              <motion.button
+                type="button"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                onClick={() => setActiveNav("Notifications")}
                 className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:text-[#004741] cursor-pointer"
               >
                 <Bell className="h-4.5 w-4.5" />
-                <motion.span 
-                  animate={{ scale: [1, 1.2, 1] }} 
-                  transition={{ repeat: Infinity, duration: 2 }}
-                  className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-[#F59E0B] ring-2 ring-white" 
-                />
+                {connectionNotifications.length > 0 && (
+                  <motion.span
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ repeat: Infinity, duration: 2 }}
+                    className="absolute right-2.5 top-2.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-[#F59E0B] ring-2 ring-white"
+                  />
+                )}
               </motion.button>
               <motion.button
                 type="button"
@@ -801,7 +842,7 @@ export default function LandlordDashboard() {
                       Connection Requests
                     </h2>
                     <p className="mt-1 text-sm text-slate-500">
-                      People interested in your properties.
+                      Pending tenant interest in your properties.
                     </p>
                   </div>
                   <Bell className="h-5 w-5 text-[#004741]" />
@@ -824,18 +865,18 @@ export default function LandlordDashboard() {
                       Try again
                     </button>
                   </div>
-                ) : connectionRequests.length === 0 ? (
+                ) : pendingConnectionRequests.length === 0 ? (
                   <div className="rounded-xl bg-slate-50 px-5 py-10 text-center">
                     <p className="font-semibold text-slate-700">
-                      No connection requests yet
+                      No pending connection requests
                     </p>
                     <p className="mt-1 text-sm text-slate-500">
-                      New tenant interest in your listings will appear here.
+                      Accepted and declined requests move to notifications.
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {connectionRequests.map((request) => (
+                    {pendingConnectionRequests.map((request) => (
                       <article
                         key={request.requestId}
                         className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-slate-100 p-4"
@@ -851,14 +892,6 @@ export default function LandlordDashboard() {
                                 className="hover:text-[#004741] hover:underline"
                               >
                                 {request.tenantEmail}
-                              </a>
-                            )}
-                            {request.tenantPhoneNumber && (
-                              <a
-                                href={`tel:${request.tenantPhoneNumber}`}
-                                className="hover:text-[#004741] hover:underline"
-                              >
-                                {request.tenantPhoneNumber}
                               </a>
                             )}
                           </div>
@@ -891,65 +924,134 @@ export default function LandlordDashboard() {
                             </p>
                           )}
                         </div>
-                        {request.requestStatus?.toLowerCase() === "pending" ? (
-                          (() => {
-                            const isResponding =
-                              respondToRequest.isPending &&
-                              respondToRequest.variables?.requestId ===
-                                request.requestId;
+                        {(() => {
+                          const isResponding =
+                            respondToRequest.isPending &&
+                            respondToRequest.variables?.requestId === request.requestId;
 
-                            return (
-                              <div className="flex shrink-0 items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    respondToRequest.mutate({
-                                      requestId: request.requestId,
-                                      status: "Accepted",
-                                    })
-                                  }
-                                  disabled={isResponding}
-                                  className="group flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#004741] to-[#0F766E] px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_20px_-6px_rgba(0,71,65,0.65)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_26px_-6px_rgba(0,71,65,0.8)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E] focus-visible:ring-offset-2 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                  {isResponding ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <CheckCircle2 className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
-                                  )}
-                                  Accept
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    respondToRequest.mutate({
-                                      requestId: request.requestId,
-                                      status: "Declined",
-                                    })
-                                  }
-                                  disabled={isResponding}
-                                  className="group flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 transition-all duration-200 hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-100 hover:shadow-[0_10px_22px_-8px_rgba(225,29,72,0.5)] focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-2 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                  {isResponding ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <X className="h-4 w-4 transition-transform duration-200 group-hover:rotate-90" />
-                                  )}
-                                  Decline
-                                </button>
-                              </div>
-                            );
-                          })()
-                        ) : (
-                          <span
-                            className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold capitalize ${
-                              request.requestStatus?.toLowerCase() === "accepted"
-                                ? "bg-emerald-50 text-emerald-700"
-                                : "bg-rose-50 text-rose-700"
-                            }`}
-                          >
-                            {request.requestStatus}
-                          </span>
-                        )}
+                          return (
+                            <div className="flex shrink-0 items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  respondToRequest.mutate({
+                                    requestId: request.requestId,
+                                    status: "Accepted",
+                                  })
+                                }
+                                disabled={isResponding}
+                                className="group flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#004741] to-[#0F766E] px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_20px_-6px_rgba(0,71,65,0.65)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_26px_-6px_rgba(0,71,65,0.8)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E] focus-visible:ring-offset-2 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {isResponding ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <CheckCircle2 className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
+                                )}
+                                Accept
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  respondToRequest.mutate({
+                                    requestId: request.requestId,
+                                    status: "Declined",
+                                  })
+                                }
+                                disabled={isResponding}
+                                className="group flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 transition-all duration-200 hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-100 hover:shadow-[0_10px_22px_-8px_rgba(225,29,72,0.5)] focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-2 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {isResponding ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <X className="h-4 w-4 transition-transform duration-200 group-hover:rotate-90" />
+                                )}
+                                Decline
+                              </button>
+                            </div>
+                          );
+                        })()}
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {activeNav === "Notifications" && (
+              <section className="rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]">
+                <div className="mb-5 flex items-center justify-between">
+                  <div>
+                    <h2 className="font-bold text-slate-900">Notifications</h2>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Recent accepted and declined connection requests.
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-[#004741]/10 px-3 py-1 text-xs font-bold text-[#004741]">
+                    {connectionNotifications.length} new
+                  </span>
+                </div>
+
+                {connectionNotifications.length === 0 ? (
+                  <div className="rounded-xl bg-slate-50 px-5 py-10 text-center">
+                    <p className="font-semibold text-slate-700">No notifications yet</p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Accepted and declined requests will appear here.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {connectionNotifications.map((request) => (
+                      <article
+                        key={request.requestId}
+                        className={`flex flex-wrap items-start justify-between gap-4 rounded-xl border p-4 ${
+                          request.requestStatus?.toLowerCase() === "accepted"
+                            ? "border-emerald-200 bg-emerald-50/60"
+                            : "border-rose-200 bg-rose-50/60"
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
+                                request.requestStatus?.toLowerCase() === "accepted"
+                                  ? "bg-emerald-600 text-white"
+                                  : "bg-rose-600 text-white"
+                              }`}
+                            >
+                              {request.requestStatus}
+                            </span>
+                            <p className="font-semibold text-slate-900">
+                              {request.tenantName || "Tenant"}
+                            </p>
+                          </div>
+                          <p className="mt-2 text-sm text-slate-600">
+                            {request.requestStatus?.toLowerCase() === "accepted"
+                              ? "Accepted request to view"
+                              : "Declined request to view"}{" "}
+                            <span className="font-semibold text-slate-800">
+                              {request.propertyName || "this property"}
+                            </span>
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {[
+                              request.propertyAddress,
+                              request.city,
+                              request.state,
+                            ]
+                              .filter(Boolean)
+                              .join(", ")}
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => removeNotification(request.requestId)}
+                          className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition-colors hover:border-rose-200 hover:text-rose-600"
+                          aria-label="Remove notification"
+                          title="Remove notification"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
                       </article>
                     ))}
                   </div>
@@ -1365,12 +1467,113 @@ export default function LandlordDashboard() {
             )}
 
             {activeNav === "Tenants" && (
-              <section className="rounded-2xl border border-slate-100 bg-white p-8 text-center shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]">
-                <Users className="mx-auto h-10 w-10 text-[#004741]" />
-                <h2 className="mt-4 text-xl font-bold text-slate-900">Tenant management</h2>
-                <p className="mt-2 text-sm text-slate-500">
-                  Tenant management will be available here once tenant records are connected.
-                </p>
+              <section className="rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]">
+                <div className="mb-5 flex items-center justify-between">
+                  <div>
+                    <h2 className="font-bold text-slate-900">My Tenants</h2>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Tenants with accepted connection requests.
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-[#004741]/10 px-3 py-1 text-xs font-bold text-[#004741]">
+                    {landlordTenants.length}
+                  </span>
+                </div>
+
+                {areLandlordTenantsLoading ? (
+                  <p className="py-8 text-center text-sm text-slate-500">
+                    Loading tenants...
+                  </p>
+                ) : areLandlordTenantsError ? (
+                  <div className="py-8 text-center">
+                    <p className="text-sm text-red-600">
+                      Couldn't load your tenants.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => refetchLandlordTenants()}
+                      className="mt-2 text-sm font-semibold text-[#004741] hover:underline"
+                    >
+                      Try again
+                    </button>
+                  </div>
+                ) : landlordTenants.length === 0 ? (
+                  <div className="rounded-xl bg-slate-50 px-5 py-10 text-center">
+                    <Users className="mx-auto h-10 w-10 text-[#004741]" />
+                    <p className="mt-3 font-semibold text-slate-700">
+                      No tenants yet
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Tenants will appear here after you accept their connection requests.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    {landlordTenants.map((record, index) => (
+                      <article
+                        key={`${record.tenant?.tenantEmail || "tenant"}-${record.property?.propertyName || index}`}
+                        className="rounded-xl border border-slate-100 p-4"
+                      >
+                        <div className="flex items-start gap-3">
+                          <Avatar name={record.tenant?.tenantName || "Tenant"} />
+                          <div className="min-w-0 flex-1">
+                            <h3 className="truncate font-semibold text-slate-900">
+                              {record.tenant?.tenantName || "Tenant"}
+                            </h3>
+                            {record.tenant?.tenantEmail && (
+                              <a
+                                href={`mailto:${record.tenant.tenantEmail}`}
+                                className="mt-1 block truncate text-sm text-slate-500 hover:text-[#004741] hover:underline"
+                              >
+                                {record.tenant.tenantEmail}
+                              </a>
+                            )}
+                            {record.tenant?.tenantNumber && (
+                              <p className="mt-1 text-sm text-slate-500">
+                                {record.tenant.tenantNumber}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        {record.tenant?.tenantNumber && (
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <a
+                              href={`https://wa.me/${toWhatsAppNumber(record.tenant.tenantNumber)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-700"
+                            >
+                              <MessageCircle className="h-4 w-4" />
+                              WhatsApp
+                            </a>
+                            <a
+                              href={`tel:${record.tenant.tenantNumber}`}
+                              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:border-[#004741] hover:text-[#004741]"
+                            >
+                              <Phone className="h-4 w-4" />
+                              Call
+                            </a>
+                          </div>
+                        )}
+                        <div className="mt-4 border-t border-slate-100 pt-3">
+                          <p className="font-semibold text-slate-800">
+                            {record.property?.propertyName || "Property"}
+                          </p>
+                          {record.property?.propertyType && (
+                            <p className="mt-1 text-xs text-slate-500">
+                              {record.property.propertyType}
+                            </p>
+                          )}
+                          {record.property?.propertyAddress && (
+                            <p className="mt-1 text-sm text-slate-500">
+                              {record.property.propertyAddress}
+                            </p>
+                          )}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
               </section>
             )}
 

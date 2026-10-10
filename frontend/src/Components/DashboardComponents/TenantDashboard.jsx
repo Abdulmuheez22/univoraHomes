@@ -13,11 +13,14 @@ import {
   Bookmark,
   MessageSquare,
   User,
+  Users,
   CheckCircle2,
   X,
   ExternalLink,
   MapPin,
   LogOut,
+  MessageCircle,
+  Phone,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
@@ -29,6 +32,7 @@ import {
   fetchSavedProperties,
   fetchTenantConnectionRequests,
   fetchUserProfile,
+  fetchTenantLandLord,
   unSaveProperty,
 } from "../../lib/services/auth.service";
 import ProfileModal from "./ProfileModal";
@@ -36,6 +40,13 @@ import SignOutConfirmation from "./SignOutConfirmation";
 import TenantPropertyBrowser from "./TenantPropertyBrowser";
 
 const EASE = [0.22, 1, 0.36, 1];
+
+const toWhatsAppNumber = (number) => {
+  const digits = String(number).replace(/\D/g, "");
+  if (digits.startsWith("00")) return digits.slice(2);
+  if (digits.startsWith("0")) return `234${digits.slice(1)}`;
+  return digits;
+};
 
 const MOCK_NOTIFICATIONS = [
   { id: 1, title: "Inquiry Accepted!", desc: "Landlord accepted your inquiry for Flat 4B, Lekki Phase 1.", time: "2 hours ago", read: false },
@@ -76,6 +87,15 @@ export default function TenantDashboard({ accountData }) {
     queryKey: ["tenant-connection-requests"],
     queryFn: fetchTenantConnectionRequests,
   });
+  const {
+    data: landlords = [],
+    isLoading: areLandlordsLoading,
+    isError: areLandlordsError,
+    refetch: refetchLandlords,
+  } = useQuery({
+    queryKey: ["tenant-landlords"],
+    queryFn: fetchTenantLandLord,
+  });
   const removeSavedProperty = useMutation({
     mutationFn: unSaveProperty,
     onSuccess: () =>
@@ -100,6 +120,7 @@ export default function TenantDashboard({ accountData }) {
     { icon: LayoutDashboard, label: "Overview", id: "overview", active: activeTab === "overview" },
     { icon: Building2, label: "Browse Homes", id: "browse", active: activeTab === "browse" },
     { icon: MessageSquare, label: "My Inquiries", id: "inquiries", badge: inquiries.length, active: activeTab === "inquiries" },
+    { icon: Users, label: "My Landlord", id: "landlord", badge: landlords.length || null, active: activeTab === "landlord" },
     { icon: Bookmark, label: "Saved Properties", id: "saved", badge: savedProperties.length, active: activeTab === "saved" },
     { icon: Bell, label: "Notifications", id: "notifications", badge: MOCK_NOTIFICATIONS.filter(n => !n.read).length, active: activeTab === "notifications" },
     { icon: User, label: "My Profile", id: "profile", active: activeTab === "profile" },
@@ -274,6 +295,7 @@ export default function TenantDashboard({ accountData }) {
                   {activeTab === "overview" && "Tenant Dashboard"}
                   {activeTab === "browse" && "Find Your Next Home"}
                   {activeTab === "inquiries" && "My Property Inquiries"}
+                  {activeTab === "landlord" && "My Landlord"}
                   {activeTab === "saved" && "Saved Properties"}
                   {activeTab === "notifications" && "Notifications & Updates"}
                   {activeTab === "profile" && "My Profile"}
@@ -282,6 +304,7 @@ export default function TenantDashboard({ accountData }) {
                   {activeTab === "overview" && "Track your inquiries, saved properties, and landlord messages."}
                   {activeTab === "browse" && "Discover and shortlist properties without leaving your dashboard."}
                   {activeTab === "inquiries" && "Monitor the real-time status of properties you've reached out about."}
+                  {activeTab === "landlord" && "Contact the landlords for properties whose connection requests were accepted."}
                   {activeTab === "saved" && "Quickly access your favorite homes and listings."}
                   {activeTab === "notifications" && "Recent updates regarding your inquiries and housing matches."}
                   {activeTab === "profile" && "Manage your account details and preferences."}
@@ -300,6 +323,164 @@ export default function TenantDashboard({ accountData }) {
             </motion.div>
 
             {activeTab === "browse" && <TenantPropertyBrowser />}
+
+            {activeTab === "landlord" && (
+              <motion.section
+                key="landlord-section"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.35, ease: EASE }}
+                className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-[0_18px_50px_-24px_rgba(0,51,47,0.28)]"
+              >
+                <div className="relative overflow-hidden bg-gradient-to-br from-[#00332F] via-[#004741] to-[#0F766E] px-6 py-7 text-white sm:px-8">
+                  <div className="pointer-events-none absolute -right-10 -top-20 h-56 w-56 rounded-full border-[28px] border-white/5" />
+                  <div className="pointer-events-none absolute -bottom-20 right-24 h-40 w-40 rounded-full bg-[#F59E0B]/10 blur-2xl" />
+                  <div className="relative flex items-center justify-between gap-4">
+                    <div>
+                      <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-100">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#F59E0B]" />
+                        Your connections
+                      </span>
+                      <h2 className="mt-3 text-2xl font-extrabold tracking-tight">
+                        My Landlord
+                      </h2>
+                      <p className="mt-1 max-w-xl text-sm text-white/70">
+                        Reach out to landlords for properties where your request was accepted.
+                      </p>
+                    </div>
+                    <div className="hidden h-14 w-14 items-center justify-center rounded-2xl border border-white/15 bg-white/10 sm:flex">
+                      <Building2 className="h-7 w-7 text-[#FCD34D]" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-5 sm:p-7">
+                {areLandlordsLoading ? (
+                  <div className="py-12 text-center text-sm text-slate-500">
+                    <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-[#004741]" />
+                    Loading landlord details...
+                  </div>
+                ) : areLandlordsError ? (
+                  <div className="rounded-2xl border border-red-100 bg-red-50 px-5 py-8 text-center">
+                    <p className="text-sm font-medium text-red-700">
+                      Couldn't load your landlord details.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => refetchLandlords()}
+                      className="mt-3 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#004741] shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50"
+                    >
+                      Try again
+                    </button>
+                  </div>
+                ) : landlords.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-5 py-12 text-center">
+                    <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#004741]/10 text-[#004741]">
+                      <Users className="h-7 w-7" />
+                    </span>
+                    <p className="mt-4 font-bold text-slate-800">
+                      No landlord details yet
+                    </p>
+                    <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-slate-500">
+                      When a landlord accepts one of your connection requests, their contact details and property information will show up here.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                    {landlords.map((record, index) => (
+                      <article
+                        key={`${record.landlord?.landlordEmail || "landlord"}-${record.property?.propertyName || index}`}
+                        className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_24px_-18px_rgba(15,23,42,0.4)] transition duration-300 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-[0_20px_38px_-22px_rgba(0,71,65,0.42)]"
+                      >
+                        <div className="p-5">
+                          <div className="flex items-center gap-3">
+                            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#004741] to-[#0F766E] text-sm font-extrabold text-white shadow-md shadow-[#004741]/20">
+                              {(record.landlord?.landlordName || "Landlord")
+                                .trim()
+                                .split(/\s+/)
+                                .slice(0, 2)
+                                .map((part) => part[0])
+                                .join("")
+                                .toUpperCase()}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-700">
+                                Connected landlord
+                              </p>
+                              <h3 className="truncate font-bold text-slate-900">
+                                {record.landlord?.landlordName || "Landlord"}
+                              </h3>
+                            </div>
+                          </div>
+
+                          <div className="mt-5 rounded-xl bg-slate-50 p-3.5">
+                            <div className="flex items-start gap-2.5">
+                              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F59E0B]/15 text-amber-700">
+                                <Building2 className="h-4 w-4" />
+                              </span>
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-bold text-slate-800">
+                                  {record.property?.propertyName || "Property"}
+                                </p>
+                                {record.property?.propertyType && (
+                                  <p className="mt-0.5 text-xs font-medium text-slate-500">
+                                    {record.property.propertyType}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            {record.property?.propertyAddress && (
+                              <p className="mt-3 flex items-start gap-1.5 text-xs leading-5 text-slate-500">
+                                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0F766E]" />
+                                {record.property.propertyAddress}
+                              </p>
+                            )}
+                          </div>
+
+                          {record.landlord?.landlordEmail && (
+                            <a
+                              href={`mailto:${record.landlord.landlordEmail}`}
+                              className="mt-4 block truncate text-xs text-slate-500 transition hover:text-[#004741] hover:underline"
+                            >
+                              {record.landlord.landlordEmail}
+                            </a>
+                          )}
+                        </div>
+
+                        <div className="flex gap-2 border-t border-slate-100 bg-slate-50/70 p-4">
+                          {record.landlord?.landlordNumber ? (
+                            <>
+                              <a
+                                href={`https://wa.me/${toWhatsAppNumber(record.landlord.landlordNumber)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#16A34A] px-3 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-green-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
+                              >
+                                <MessageCircle className="h-4 w-4" />
+                                WhatsApp
+                              </a>
+                              <a
+                                href={`tel:${record.landlord.landlordNumber}`}
+                                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-700 transition hover:border-[#004741] hover:text-[#004741] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E] focus-visible:ring-offset-2"
+                              >
+                                <Phone className="h-4 w-4" />
+                                Call
+                              </a>
+                            </>
+                          ) : (
+                            <p className="w-full py-2 text-center text-xs font-medium text-slate-400">
+                              No phone number available
+                            </p>
+                          )}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+                </div>
+              </motion.section>
+            )}
 
             <AnimatePresence mode="wait">
               {(activeTab === "overview" || activeTab === "inquiries") && (

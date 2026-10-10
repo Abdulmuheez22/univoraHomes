@@ -55,6 +55,22 @@ export const fetchUserProfile = async () => {
   return response.data.user;
 };
 
+export const fetchLandlordTenant = async () => {
+  const response = await api.get("/dashboard/fetchLandlordTenant");
+  return response.data.tenants;
+};
+
+export const fetchTenantLandLord = async () => {
+  const response = await api.get("/dashboard/fetchTenantLandLord");
+  const landlords = response.data?.landlords;
+
+  if (!Array.isArray(landlords)) {
+    throw new Error("Invalid response while fetching your landlords.");
+  }
+
+  return landlords;
+};
+
 export const landLordProperties = async () => {
   const response = await api.get("/property/fetchLandLordProperties");
   return response.data
@@ -93,6 +109,19 @@ export const fetchTenantConnectionRequests = async () => {
 };
 
 export const respondToConnectionRequest = async ({ requestId, status }) => {
-  const response = await api.patch( `/connection/connectionRequest/${requestId}`, { status }, { withCredentials: true },);
+  const actionPath = {
+    Accepted: "",
+    Declined: "/decline",
+  }[status];
+
+  if (actionPath === undefined) {
+    throw new Error(`Unsupported connection request status: ${status}`);
+  }
+
+  const response = await api.patch(
+    `/connection/connectionRequest/${requestId}${actionPath}`,
+    { status },
+    { withCredentials: true },
+  );
   return response.data;
 };
