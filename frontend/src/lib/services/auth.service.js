@@ -91,3 +91,8 @@ export const fetchTenantConnectionRequests = async () => {
   });
   return response.data.requests;
 };
+
+export const respondToConnectionRequest = async ({ requestId, status }) => {
+  const response = await api.patch( `/connection/connectionRequest/${requestId}`, { status }, { withCredentials: true },);
+  return response.data;
+};

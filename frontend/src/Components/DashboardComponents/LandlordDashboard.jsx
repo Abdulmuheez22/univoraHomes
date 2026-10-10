@@ -25,6 +25,7 @@ import {
   CreditCard,
   X,
   ArrowUpRight,
+  Loader2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import api from "../../lib/axios";
@@ -36,6 +37,7 @@ import {
   unSaveProperty,
   landLordProperties,
   fetchLandlordConnectionRequests,
+  respondToConnectionRequest,
 } from "../../lib/services/auth.service";
 import ProfileModal from "./ProfileModal";
 import SignOutConfirmation from "./SignOutConfirmation";
@@ -465,6 +467,16 @@ export default function LandlordDashboard() {
     onError: () => notify("Couldn't remove saved property. Please try again."),
   });
 
+  const respondToRequest = useMutation({
+    mutationFn: respondToConnectionRequest,
+    onSuccess: (data) =>
+      queryClient
+        .invalidateQueries({ queryKey: ["landlord-connection-requests"] })
+        .then(() => notify(data?.message || "Connection request updated.")),
+    onError: () =>
+      notify("Couldn't update connection request. Please try again."),
+  });
+
   const NAV = [
     { icon: LayoutDashboard, label: "Dashboard" },
     { icon: Building2, label: "Properties" },
@@ -879,9 +891,65 @@ export default function LandlordDashboard() {
                             </p>
                           )}
                         </div>
-                        <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold capitalize text-amber-700">
-                          {request.requestStatus || "Pending"}
-                        </span>
+                        {request.requestStatus?.toLowerCase() === "pending" ? (
+                          (() => {
+                            const isResponding =
+                              respondToRequest.isPending &&
+                              respondToRequest.variables?.requestId ===
+                                request.requestId;
+
+                            return (
+                              <div className="flex shrink-0 items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    respondToRequest.mutate({
+                                      requestId: request.requestId,
+                                      status: "Accepted",
+                                    })
+                                  }
+                                  disabled={isResponding}
+                                  className="group flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#004741] to-[#0F766E] px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_20px_-6px_rgba(0,71,65,0.65)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_26px_-6px_rgba(0,71,65,0.8)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E] focus-visible:ring-offset-2 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  {isResponding ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <CheckCircle2 className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
+                                  )}
+                                  Accept
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    respondToRequest.mutate({
+                                      requestId: request.requestId,
+                                      status: "Declined",
+                                    })
+                                  }
+                                  disabled={isResponding}
+                                  className="group flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 transition-all duration-200 hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-100 hover:shadow-[0_10px_22px_-8px_rgba(225,29,72,0.5)] focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-2 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  {isResponding ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <X className="h-4 w-4 transition-transform duration-200 group-hover:rotate-90" />
+                                  )}
+                                  Decline
+                                </button>
+                              </div>
+                            );
+                          })()
+                        ) : (
+                          <span
+                            className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold capitalize ${
+                              request.requestStatus?.toLowerCase() === "accepted"
+                                ? "bg-emerald-50 text-emerald-700"
+                                : "bg-rose-50 text-rose-700"
+                            }`}
+                          >
+                            {request.requestStatus}
+                          </span>
+                        )}
                       </article>
                     ))}
                   </div>
