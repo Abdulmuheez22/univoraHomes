@@ -28,6 +28,7 @@ import {
   Loader2,
   MessageCircle,
   Phone,
+  Menu,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import api from "../../lib/axios";
@@ -47,6 +48,13 @@ import SignOutConfirmation from "./SignOutConfirmation";
 
 const EASE = [0.22, 1, 0.36, 1];
 const MotionLink = motion(Link);
+const MOBILE_TAB_LABELS = [
+  "Dashboard",
+  "Properties",
+  "Connection Requests",
+  "Tenants",
+  "Profile",
+];
 
 const STATS = [
   {
@@ -406,6 +414,7 @@ export default function LandlordDashboard() {
 
   const [sidebar, setSidebar] = useState(false);
   const [activeNav, setActiveNav] = useState("Dashboard");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [toast, setToast] = useState(null);
   const [dismissedNotifications, setDismissedNotifications] = useState([]);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -535,10 +544,131 @@ export default function LandlordDashboard() {
     { icon: Settings, label: "Profile", active: false },
   ];
 
+  const activateNav = (label) => {
+    setActiveNav(label);
+    setMobileNavOpen(false);
+    if (label === "Profile") setIsProfileOpen(true);
+  };
+
+  const shortTabLabel = (label) =>
+    label === "Connection Requests" ? "Requests" : label;
+
+  useEffect(() => {
+    if (!mobileNavOpen) return undefined;
+
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setMobileNavOpen(false);
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [mobileNavOpen]);
+
   return (
     <>
       <AnimatePresence>{isLoading && <LoadingState />}</AnimatePresence>
-      <div className="flex min-h-screen bg-[#f7f5f0]">
+      <AnimatePresence>
+        {mobileNavOpen && (
+          <>
+            <motion.button
+              type="button"
+              aria-label="Close navigation menu"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileNavOpen(false)}
+              className="fixed inset-0 z-50 bg-[#00332F]/65 backdrop-blur-sm md:hidden"
+            />
+            <motion.aside
+              role="dialog"
+              aria-modal="true"
+              aria-label="Landlord navigation"
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ duration: 0.28, ease: EASE }}
+              className="fixed inset-y-0 left-0 z-[60] flex w-[min(20rem,88vw)] flex-col overflow-hidden bg-gradient-to-b from-[#00332F] via-[#004741] to-[#002825] py-6 shadow-2xl md:hidden"
+            >
+              <div className="mb-7 flex items-center justify-between px-5">
+                <Link
+                  to="/"
+                  onClick={() => setMobileNavOpen(false)}
+                  className="text-lg font-extrabold text-white"
+                >
+                  Univora<span className="text-[#F59E0B]"> Homes</span>
+                </Link>
+                <button
+                  type="button"
+                  aria-label="Close menu"
+                  onClick={() => setMobileNavOpen(false)}
+                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 text-white/70 transition hover:bg-white/10 hover:text-white"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="mx-4 mb-5 rounded-2xl border border-white/10 bg-white/[0.07] p-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-100/70">
+                  Landlord workspace
+                </p>
+                <p className="mt-1 truncate text-sm font-semibold text-white">
+                  {profile?.userName || userData.userName || "Welcome"}
+                </p>
+              </div>
+              <nav className="flex-1 space-y-1 overflow-y-auto px-3">
+                {NAV.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeNav === item.label;
+                  return (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={() => activateNav(item.label)}
+                      className={`flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-sm font-semibold transition ${
+                        isActive
+                          ? "bg-[#F59E0B] text-[#004741] shadow-lg shadow-black/10"
+                          : "text-white/70 hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      <Icon className="h-5 w-5 shrink-0" />
+                      <span className="flex-1 text-left">{item.label}</span>
+                      {item.badge ? (
+                        <span
+                          className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${
+                            isActive
+                              ? "bg-[#004741] text-white"
+                              : "bg-white/15 text-white"
+                          }`}
+                        >
+                          {item.badge}
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </nav>
+              <div className="px-3 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileNavOpen(false);
+                    setIsSignOutOpen(true);
+                  }}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-sm font-semibold text-white/70 transition hover:bg-white/10 hover:text-white"
+                >
+                  <LogOut className="h-5 w-5 shrink-0" />
+                  Sign out
+                </button>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+      <div className="flex min-h-[100dvh] overflow-x-clip bg-[#f7f5f0]">
         <motion.aside
           animate={{ width: sidebar ? 240 : 76 }}
           transition={{ duration: 0.35, ease: EASE }}
@@ -578,10 +708,7 @@ export default function LandlordDashboard() {
                 whileTap={{ scale: 0.97 }}
                 transition={{ duration: 0.2 }}
                 onClick={() => {
-                  setActiveNav(n.label);
-                  if (n.label === "Profile") {
-                    setIsProfileOpen(true);
-                  }
+                  activateNav(n.label);
                 }}
                 className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-colors duration-200 cursor-pointer ${
                   activeNav === n.label
@@ -636,26 +763,40 @@ export default function LandlordDashboard() {
           </div>
         </motion.aside>
         
-        <div className="flex-1">
-          <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-slate-100 bg-white/80 px-5 backdrop-blur-md lg:px-8">
-            <div>
-              <p className="text-[11px] font-medium text-slate-400">
+        <div className="min-w-0 flex-1">
+          <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-100 bg-white/85 px-3 backdrop-blur-xl sm:px-5 lg:px-8">
+            <button
+              type="button"
+              aria-label="Open navigation menu"
+              onClick={() => setMobileNavOpen(true)}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-[#004741] hover:text-[#004741] md:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <div className="min-w-0">
+              <p className="hidden text-[11px] font-medium text-slate-400 sm:block">
                 Good morning,
               </p>
-              <h1 className="-mt-0.5 text-sm font-bold text-slate-900">
+              <h1 className="truncate text-sm font-bold text-slate-900 sm:-mt-0.5">
                 {profile?.userName || userData.userName}
               </h1>
               {profile?.userEmail && (
-                <p className="text-[10px] text-slate-400">{profile.userEmail}</p>
+                <p className="hidden truncate text-[10px] text-slate-400 lg:block">
+                  {profile.userEmail}
+                </p>
               )}
               {isProfileLoading && (
-                <p className="text-[10px] text-slate-400">Loading profile...</p>
+                <p className="hidden text-[10px] text-slate-400 sm:block">
+                  Loading profile...
+                </p>
               )}
               {isProfileError && (
-                <p className="text-[10px] text-red-600">Profile unavailable</p>
+                <p className="hidden text-[10px] text-red-600 sm:block">
+                  Profile unavailable
+                </p>
               )}
             </div>
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex shrink-0 items-center gap-2">
               <div className="relative hidden sm:block">
                 <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <motion.input
@@ -669,7 +810,7 @@ export default function LandlordDashboard() {
                 type="button"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setActiveNav("Notifications")}
+                onClick={() => activateNav("Notifications")}
                 className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:text-[#004741] cursor-pointer"
               >
                 <Bell className="h-4.5 w-4.5" />
@@ -702,7 +843,10 @@ export default function LandlordDashboard() {
             </div>
           </header>
 
-          <main ref={mainRef} className="space-y-6 p-5 lg:p-8">
+          <main
+            ref={mainRef}
+            className="space-y-5 px-3 pb-28 pt-5 sm:space-y-6 sm:px-5 sm:pb-28 md:p-8"
+          >
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={activeNav}
@@ -1595,6 +1739,50 @@ export default function LandlordDashboard() {
               </motion.div>
             </AnimatePresence>
           </main>
+          <nav
+            aria-label="Primary navigation"
+            className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/80 bg-white/95 px-2 pt-2 shadow-[0_-12px_35px_-24px_rgba(0,51,47,0.45)] backdrop-blur-xl pb-[max(env(safe-area-inset-bottom),0.5rem)] md:hidden"
+          >
+            <div className="mx-auto grid max-w-xl grid-cols-5 gap-1">
+              {NAV.filter((item) =>
+                MOBILE_TAB_LABELS.includes(item.label),
+              ).map((item) => {
+                const Icon = item.icon;
+                const isActive = activeNav === item.label;
+                return (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => activateNav(item.label)}
+                    aria-current={isActive ? "page" : undefined}
+                    className={`relative flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-semibold transition ${
+                      isActive
+                        ? "bg-[#004741]/[0.07] text-[#004741]"
+                        : "text-slate-500 hover:text-[#004741]"
+                    }`}
+                  >
+                    <span className="relative">
+                      <Icon className="h-5 w-5" />
+                      {item.badge ? (
+                        <span className="absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#F59E0B] px-1 text-[9px] font-extrabold text-[#00332F]">
+                          {item.badge}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="max-w-full truncate">
+                      {shortTabLabel(item.label)}
+                    </span>
+                    {isActive && (
+                      <motion.span
+                        layoutId="landlord-mobile-nav-active"
+                        className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-[#F59E0B]"
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
         </div>
 
         <AnimatePresence>

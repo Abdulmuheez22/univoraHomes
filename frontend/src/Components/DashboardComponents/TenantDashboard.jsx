@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   motion,
   useInView,
@@ -21,6 +21,8 @@ import {
   LogOut,
   MessageCircle,
   Phone,
+  Trash2,
+  Menu,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
@@ -47,11 +49,6 @@ const toWhatsAppNumber = (number) => {
   if (digits.startsWith("0")) return `234${digits.slice(1)}`;
   return digits;
 };
-
-const MOCK_NOTIFICATIONS = [
-  { id: 1, title: "Inquiry Accepted!", desc: "Landlord accepted your inquiry for Flat 4B, Lekki Phase 1.", time: "2 hours ago", read: false },
-  { id: 2, title: "New Property Match", desc: "A new property matching your saved filters was listed in Ikeja.", time: "1 day ago", read: true },
-];
 
 const STATUS_STYLE = {
   Accepted: "bg-green-50 text-green-700 border-green-200",
@@ -105,7 +102,9 @@ export default function TenantDashboard({ accountData }) {
 
   const [activeTab, setActiveTab] = useState("overview");
   const [sidebar, setSidebar] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [toast, setToast] = useState(null);
+  const [dismissedNotificationIds, setDismissedNotificationIds] = useState([]);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSignOutOpen, setIsSignOutOpen] = useState(false);
   const mainRef = useRef(null);
@@ -116,18 +115,126 @@ export default function TenantDashboard({ accountData }) {
     setTimeout(() => setToast(null), 2800);
   };
 
+  const pendingInquiries = inquiries.filter(
+    (item) => String(item.requestStatus || "").toLowerCase() === "pending",
+  );
+  const resolvedInquiries = inquiries.filter((item) =>
+    ["accepted", "declined"].includes(
+      String(item.requestStatus || "").toLowerCase(),
+    ),
+  );
+  const visibleNotifications = resolvedInquiries.filter(
+    (item) => !dismissedNotificationIds.includes(item.requestId),
+  );
+
   const NAV = [
     { icon: LayoutDashboard, label: "Overview", id: "overview", active: activeTab === "overview" },
     { icon: Building2, label: "Browse Homes", id: "browse", active: activeTab === "browse" },
-    { icon: MessageSquare, label: "My Inquiries", id: "inquiries", badge: inquiries.length, active: activeTab === "inquiries" },
+    { icon: MessageSquare, label: "My Inquiries", id: "inquiries", badge: pendingInquiries.length || null, active: activeTab === "inquiries" },
     { icon: Users, label: "My Landlord", id: "landlord", badge: landlords.length || null, active: activeTab === "landlord" },
     { icon: Bookmark, label: "Saved Properties", id: "saved", badge: savedProperties.length, active: activeTab === "saved" },
-    { icon: Bell, label: "Notifications", id: "notifications", badge: MOCK_NOTIFICATIONS.filter(n => !n.read).length, active: activeTab === "notifications" },
+    { icon: Bell, label: "Notifications", id: "notifications", badge: visibleNotifications.length || null, active: activeTab === "notifications" },
     { icon: User, label: "My Profile", id: "profile", active: activeTab === "profile" },
   ];
 
+  const activateTab = (id) => {
+    setActiveTab(id);
+    setMobileNavOpen(false);
+    if (id === "profile") setIsProfileOpen(true);
+  };
+
+  useEffect(() => {
+    if (!mobileNavOpen) return undefined;
+
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setMobileNavOpen(false);
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [mobileNavOpen]);
+
   return (
     <>
+      <AnimatePresence>
+        {mobileNavOpen && (
+          <>
+            <motion.button
+              type="button"
+              aria-label="Close navigation menu"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileNavOpen(false)}
+              className="fixed inset-0 z-50 bg-[#00332F]/60 backdrop-blur-sm md:hidden"
+            />
+            <motion.aside
+              role="dialog"
+              aria-modal="true"
+              aria-label="Tenant navigation"
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ duration: 0.25, ease: EASE }}
+              className="fixed inset-y-0 left-0 z-[60] flex w-[min(19rem,85vw)] flex-col bg-[#00332F] py-6 shadow-2xl md:hidden"
+            >
+              <div className="mb-8 flex items-center justify-between px-5">
+                <span className="text-lg font-extrabold text-white">
+                  Univora<span className="text-[#F59E0B]"> Homes</span>
+                </span>
+                <button
+                  type="button"
+                  aria-label="Close menu"
+                  onClick={() => setMobileNavOpen(false)}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl text-white/70 hover:bg-white/10 hover:text-white"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <nav className="flex-1 space-y-1 overflow-y-auto px-3">
+                {NAV.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => activateTab(item.id)}
+                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-sm font-semibold transition-colors ${
+                      activeTab === item.id
+                        ? "bg-[#F59E0B] text-[#004741]"
+                        : "text-white/70 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    <item.icon className="h-5 w-5 shrink-0" />
+                    <span className="flex-1 text-left">{item.label}</span>
+                    {item.badge ? (
+                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white/15 px-1.5 text-[10px] font-bold">
+                        {item.badge}
+                      </span>
+                    ) : null}
+                  </button>
+                ))}
+              </nav>
+              <div className="px-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileNavOpen(false);
+                    setIsSignOutOpen(true);
+                  }}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-sm font-semibold text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  <LogOut className="h-5 w-5 shrink-0" />
+                  Sign out
+                </button>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
       <div className="flex min-h-screen bg-[#f7f5f0]">
         <motion.aside
           animate={{ width: sidebar ? 240 : 76 }}
@@ -167,8 +274,7 @@ export default function TenantDashboard({ accountData }) {
                 <motion.button
                   key={n.id}
                   onClick={() => {
-                    setActiveTab(n.id);
-                    if (n.id === "profile") setIsProfileOpen(true);
+                    activateTab(n.id);
                   }}
                   whileHover={{ x: 3 }}
                   whileTap={{ scale: 0.97 }}
@@ -227,6 +333,14 @@ export default function TenantDashboard({ accountData }) {
 
         <div className="flex-1">
           <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-slate-100 bg-white/80 px-5 backdrop-blur-md lg:px-8">
+            <button
+              type="button"
+              aria-label="Open navigation menu"
+              onClick={() => setMobileNavOpen(true)}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:border-[#004741] hover:text-[#004741] md:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
             <div>
               <p className="text-[11px] font-medium text-slate-400">Welcome back,</p>
               <h1 className="-mt-0.5 text-sm font-bold text-slate-900">
@@ -250,11 +364,13 @@ export default function TenantDashboard({ accountData }) {
                 className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:text-[#004741] cursor-pointer"
               >
                 <Bell className="h-4.5 w-4.5" />
-                <motion.span 
-                  animate={{ scale: [1, 1.2, 1] }} 
-                  transition={{ repeat: Infinity, duration: 2 }}
-                  className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-[#F59E0B] ring-2 ring-white" 
-                />
+                {visibleNotifications.length > 0 && (
+                  <motion.span
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ repeat: Infinity, duration: 2 }}
+                    className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-[#F59E0B] ring-2 ring-white"
+                  />
+                )}
               </motion.button>
               <motion.button
                 type="button"
@@ -493,14 +609,16 @@ export default function TenantDashboard({ accountData }) {
                   className="rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]"
                 >
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-slate-900">Recent Inquiries</h3>
+                    <h3 className="font-bold text-slate-900">
+                      Pending Connection Requests
+                    </h3>
                     {activeTab === "overview" && (
                       <motion.button 
                         whileHover={{ x: 2 }}
                         onClick={() => setActiveTab("inquiries")} 
                         className="text-xs font-semibold text-[#004741] hover:underline cursor-pointer flex items-center gap-1"
                       >
-                        View all ({inquiries.length}) <ChevronRight className="h-3 w-3" />
+                        View all ({pendingInquiries.length}) <ChevronRight className="h-3 w-3" />
                       </motion.button>
                     )}
                   </div>
@@ -521,25 +639,20 @@ export default function TenantDashboard({ accountData }) {
                         Try again
                       </button>
                     </div>
-                  ) : inquiries.length === 0 ? (
+                  ) : pendingInquiries.length === 0 ? (
                     <div className="rounded-xl bg-slate-50 px-5 py-10 text-center">
                       <p className="font-semibold text-slate-700">
-                        You haven't sent any property inquiries yet
+                        No pending connection requests
                       </p>
-                      <Link
-                        to="/properties"
-                        className="mt-4 inline-flex rounded-xl bg-[#004741] px-4 py-2.5 text-sm font-bold text-white"
-                      >
-                        Browse properties
-                      </Link>
+                      <p className="mt-1 text-sm text-slate-500">
+                        New requests you send will appear here until the landlord responds.
+                      </p>
                     </div>
                   ) : (
                   <div className="space-y-3">
-                    {inquiries.map((item, idx) => {
+                    {pendingInquiries.map((item, idx) => {
                       const status = item.requestStatus || "Pending";
-                      const statusStyle =
-                        STATUS_STYLE[status] ||
-                        "bg-slate-50 text-slate-700 border-slate-200";
+                      const statusStyle = STATUS_STYLE.Pending;
                       const location = [
                         item.propertyAddress,
                         item.city,
@@ -727,7 +840,9 @@ export default function TenantDashboard({ accountData }) {
                   className="rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]"
                 >
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-slate-900">Notifications & Landlord Updates</h3>
+                    <h3 className="font-bold text-slate-900">
+                      Connection Request Updates
+                    </h3>
                     {activeTab === "overview" && (
                       <motion.button 
                         whileHover={{ x: 2 }}
@@ -738,29 +853,115 @@ export default function TenantDashboard({ accountData }) {
                       </motion.button>
                     )}
                   </div>
-                  <div className="space-y-3">
-                    {MOCK_NOTIFICATIONS.map((n, idx) => (
-                      <motion.div 
-                        key={n.id} 
-                        initial={{ opacity: 0, x: -12 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 0.08, duration: 0.4, ease: EASE }}
-                        whileHover={{ x: 3 }}
-                        className={`flex items-start gap-3.5 p-4 rounded-xl border transition-all ${n.read ? "bg-white border-slate-100" : "bg-[#F0E8D5]/20 border-[#004741]/20 shadow-sm"}`}
+                  {areInquiriesLoading ? (
+                    <p className="py-8 text-center text-sm text-slate-500">
+                      Loading connection updates...
+                    </p>
+                  ) : areInquiriesError ? (
+                    <div className="py-8 text-center">
+                      <p className="text-sm text-red-600">
+                        Couldn't load connection updates.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => refetchInquiries()}
+                        className="mt-2 text-sm font-semibold text-[#004741] hover:underline"
                       >
-                        <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-green-100 text-green-700">
-                          <CheckCircle2 className="h-5 w-5" />
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <h4 className="font-bold text-sm text-slate-900">{n.title}</h4>
-                            <span className="text-[11px] text-slate-400">{n.time}</span>
-                          </div>
-                          <p className="text-xs text-slate-600 mt-0.5">{n.desc}</p>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
+                        Try again
+                      </button>
+                    </div>
+                  ) : visibleNotifications.length === 0 ? (
+                    <div className="rounded-xl bg-slate-50 px-5 py-10 text-center">
+                      <p className="font-semibold text-slate-700">
+                        No connection updates yet
+                      </p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Accepted and declined requests will appear here.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {visibleNotifications.map((item, idx) => {
+                        const accepted =
+                          String(item.requestStatus).toLowerCase() === "accepted";
+                        return (
+                          <motion.div
+                            key={item.requestId}
+                            initial={{ opacity: 0, x: -12 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: idx * 0.08, duration: 0.4, ease: EASE }}
+                            className={`flex items-start gap-3.5 rounded-xl border p-4 transition-all ${
+                              accepted
+                                ? "border-emerald-200 bg-emerald-50/60"
+                                : "border-rose-200 bg-rose-50/60"
+                            }`}
+                          >
+                            <span
+                              className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl ${
+                                accepted
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : "bg-rose-100 text-rose-700"
+                              }`}
+                            >
+                              {accepted ? (
+                                <CheckCircle2 className="h-5 w-5" />
+                              ) : (
+                                <X className="h-5 w-5" />
+                              )}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h4 className="text-sm font-bold text-slate-900">
+                                  Request {accepted ? "accepted" : "declined"}
+                                </h4>
+                                <span
+                                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                                    accepted
+                                      ? "bg-emerald-600 text-white"
+                                      : "bg-rose-600 text-white"
+                                  }`}
+                                >
+                                  {item.requestStatus}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-xs text-slate-600">
+                                Your request for{" "}
+                                <span className="font-semibold">
+                                  {item.propertyName || "this property"}
+                                </span>
+                                {item.landlordName
+                                  ? ` was ${accepted ? "accepted" : "declined"} by ${item.landlordName}.`
+                                  : ` was ${accepted ? "accepted" : "declined"}.`}
+                              </p>
+                              {(item.propertyAddress || item.city || item.state) && (
+                                <p className="mt-1 flex items-center gap-1 text-[11px] text-slate-500">
+                                  <MapPin className="h-3 w-3" />
+                                  {[item.propertyAddress, item.city, item.state]
+                                    .filter(Boolean)
+                                    .join(", ")}
+                                </p>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setDismissedNotificationIds((current) =>
+                                  current.includes(item.requestId)
+                                    ? current
+                                    : [...current, item.requestId],
+                                )
+                              }
+                              aria-label="Delete notification"
+                              title="Delete notification"
+                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white hover:text-rose-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
