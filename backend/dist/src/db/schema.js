@@ -1,5 +1,4 @@
 import { timestamp, boolean, pgTable, varchar, uuid, pgEnum, integer, } from "drizzle-orm/pg-core";
-import { id } from "zod/locales";
 export const roleEnum = pgEnum("role", ["landlord", "tenant", "agent"]);
 export const usersTable = pgTable("users", {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -16,15 +15,13 @@ export const usersTable = pgTable("users", {
 });
 export const propertyTable = pgTable("properties", {
     propertyId: uuid("propertyId").primaryKey().defaultRandom(),
-    landLordId: uuid("landLordId")
-        .notNull()
-        .references(() => usersTable.id),
+    landLordId: uuid("landLordId").notNull().references(() => usersTable.id),
     propertyName: varchar().notNull(),
     propertyType: varchar().notNull(),
     propertyAddress: varchar().notNull(),
     city: varchar().notNull(),
     state: varchar().notNull(),
-    totalUnits: varchar().notNull(),
+    propertyCategory: varchar().notNull().default("Uncategorized"),
     description: varchar().notNull(),
     targetRent: varchar().notNull(),
 });
@@ -39,13 +36,20 @@ export const tenantSaveTable = pgTable("tenatSavedProp", {
     userId: varchar("userId").notNull(),
     propertyId: varchar("propertyId").notNull(),
 });
+export const connectionTable = pgTable("connectionTable", {
+    id: uuid().primaryKey().defaultRandom(),
+    landLordId: varchar("landLordId").notNull(),
+    tenatId: varchar("tenatId").notNull(),
+    propertyId: varchar("propertyId").notNull(),
+    requestStatus: varchar("requestStatus").notNull()
+});
 // {
 //     propertyName: '',
 //     propertyType: 'Multi-Family',
 //     address: '',
 //     city: '',
 //     state: '',
-//     totalUnits: 1,
+//     propertyCategory: 'Multi-Family',
 //     description: '',
 //     targetRent: '',
 //   });

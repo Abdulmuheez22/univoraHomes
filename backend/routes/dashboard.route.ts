@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { populateDashboard, userProfile } from "../controller/dashboard.controller";
-import { authmiddleware } from "../middleware/auth.middleware";
+import { deleteUserAccount, populateDashboard, updateUserProfile, userProfile } from "../controller/dashboard.controller";
+import { authmiddleware, optionalAuthMiddleware } from "../middleware/auth.middleware";
 import { fetchSavedProperties, fetchLandlordTenant, fetchTenantLandLord } from "../controller/dashboard.controller";
 
 
@@ -10,7 +10,11 @@ dashboard.get("/populateDashboard", authmiddleware, populateDashboard)
 
 dashboard.get("/userProfile", authmiddleware, userProfile)
 
-dashboard.get("/fetchSavedProperties", authmiddleware, fetchSavedProperties)
+dashboard.patch("/userProfile", authmiddleware, updateUserProfile)
+
+dashboard.delete("/userProfile", authmiddleware, deleteUserAccount)
+
+dashboard.get("/fetchSavedProperties", optionalAuthMiddleware, fetchSavedProperties)
 
 dashboard.get("/fetchLandlordTenant", authmiddleware, fetchLandlordTenant)
 

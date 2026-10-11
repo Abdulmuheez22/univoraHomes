@@ -406,10 +406,10 @@ export default function PropertyDetails() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500">Total units</p>
+                  <p className="text-sm text-slate-500">Property category</p>
                   <p className="mt-1 flex items-center gap-2 text-lg font-bold text-slate-900">
                     <Building2 className="h-5 w-5 text-[#004741]" />
-                    {property.totalUnit ?? 0} units
+                    {property.propertyCategory || "Uncategorized"}
                   </p>
                 </div>
               </div>

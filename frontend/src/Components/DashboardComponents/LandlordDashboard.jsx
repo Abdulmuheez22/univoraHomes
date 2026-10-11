@@ -6,13 +6,10 @@ import {
 } from "framer-motion";
 import {
   Building2,
-  Layers,
   CheckCircle2,
-  DoorOpen,
   LayoutDashboard,
   Users,
   Wrench,
-  Settings,
   LogOut,
   Bell,
   Search,
@@ -23,6 +20,7 @@ import {
   TrendingDown,
   Clock,
   CreditCard,
+  CircleUserRound,
   X,
   ArrowUpRight,
   Loader2,
@@ -66,29 +64,12 @@ const STATS = [
     up: true,
   },
   {
-    label: "Total Units",
+    label: "Property Categories",
     value: 0,
-    icon: Layers,
+    icon: Building2,
     accent: "#0F766E",
-    delta: "+4",
+    delta: "Across your listings",
     up: true,
-  },
-  {
-    label: "Occupied Units",
-    value: 0,
-    icon: CheckCircle2,
-    accent: "#004741",
-    delta: "86%",
-    up: true,
-    suffix: "",
-  },
-  {
-    label: "Vacant Units",
-    value: 0,
-    icon: DoorOpen,
-    accent: "#F59E0B",
-    delta: "3 in Lekki",
-    up: false,
   },
   // {
   //   label: "Rent Collected This Month",
@@ -471,12 +452,7 @@ export default function LandlordDashboard() {
   const propertySummary = landLordPropertiesData?.summary;
   const dashboardStatValues = {
     "Total Properties": propertySummary?.totalProperties ?? 0,
-    "Total Units": propertySummary?.totalUnits ?? 0,
-    "Occupied Units": propertySummary?.occupiedUnits ?? 0,
-    "Vacant Units": Math.max(
-      (propertySummary?.totalUnits ?? 0) - (propertySummary?.occupiedUnits ?? 0),
-      0,
-    ),
+    "Property Categories": propertySummary?.propertyCategories ?? 0,
   };
   const dashboardStats = STATS.map((stat) => ({
     ...stat,
@@ -541,7 +517,7 @@ export default function LandlordDashboard() {
     },
     // { icon: Wrench, label: "Maintenance", badge: 4, active: false },
     // { icon: FileText, label: "Documents", active: false },
-    { icon: Settings, label: "Profile", active: false },
+    { icon: CircleUserRound, label: "Profile", active: false },
   ];
 
   const activateNav = (label) => {
@@ -965,7 +941,7 @@ export default function LandlordDashboard() {
                           {property.propertyType} · {property.city}, {property.state}
                         </p>
                         <p className="mt-3 text-sm font-semibold text-slate-600">
-                          {property.totalUnits} units
+                          Category: {property.propertyCategory || "Uncategorized"}
                         </p>
                         <p className="mt-1 text-sm font-extrabold text-[#004741]">
                          ₦ {property.targetRent || 0}
@@ -1283,6 +1259,7 @@ export default function LandlordDashboard() {
                               {property.propertyName}
                             </Link>
                             <p className="mt-1 text-xs text-slate-500">
+                              {property.propertyCategory || "Uncategorized"} ·{" "}
                               {property.propertyType} · {property.city},{" "}
                               {property.state}
                             </p>
@@ -1703,9 +1680,11 @@ export default function LandlordDashboard() {
                           <p className="font-semibold text-slate-800">
                             {record.property?.propertyName || "Property"}
                           </p>
-                          {record.property?.propertyType && (
+                          {(record.property?.propertyCategory ||
+                            record.property?.propertyType) && (
                             <p className="mt-1 text-xs text-slate-500">
-                              {record.property.propertyType}
+                              {record.property.propertyCategory ||
+                                record.property.propertyType}
                             </p>
                           )}
                           {record.property?.propertyAddress && (

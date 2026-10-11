@@ -6,6 +6,7 @@ import dashboard from "./routes/dashboard.route";
 import { showReqMethod } from "./middleware/logger.middleware";
 import cookieParser from "cookie-parser";
 import property from "./routes/propety.route";
+import connection from "./routes/connection.route";
 const app = express();
 const port = env.port;
 const frontendUrl = env.frontendUrl;
@@ -32,6 +33,7 @@ app.use(showReqMethod);
 app.use("/api/auth", user);
 app.use("/api/dashboard", dashboard);
 app.use("/api/property", property);
+app.use("/api/connection", connection);
 app.listen(port, () => {
     console.log(`univoraHomes is running on http://localhost:${port}`);
 });

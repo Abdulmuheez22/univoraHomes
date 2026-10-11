@@ -55,6 +55,16 @@ export const fetchUserProfile = async () => {
   return response.data.user;
 };
 
+export const updateUserProfile = async (profile) => {
+  const response = await api.patch("/dashboard/userProfile", profile);
+  return response.data.user;
+};
+
+export const deleteUserAccount = async () => {
+  const response = await api.delete("/dashboard/userProfile");
+  return response.data;
+};
+
 export const fetchLandlordTenant = async () => {
   const response = await api.get("/dashboard/fetchLandlordTenant");
   return response.data.tenants;

@@ -1,4 +1,3 @@
-import { validate } from "./../node_modules/zod/src/v4/core/parse";
 import {
   signUpValidation,
   signInValidator,
@@ -12,8 +11,6 @@ import { tokenGenerator } from "../utils/jwt";
 import env from "../config/env";
 import crypto from "node:crypto";
 import { sendOtpEmail } from "../services/otpMail.services";
-import { check, date, email, string } from "zod";
-import { id } from "zod/locales";
 import type { Request, Response } from "express";
 
 export const signUp = async (req: any, res: any) => {
@@ -227,3 +224,17 @@ export const signOut = (_req: Request, res: Response) => {
     .status(200)
     .json({ message: "Signed out successfully" });
 };
+
+
+
+export const editProfile = (req: Request, res: Response) => {
+  try {
+    const userId = req.user.id
+
+    if(!userId){return res.status(401).json({message: 'Unautorized'})}
+    
+  } catch (error) {
+    console.log("editProfile error: ", error)
+    res.status(500).json({message: 'Error Editing Profile'})
+  }
+}

@@ -41,6 +41,16 @@ export const signInValidator = z.object({
     email,
     password
 });
+export const profileUpdateValidator = z.object({
+    fullName: fullName.max(100),
+    phoneNumber: z
+        .string()
+        .trim()
+        .min(7, "Phone number must be at least 7 characters")
+        .max(20, "Phone number must be at most 20 characters"),
+    state: z.string().trim().max(100, "State must be at most 100 characters"),
+    city: z.string().trim().max(100, "City must be at most 100 characters"),
+});
 export const savedPropertyValidator = z.object({});
 // .enum(["landlord", "tenant", "agent
 // export const signUpValidation = () => {

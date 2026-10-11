@@ -1,4 +1,3 @@
-import { validate } from "./../node_modules/zod/src/v4/core/parse";
 import { signUpValidation, signInValidator, otpValidator, } from "../utils/user.validate";
 import { hashPassword, confrimHashPassword } from "../utils/hasher";
 import { usersTable } from "../src/db/schema";
@@ -8,8 +7,6 @@ import { tokenGenerator } from "../utils/jwt";
 import env from "../config/env";
 import crypto from "node:crypto";
 import { sendOtpEmail } from "../services/otpMail.services";
-import { check, date, email, string } from "zod";
-import { id } from "zod/locales";
 export const signUp = async (req, res) => {
     try {
         const validatedUser = signUpValidation.safeParse(req.body);
@@ -166,6 +163,29 @@ export const userProfile = async (req, res) => {
     }
     catch (error) {
         console.log("this error is from the userProfile catch: ", error);
+    }
+};
+export const signOut = (_req, res) => {
+    const isProduction = process.env.NODE_ENV === "production";
+    return res
+        .clearCookie("token", {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? "strict" : "lax",
+    })
+        .status(200)
+        .json({ message: "Signed out successfully" });
+};
+export const editProfile = (req, res) => {
+    try {
+        const userId = req.user.id;
+        if (!userId) {
+            return res.status(401).json({ message: 'Unautorized' });
+        }
+    }
+    catch (error) {
+        console.log("editProfile error: ", error);
+        res.status(500).json({ message: 'Error Editing Profile' });
     }
 };
 //# sourceMappingURL=user.controller.js.map

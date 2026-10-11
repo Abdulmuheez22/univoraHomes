@@ -25,8 +25,14 @@ import {
   saveProperty,
   unSaveProperty,
 } from "../../lib/services/auth.service";
+import { PROPERTY_CATEGORIES } from "../../lib/propertyCategories";
 
 const PAGE_SIZE = 12;
+const PROPERTY_CATEGORY_FILTERS = [
+  "All categories",
+  ...PROPERTY_CATEGORIES,
+  "Uncategorized",
+];
 
 const formatNaira = (amount) =>
   `₦${(amount || 0).toLocaleString("en-NG")}`;
@@ -40,6 +46,7 @@ export default function TenantPropertyBrowser() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [selectedType, setSelectedType] = useState("All types");
+  const [selectedCategory, setSelectedCategory] = useState("All categories");
   const [selectedPropertyId, setSelectedPropertyId] = useState(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
@@ -52,11 +59,16 @@ export default function TenantPropertyBrowser() {
     fetchNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ["properties"],
+    queryKey: ["properties", selectedCategory],
     initialPageParam: 0,
     queryFn: async ({ pageParam }) => {
       const response = await api.get("/property/fetchProperties", {
-        params: { limit: PAGE_SIZE, offset: pageParam },
+        params: {
+          limit: PAGE_SIZE,
+          offset: pageParam,
+          propertyCategory:
+            selectedCategory === "All categories" ? undefined : selectedCategory,
+        },
       });
       return response.data;
     },
@@ -96,9 +108,11 @@ export default function TenantPropertyBrowser() {
     return (data?.pages.flatMap((page) => page.properties || []) || []).filter(
       (property) => {
         const type = property.propertyType || "Property";
+        const category = property.propertyCategory || "Uncategorized";
         const searchable = [
           property.propertyName,
           type,
+          category,
           property.propertyAddress,
           property.city,
           property.state,
@@ -108,11 +122,13 @@ export default function TenantPropertyBrowser() {
           .toLocaleLowerCase();
         return (
           (!normalizedSearch || searchable.includes(normalizedSearch)) &&
-          (selectedType === "All types" || type === selectedType)
+          (selectedType === "All types" || type === selectedType) &&
+          (selectedCategory === "All categories" ||
+            category === selectedCategory)
         );
       },
     );
-  }, [data, search, selectedType]);
+  }, [data, search, selectedType, selectedCategory]);
 
   const propertyTypes = useMemo(
     () => [
@@ -283,7 +299,9 @@ export default function TenantPropertyBrowser() {
             <div className="flex flex-col">
               <div className="flex items-start justify-between gap-4">
                 <span className="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800">
-                  {selectedProperty.propertyType || "Property"}
+                  {selectedProperty.propertyCategory ||
+                    selectedProperty.propertyType ||
+                    "Property"}
                 </span>
                 <button
                   type="button"
@@ -315,7 +333,7 @@ export default function TenantPropertyBrowser() {
                   {formatNaira(selectedProperty.target)}
                 </p>
                 <p className="mt-3 text-sm font-medium text-slate-600">
-                  {selectedProperty.totalUnit || 0} units available
+                  Category: {selectedProperty.propertyCategory || "Uncategorized"}
                 </p>
               </div>
               <div className="mt-6 flex-1">
@@ -458,6 +476,18 @@ export default function TenantPropertyBrowser() {
               </option>
             ))}
           </select>
+          <select
+            value={selectedCategory}
+            onChange={(event) => setSelectedCategory(event.target.value)}
+            aria-label="Filter by property category"
+            className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 outline-none focus:border-[#004741] focus:ring-4 focus:ring-[#004741]/10"
+          >
+            {PROPERTY_CATEGORY_FILTERS.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
         </div>
 
         {isLoading ? (
@@ -493,7 +523,9 @@ export default function TenantPropertyBrowser() {
           <div className="rounded-2xl bg-slate-50 px-6 py-14 text-center">
             <Search className="mx-auto h-8 w-8 text-slate-300" />
             <p className="mt-3 font-bold text-slate-700">
-              {search || selectedType !== "All types"
+              {search ||
+              selectedType !== "All types" ||
+              selectedCategory !== "All categories"
                 ? "No homes match those filters"
                 : "No properties are listed yet"}
             </p>
@@ -597,7 +629,7 @@ export default function TenantPropertyBrowser() {
                            ₦ {property.target}
                           </p>
                           <p className="text-[11px] text-slate-400">
-                            per year · {property.totalUnit || 0} units
+                            per year · {property.propertyCategory || "Uncategorized"}
                           </p>
                         </div>
                         <button

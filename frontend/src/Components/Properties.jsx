@@ -16,6 +16,7 @@ import api from "../lib/axios";
 import { fetchSavedProperties } from "../lib/services/auth.service";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
+import { PROPERTY_CATEGORIES } from "../lib/propertyCategories";
 
 const EASE = [0.22, 1, 0.36, 1];
 const LIMIT = 12;
@@ -69,6 +70,11 @@ const PROPERTY_TYPES = [
   "Single-Family",
   "Duplex",
   "Commercial",
+];
+const PROPERTY_CATEGORY_FILTERS = [
+  "All Categories",
+  ...PROPERTY_CATEGORIES,
+  "Uncategorized",
 ];
 const PRICE_RANGES = ["All Prices", "Under ₦5M", "₦5M - ₦10M", "Above ₦10M"];
 
@@ -150,8 +156,7 @@ function PropertyCard({ property, index, isSaved }) {
   const rent =
     property.rent ?? property.target ?? property.targetRent ?? property.price ?? 0;
     // const rent = Number(rawRent)
-  const units =
-    property.availableUnits ?? property.totalUnit ?? property.units ?? 0;
+  const category = property.propertyCategory || "Uncategorized";
   const images = property.propertyImages || property.photos || [];
   const firstImage = images[0];
   const cover =
@@ -224,7 +229,7 @@ function PropertyCard({ property, index, isSaved }) {
           </p>
           <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-slate-400">
             <Building2 className="h-3.5 w-3.5" />
-            {units} units available
+            {category}
           </p>
           <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-500">
             {description}
@@ -250,6 +255,7 @@ export default function Properties() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("All Locations");
   const [selectedType, setSelectedType] = useState("All Types");
+  const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [priceRange, setPriceRange] = useState("All Prices");
   const [sortBy, setSortBy] = useState("default");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -272,13 +278,15 @@ export default function Properties() {
     fetchNextPage,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ["properties"],
+    queryKey: ["properties", selectedCategory],
     initialPageParam: 0,
     queryFn: async ({ pageParam = 0 }) => {
       const response = await api.get("/property/fetchProperties", {
         params: {
           limit: LIMIT,
           offset: pageParam,
+          propertyCategory:
+            selectedCategory === "All Categories" ? undefined : selectedCategory,
         },
       });
       return response.data;
@@ -303,6 +311,10 @@ export default function Properties() {
       selectedType === "All Types" ||
       normalize(property.propertyType ?? property.type) ===
         normalize(selectedType);
+    const matchesCategory =
+      selectedCategory === "All Categories" ||
+      normalize(property.propertyCategory || "Uncategorized") ===
+        normalize(selectedCategory);
     const searchableLocation = normalize(
       `${property.city || ""} ${property.state || ""}`,
     );
@@ -312,6 +324,7 @@ export default function Properties() {
     return (
       matchesLocation &&
       matchesType &&
+      matchesCategory &&
       matchesSearch &&
       matchesPriceRange(getPropertyPrice(property), priceRange)
     );
@@ -332,14 +345,20 @@ export default function Properties() {
     Boolean(searchQuery.trim()) ||
     selectedLocation !== "All Locations" ||
     selectedType !== "All Types" ||
+    selectedCategory !== "All Categories" ||
     priceRange !== "All Prices";
-  const noProperties = !isLoading && !error && rawProperties.length === 0;
+  const noProperties =
+    !isLoading &&
+    !error &&
+    rawProperties.length === 0 &&
+    selectedCategory === "All Categories";
   const noMatches = !isLoading && !error && properties.length === 0;
 
   const clearFilters = () => {
     setSearchQuery("");
     setSelectedLocation("All Locations");
     setSelectedType("All Types");
+    setSelectedCategory("All Categories");
     setPriceRange("All Prices");
     setSortBy("default");
   };
@@ -427,6 +446,12 @@ export default function Properties() {
               onChange={setSelectedType}
             />
             <FilterSelect
+              label="Property category"
+              value={selectedCategory}
+              options={PROPERTY_CATEGORY_FILTERS}
+              onChange={setSelectedCategory}
+            />
+            <FilterSelect
               label="Price range"
               value={priceRange}
               options={PRICE_RANGES}
@@ -473,7 +498,7 @@ export default function Properties() {
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden lg:hidden"
           >
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3 bg-white p-4 rounded-2xl border border-[#004741]/10 shadow-md">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-3 bg-white p-4 rounded-2xl border border-[#004741]/10 shadow-md">
               <div>
                 <label className="block text-[10px] uppercase font-bold tracking-wider text-[#111827]/50 mb-1">Location</label>
                 <select
@@ -495,6 +520,18 @@ export default function Properties() {
                 >
                   {PROPERTY_TYPES.map((type) => (
                     <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] uppercase font-bold tracking-wider text-[#111827]/50 mb-1">Property Category</label>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="w-full bg-[#F0E8D5]/30 text-xs font-semibold text-[#111827] rounded-xl px-3 py-2.5 border-none focus:ring-2 focus:ring-[#004741]"
+                >
+                  {PROPERTY_CATEGORY_FILTERS.map((category) => (
+                    <option key={category} value={category}>{category}</option>
                   ))}
                 </select>
               </div>

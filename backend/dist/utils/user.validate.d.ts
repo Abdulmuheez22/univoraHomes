@@ -20,5 +20,11 @@ export declare const signInValidator: z.ZodObject<{
     email: z.ZodString;
     password: z.ZodString;
 }, z.core.$strip>;
+export declare const profileUpdateValidator: z.ZodObject<{
+    fullName: z.ZodString;
+    phoneNumber: z.ZodString;
+    state: z.ZodString;
+    city: z.ZodString;
+}, z.core.$strip>;
 export declare const savedPropertyValidator: z.ZodObject<{}, z.core.$strip>;
 //# sourceMappingURL=user.validate.d.ts.map

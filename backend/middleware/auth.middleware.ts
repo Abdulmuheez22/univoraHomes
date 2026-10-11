@@ -2,10 +2,11 @@ import type { Request, Response, NextFunction } from "express";
 import env from "../config/env";
 import { verifyToken } from "../utils/jwt";
 
-export const authmiddleware = (
+const authenticate = (
   req: Request,
   res: Response,
   next: NextFunction,
+  required: boolean,
 ) => {
   const authorization = req.get("authorization");
   const bearerMatch = authorization?.match(/^Bearer\s+(.+)$/i);
@@ -13,6 +14,9 @@ export const authmiddleware = (
   const token = authorization ? bearerToken : req.cookies.token;
 
   if (!token) {
+    if (!required && !authorization) {
+      return next();
+    }
     return res.status(401).json({ message: "Unauthorized" });
   }
 
@@ -30,3 +34,15 @@ export const authmiddleware = (
     return res.status(401).json({ message: "Unauthorized" });
   }
 };
+
+export const authmiddleware = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => authenticate(req, res, next, true);
+
+export const optionalAuthMiddleware = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => authenticate(req, res, next, false);

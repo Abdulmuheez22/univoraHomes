@@ -1,4 +1,3 @@
-import { property } from "zod";
 import { db } from "./../src/test-db";
 import type { Request, Response } from "express";
 import { asc, eq, inArray, and } from "drizzle-orm";
@@ -22,6 +21,13 @@ export const addProperty = async (req: Request, res: Response) => {
 
     if (!req.files) {
       return res.status(400).json({ message: "Image is required" });
+    }
+
+    if (
+      typeof body.propertyCategory !== "string" ||
+      !body.propertyCategory.trim()
+    ) {
+      return res.status(400).json({ message: "Property category is required" });
     }
 
     const files = req.files as Express.Multer.File[];
@@ -53,7 +59,7 @@ export const addProperty = async (req: Request, res: Response) => {
         propertyAddress: body.address,
         city: body.city,
         state: body.state,
-        totalUnits: body.totalUnits,
+        propertyCategory: body.propertyCategory.trim(),
         description: body.description,
         targetRent: body.targetRent,
       })
@@ -87,9 +93,18 @@ export const fetchProperties = async (req: Request, res: Response) => {
         ? requestedOffset
         : 0;
 
+    const propertyCategory =
+      typeof req.query.propertyCategory === "string"
+        ? req.query.propertyCategory.trim()
+        : "";
+    const filters = propertyCategory
+      ? eq(propertyTable.propertyCategory, propertyCategory)
+      : undefined;
+
     const properties = await db
       .select()
       .from(propertyTable)
+      .where(filters)
       .orderBy(asc(propertyTable.propertyId))
       .limit(limit)
       .offset(offset);
@@ -111,10 +126,10 @@ export const fetchProperties = async (req: Request, res: Response) => {
       propertyId: p.propertyId,
       propertyName: p.propertyName,
       propertyType: p.propertyType,
+      propertyCategory: p.propertyCategory,
       propertyAddress: p.propertyAddress,
       state: p.state,
       city: p.city,
-      totalUnit: p.totalUnits,
       description: p.description,
       target: p.targetRent,
       propertyImages: images
@@ -155,10 +170,10 @@ export const fetchPropertyById = async (req: Request, res: Response) => {
         propertyId: property.propertyId,
         propertyName: property.propertyName,
         propertyType: property.propertyType,
+        propertyCategory: property.propertyCategory,
         propertyAddress: property.propertyAddress,
         state: property.state,
         city: property.city,
-        totalUnit: property.totalUnits,
         description: property.description,
         target: property.targetRent,
         propertyImages: images.map((image) => image.imageUrl),
@@ -197,9 +212,9 @@ export const landLordProperties = async (req: Request, res: Response) => {
       propertyId: property.propertyId,
       propertyName: property.propertyName,
       propertyType: property.propertyType,
+      propertyCategory: property.propertyCategory,
       propertyAddress: property.propertyAddress,
       targetRent: property.targetRent,
-      totalUnits: property.totalUnits,
       state: property.state,
       city: property.city,
       propertyImages: images
@@ -209,11 +224,9 @@ export const landLordProperties = async (req: Request, res: Response) => {
 
     const summary = {
       totalProperties: landlordProperties.length,
-      totalUnits: landlordProperties.reduce(
-        (total, property) => total + Number(property.totalUnits),
-        0,
-      ),
-      occupiedUnits: 0,
+      propertyCategories: new Set(
+        landlordProperties.map((property) => property.propertyCategory),
+      ).size,
     };
 
     return res.status(200).json({ properties: frontendProperties, summary });

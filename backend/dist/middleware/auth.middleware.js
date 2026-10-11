@@ -1,10 +1,14 @@
 import env from "../config/env";
 import { verifyToken } from "../utils/jwt";
-export const authmiddleware = (req, res, next) => {
-    const token = req.cookies.token;
-    // console.log(req.headers.cookie);
-    // console.log(req.cookies);
+const authenticate = (req, res, next, required) => {
+    const authorization = req.get("authorization");
+    const bearerMatch = authorization?.match(/^Bearer\s+(.+)$/i);
+    const bearerToken = bearerMatch?.[1]?.trim();
+    const token = authorization ? bearerToken : req.cookies.token;
     if (!token) {
+        if (!required && !authorization) {
+            return next();
+        }
         return res.status(401).json({ message: "Unauthorized" });
     }
     try {
@@ -22,4 +26,6 @@ export const authmiddleware = (req, res, next) => {
         return res.status(401).json({ message: "Unauthorized" });
     }
 };
+export const authmiddleware = (req, res, next) => authenticate(req, res, next, true);
+export const optionalAuthMiddleware = (req, res, next) => authenticate(req, res, next, false);
 //# sourceMappingURL=auth.middleware.js.map

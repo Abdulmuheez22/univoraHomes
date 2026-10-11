@@ -1,4 +1,3 @@
-import { property } from "zod";
 import { db } from "./../src/test-db";
 import { asc, eq, inArray, and } from "drizzle-orm";
 import { usersTable, propertyTable, tenantSaveTable } from "../src/db/schema";
@@ -19,6 +18,10 @@ export const addProperty = async (req, res) => {
         if (!req.files) {
             return res.status(400).json({ message: "Image is required" });
         }
+        if (typeof body.propertyCategory !== "string" ||
+            !body.propertyCategory.trim()) {
+            return res.status(400).json({ message: "Property category is required" });
+        }
         const files = req.files;
         const results = await Promise.all(files.map((file) => new Promise((resolve, reject) => {
             cloudinary.uploader
@@ -38,7 +41,7 @@ export const addProperty = async (req, res) => {
             propertyAddress: body.address,
             city: body.city,
             state: body.state,
-            totalUnits: body.totalUnits,
+            propertyCategory: body.propertyCategory.trim(),
             description: body.description,
             targetRent: body.targetRent,
         })
@@ -66,9 +69,16 @@ export const fetchProperties = async (req, res) => {
         const offset = Number.isInteger(requestedOffset) && requestedOffset >= 0
             ? requestedOffset
             : 0;
+        const propertyCategory = typeof req.query.propertyCategory === "string"
+            ? req.query.propertyCategory.trim()
+            : "";
+        const filters = propertyCategory
+            ? eq(propertyTable.propertyCategory, propertyCategory)
+            : undefined;
         const properties = await db
             .select()
             .from(propertyTable)
+            .where(filters)
             .orderBy(asc(propertyTable.propertyId))
             .limit(limit)
             .offset(offset);
@@ -86,10 +96,10 @@ export const fetchProperties = async (req, res) => {
             propertyId: p.propertyId,
             propertyName: p.propertyName,
             propertyType: p.propertyType,
+            propertyCategory: p.propertyCategory,
             propertyAddress: p.propertyAddress,
             state: p.state,
             city: p.city,
-            totalUnit: p.totalUnits,
             description: p.description,
             target: p.targetRent,
             propertyImages: images
@@ -125,10 +135,10 @@ export const fetchPropertyById = async (req, res) => {
                 propertyId: property.propertyId,
                 propertyName: property.propertyName,
                 propertyType: property.propertyType,
+                propertyCategory: property.propertyCategory,
                 propertyAddress: property.propertyAddress,
                 state: property.state,
                 city: property.city,
-                totalUnit: property.totalUnits,
                 description: property.description,
                 target: property.targetRent,
                 propertyImages: images.map((image) => image.imageUrl),
@@ -142,34 +152,48 @@ export const fetchPropertyById = async (req, res) => {
 };
 export const landLordProperties = async (req, res) => {
     try {
-        if (req.user.id) {
-            return res.status(401).json({ message: "Unautorized" });
+        const userId = req.user.id;
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized" });
         }
-        const [user] = await db
-            .select()
-            .from(usersTable)
-            .where(eq(usersTable.id, req.user.id));
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        const landLordProperty = await db
+        const landlordProperties = await db
             .select()
             .from(propertyTable)
-            .where(eq(propertyTable.propertyId, user.id));
-        if (landLordProperty.length === 0) {
-            return res
-                .status(404)
-                .json({ message: "You don't have a Property yet!" });
-        }
-        const frontendLandLordProp = {
-            totalProperties: landLordProperty.length,
-            totalUnit: landLordProperty.map((unit) => unit.totalUnits),
-            occupiedUnits: landLordProperty.map((unit) => unit.totalUnits),
+            .where(eq(propertyTable.landLordId, userId));
+        const propertyIds = landlordProperties.map((property) => property.propertyId);
+        const images = propertyIds.length
+            ? await db
+                .select({
+                propertyId: propertiesImgTable.propertyId,
+                imageUrl: propertiesImgTable.imageUrl,
+            })
+                .from(propertiesImgTable)
+                .where(inArray(propertiesImgTable.propertyId, propertyIds))
+            : [];
+        const frontendProperties = landlordProperties.map((property) => ({
+            propertyId: property.propertyId,
+            propertyName: property.propertyName,
+            propertyType: property.propertyType,
+            propertyCategory: property.propertyCategory,
+            propertyAddress: property.propertyAddress,
+            targetRent: property.targetRent,
+            state: property.state,
+            city: property.city,
+            propertyImages: images
+                .filter((image) => image.propertyId === property.propertyId)
+                .map((image) => image.imageUrl),
+        }));
+        const summary = {
+            totalProperties: landlordProperties.length,
+            propertyCategories: new Set(landlordProperties.map((property) => property.propertyCategory)).size,
         };
-        return res.status(200).json({ landLordproperties: frontendLandLordProp });
+        return res.status(200).json({ properties: frontendProperties, summary });
     }
     catch (error) {
         console.log("this error is from landLordProperties catch: ", error);
+        return res
+            .status(500)
+            .json({ message: "Error fetching landlord properties" });
     }
 };
 export const saveProperty = async (req, res) => {
@@ -185,9 +209,12 @@ export const saveProperty = async (req, res) => {
         }
         const dbSavedProperty = {
             userId: userId,
-            propertyId: propertyId
+            propertyId: propertyId,
         };
-        await db.insert(tenantSaveTable).values(dbSavedProperty).onConflictDoNothing();
+        await db
+            .insert(tenantSaveTable)
+            .values(dbSavedProperty)
+            .onConflictDoNothing();
         return res.status(200).json({ message: "Property Saved" });
     }
     catch (error) {

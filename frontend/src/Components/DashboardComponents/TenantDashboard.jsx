@@ -12,7 +12,7 @@ import {
   ChevronRight,
   Bookmark,
   MessageSquare,
-  User,
+  CircleUserRound,
   Users,
   CheckCircle2,
   X,
@@ -134,7 +134,7 @@ export default function TenantDashboard({ accountData }) {
     { icon: Users, label: "My Landlord", id: "landlord", badge: landlords.length || null, active: activeTab === "landlord" },
     { icon: Bookmark, label: "Saved Properties", id: "saved", badge: savedProperties.length, active: activeTab === "saved" },
     { icon: Bell, label: "Notifications", id: "notifications", badge: visibleNotifications.length || null, active: activeTab === "notifications" },
-    { icon: User, label: "My Profile", id: "profile", active: activeTab === "profile" },
+    { icon: CircleUserRound, label: "My Profile", id: "profile", active: activeTab === "profile" },
   ];
 
   const activateTab = (id) => {
@@ -539,9 +539,11 @@ export default function TenantDashboard({ accountData }) {
                                 <p className="truncate text-sm font-bold text-slate-800">
                                   {record.property?.propertyName || "Property"}
                                 </p>
-                                {record.property?.propertyType && (
+                                {(record.property?.propertyCategory ||
+                                  record.property?.propertyType) && (
                                   <p className="mt-0.5 text-xs font-medium text-slate-500">
-                                    {record.property.propertyType}
+                                    {record.property.propertyCategory ||
+                                      record.property.propertyType}
                                   </p>
                                 )}
                               </div>
@@ -798,7 +800,7 @@ export default function TenantDashboard({ accountData }) {
                       >
                         <div>
                           <div className="flex items-center justify-between mb-2">
-                            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-[#004741]/10 text-[#004741]">{property.propertyType}</span>
+                            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-[#004741]/10 text-[#004741]">{property.propertyCategory || property.propertyType || "Uncategorized"}</span>
                             <motion.button 
                               type="button"
                               aria-label={`Remove ${property.propertyName} from saved properties`}

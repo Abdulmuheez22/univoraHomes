@@ -94,11 +94,14 @@ export const getConnectionRequestStatus = async (
   res: Response,
 ) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.id;
     const propertyId = req.params.propertyId;
 
     if (typeof propertyId !== "string" || !propertyId) {
       return res.status(400).json({ message: "Property ID is required" });
+    }
+    if (!userId) {
+      return res.status(200).json({ requested: false });
     }
 
     const [request] = await db
@@ -167,6 +170,7 @@ export const getTenantConnectionRequests = async (
         propertyId: property?.propertyId ?? null,
         propertyName: property?.propertyName ?? null,
         propertyType: property?.propertyType ?? null,
+        propertyCategory: property?.propertyCategory ?? null,
         propertyAddress: property?.propertyAddress ?? null,
         city: property?.city ?? null,
         state: property?.state ?? null,
@@ -231,6 +235,7 @@ export const updateLandLordConnectionRequest = async (
         propertyId: property?.propertyId ?? null,
         propertyName: property?.propertyName ?? null,
         propertyType: property?.propertyType ?? null,
+        propertyCategory: property?.propertyCategory ?? null,
         propertyAddress: property?.propertyAddress ?? null,
         city: property?.city ?? null,
         state: property?.state ?? null,

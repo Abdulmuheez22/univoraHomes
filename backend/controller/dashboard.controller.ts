@@ -1,9 +1,10 @@
-import { id } from 'zod/locales';
 import type { Request, Response, NextFunction } from "express"
 import { db } from "../src/test-db"
 import { connectionTable, tenantSaveTable, usersTable } from "../src/db/schema"
-import { and, eq, inArray } from "drizzle-orm"
+import { and, eq, inArray, or } from "drizzle-orm"
 import { propertiesImgTable, propertyTable } from '../src/db/schema';
+import { profileUpdateValidator } from "../utils/user.validate";
+import cloudinary from "../config/cloudinary.config";
 
 
 
@@ -18,10 +19,6 @@ export const populateDashboard = async (req: Request, res: Response, next: NextF
 
         // console.log(landLordProperty.length)
 
-    const frontendTotalUnit =  landLordProperty.map((unit) => unit.totalUnits)
-    const frontendTotalUnitItg = frontendTotalUnit.reduce((acc, val) => acc + Number(val), 0)
-    console.log(frontendTotalUnitItg)
-
        const frontendUser = {
         userName: user.fullName,
         role: user.role,
@@ -30,9 +27,9 @@ export const populateDashboard = async (req: Request, res: Response, next: NextF
         state: user.state,
         city: user.city,
         totalProperties: landLordProperty.length,
-        totalUnit: frontendTotalUnitItg,
-        occupiedUnits: "0",
-        vacantUnit: frontendTotalUnitItg
+        propertyCategories: new Set(
+            landLordProperty.map((property) => property.propertyCategory),
+        ).size,
        }
        
        return res.status(200).json({"userData": frontendUser})
@@ -75,11 +72,132 @@ export const userProfile = async (req: Request, res: Response) => {
     }
 }
 
+export const updateUserProfile = async (req: Request, res: Response) => {
+    const validatedProfile = profileUpdateValidator.safeParse(req.body)
+    if (!validatedProfile.success) {
+        return res.status(400).json({ message: validatedProfile.error.issues[0]?.message ?? "Invalid profile details" })
+    }
+
+    try {
+        const [user] = await db
+            .update(usersTable)
+            .set(validatedProfile.data)
+            .where(eq(usersTable.id, req.user.id))
+            .returning()
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" })
+        }
+
+        return res.status(200).json({
+            user: {
+                userName: user.fullName,
+                userEmail: user.email,
+                userPhone: user.phoneNumber,
+                userState: user.state,
+                userCity: user.city,
+                userRole: user.role,
+            },
+        })
+    } catch (error) {
+        if (
+            typeof error === "object" &&
+            error !== null &&
+            "code" in error &&
+            error.code === "23505"
+        ) {
+            return res.status(409).json({ message: "That phone number is already in use" })
+        }
+        console.log("this error is from the updateUserProfile catch: ", error)
+        return res.status(500).json({ message: "Unable to update your profile" })
+    }
+}
+
+export const deleteUserAccount = async (req: Request, res: Response) => {
+    try {
+        const userId = req.user.id
+        const deletion = await db.transaction(async (tx) => {
+            const [existingUser] = await tx
+                .select({ id: usersTable.id })
+                .from(usersTable)
+                .where(eq(usersTable.id, userId))
+            if (!existingUser) return { userFound: false, images: [] }
+
+            const ownedProperties = await tx
+                .select({ propertyId: propertyTable.propertyId })
+                .from(propertyTable)
+                .where(eq(propertyTable.landLordId, userId))
+            const propertyIds = ownedProperties.map(({ propertyId }) => propertyId)
+            const images = propertyIds.length > 0
+                ? await tx
+                    .select({ imagePublicId: propertiesImgTable.imagePublicId })
+                    .from(propertiesImgTable)
+                    .where(inArray(propertiesImgTable.propertyId, propertyIds))
+                : []
+
+            if (propertyIds.length > 0) {
+                await tx.delete(propertiesImgTable).where(inArray(propertiesImgTable.propertyId, propertyIds))
+                await tx.delete(propertyTable).where(inArray(propertyTable.propertyId, propertyIds))
+            }
+
+            await tx.delete(tenantSaveTable).where(
+                propertyIds.length > 0
+                    ? or(
+                        eq(tenantSaveTable.userId, userId),
+                        inArray(tenantSaveTable.propertyId, propertyIds),
+                    )
+                    : eq(tenantSaveTable.userId, userId),
+            )
+            await tx.delete(connectionTable).where(
+                or(
+                    eq(connectionTable.landLordId, userId),
+                    eq(connectionTable.tenatId, userId),
+                ),
+            )
+            await tx.delete(usersTable).where(eq(usersTable.id, userId))
+            return { userFound: true, images }
+        })
+        if (!deletion.userFound) {
+            return res.status(404).json({ message: "User not found" })
+        }
+
+        const cleanupResults = await Promise.allSettled(
+            deletion.images.map(({ imagePublicId }) =>
+                cloudinary.uploader.destroy(imagePublicId),
+            ),
+        )
+        const failedImageCleanup = cleanupResults.filter(
+            (result) => result.status === "rejected",
+        )
+        if (failedImageCleanup.length > 0) {
+            console.error(
+                `Account ${userId} was deleted, but ${failedImageCleanup.length} property image(s) could not be removed from Cloudinary.`,
+                failedImageCleanup,
+            )
+        }
+
+        const isProduction = process.env.NODE_ENV === "production"
+        return res
+            .clearCookie("token", {
+                httpOnly: true,
+                secure: isProduction,
+                sameSite: isProduction ? "strict" : "lax",
+            })
+            .status(200)
+            .json({ message: "Account deleted successfully" })
+    } catch (error) {
+        console.log("this error is from the deleteUserAccount catch: ", error)
+        return res.status(500).json({ message: "Unable to delete your account" })
+    }
+}
+
 
 export const fetchSavedProperties = async (req: Request, res: Response) => {
     try {
-        const user = req.user.id
-        if(!user){return res.status(401).json({message: "Unauthorized"})}
+        const user = req.user?.id
+        if (!user) {
+            return res.status(200).json({ properties: [] })
+        }
 
         const savedProperties = await db
             .select({ propertyId: tenantSaveTable.propertyId })
@@ -111,6 +229,7 @@ export const fetchSavedProperties = async (req: Request, res: Response) => {
                 propertyId: property.propertyId,
                 propertyName: property.propertyName,
                 propertyType: property.propertyType,
+                propertyCategory: property.propertyCategory,
                 propertyAddress: property.propertyAddress,
                 city: property.city,
                 state: property.state,
@@ -179,6 +298,7 @@ export const fetchLandlordTenant = async (req: Request, res: Response) => {
           propertyName: property?.propertyName ?? null,
           propertyAddress: property?.propertyAddress ?? null,
           propertyType: property?.propertyType ?? null,
+          propertyCategory: property?.propertyCategory ?? null,
         },
         landlord: {
           tenantName: landlord?.fullName ?? null,
@@ -249,6 +369,7 @@ export const fetchTenantLandLord = async (req: Request, res: Response) => {
           propertyName: property?.propertyName ?? null,
           propertyAddress: property?.propertyAddress ?? null,
           propertyType: property?.propertyType ?? null,
+          propertyCategory: property?.propertyCategory ?? null,
         },
         landlord: {
           landlordName: landlord?.fullName ?? null,

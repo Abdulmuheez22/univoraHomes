@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { addProperty } from '../../../lib/services/auth.service';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { addProperty } from "../../../lib/services/auth.service";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { X, ArrowLeft, Building2, Upload, CheckCircle2 } from "lucide-react";
+import { PROPERTY_CATEGORIES } from "../../../lib/propertyCategories";
 
 export default function AddPropertyPage({ onBack }) {
   const navigate = useNavigate();
@@ -12,14 +13,14 @@ export default function AddPropertyPage({ onBack }) {
   const [formError, setFormError] = useState("");
   const [photoMessage, setPhotoMessage] = useState("");
   const [formData, setFormData] = useState({
-    propertyName: '',
-    propertyType: 'Multi-Family',
-    address: '',
-    city: '',
-    state: '',
-    totalUnits: 1,
-    description: '',
-    targetRent: '',
+    propertyName: "",
+    propertyType: "Multi-Family",
+    propertyCategory: "Multi-Family",
+    address: "",
+    city: "",
+    state: "",
+    description: "",
+    targetRent: "",
   });
 
   const { mutate, isPending } = useMutation({
@@ -35,7 +36,7 @@ export default function AddPropertyPage({ onBack }) {
         error.response?.data?.message ||
           "We couldn't save your property. Please try again.",
       );
-    }
+    },
   });
 
   const handleInputChange = (e) => {
@@ -63,10 +64,10 @@ export default function AddPropertyPage({ onBack }) {
   };
 
   const validateStep1 = () => {
-    if (!formData.propertyName.trim()) return 'Property name is required';
-    if (!formData.address.trim()) return 'Address is required';
-    if (!formData.city.trim()) return 'City is required';
-    if (formData.totalUnits < 1) return 'Total units must be at least 1';
+    if (!formData.propertyName.trim()) return "Property name is required";
+    if (!formData.address.trim()) return "Address is required";
+    if (!formData.city.trim()) return "City is required";
+    if (!formData.propertyCategory) return "Property category is required";
     return null;
   };
 
@@ -105,7 +106,6 @@ export default function AddPropertyPage({ onBack }) {
   return (
     <div className="min-h-screen bg-[#F7F5F0] p-6 lg:p-10 font-sans">
       <div className="max-w-4xl mx-auto space-y-6">
-        
         {/* Page Header & Navigation */}
         <div className="flex items-center justify-between">
           <div>
@@ -117,43 +117,61 @@ export default function AddPropertyPage({ onBack }) {
               <ArrowLeft className="w-4 h-4 mr-1 transition-transform group-hover:-translate-x-0.5" />
               Back to Dashboard
             </Link>
-            <h1 className="text-2xl font-extrabold tracking-tight text-[#00332F]">Add New Property</h1>
-            <p className="text-xs text-slate-500 mt-0.5">Expand your real estate portfolio on Univora Homes</p>
+            <h1 className="text-2xl font-extrabold tracking-tight text-[#00332F]">
+              Add New Property
+            </h1>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Expand your real estate portfolio on Univora Homes
+            </p>
           </div>
         </div>
 
         {/* Main Card Container */}
         <div className="bg-[#FEFDFC] rounded-3xl shadow-[0_20px_40px_-15px_rgba(0,51,47,0.06)] border border-slate-200/80 overflow-hidden">
-          
           {/* Header Banner */}
           <div className="bg-[#00332F] px-8 py-7 text-white flex items-center justify-between relative overflow-hidden">
             <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 w-48 h-48 rounded-full bg-[#0F766E]/20 pointer-events-none blur-2xl" />
-            
+
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-1">
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#F59E0B]/20 text-[#F59E0B]">
                   <Building2 className="w-4 h-4" />
                 </span>
-                <h2 className="text-lg font-bold tracking-tight">Property Registration</h2>
+                <h2 className="text-lg font-bold tracking-tight">
+                  Property Registration
+                </h2>
               </div>
               <p className="text-xs text-white/70">
-                Step {step} of 2 — <span className="text-[#F59E0B] font-medium">{step === 1 ? 'Basic Information' : 'Units & Media'}</span>
+                Step {step} of 2 —{" "}
+                <span className="text-[#F59E0B] font-medium">
+                  {step === 1 ? "Basic Information" : "Property Media"}
+                </span>
               </p>
             </div>
-            
+
             {/* Step Indicators */}
             <div className="relative z-10 flex items-center space-x-3">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                step >= 1 ? 'bg-[#F59E0B] text-white shadow-md shadow-[#F59E0B]/30' : 'bg-white/10 text-white/60'
-              }`}>
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                  step >= 1
+                    ? "bg-[#F59E0B] text-white shadow-md shadow-[#F59E0B]/30"
+                    : "bg-white/10 text-white/60"
+                }`}
+              >
                 1
               </div>
               <div className="w-10 h-0.5 bg-white/20 relative overflow-hidden">
-                <div className={`absolute inset-y-0 left-0 bg-[#F59E0B] transition-all duration-300 ${step >= 2 ? 'w-full' : 'w-0'}`} />
+                <div
+                  className={`absolute inset-y-0 left-0 bg-[#F59E0B] transition-all duration-300 ${step >= 2 ? "w-full" : "w-0"}`}
+                />
               </div>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                step >= 2 ? 'bg-[#F59E0B] text-white shadow-md shadow-[#F59E0B]/30' : 'bg-white/10 text-white/60'
-              }`}>
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                  step >= 2
+                    ? "bg-[#F59E0B] text-white shadow-md shadow-[#F59E0B]/30"
+                    : "bg-white/10 text-white/60"
+                }`}
+              >
                 2
               </div>
             </div>
@@ -167,7 +185,9 @@ export default function AddPropertyPage({ onBack }) {
                 className="flex items-start justify-between gap-3 rounded-2xl border border-red-200 bg-red-50/80 px-4 py-3.5 text-sm text-red-700 shadow-sm"
               >
                 <div className="flex items-center gap-2.5">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600 font-bold text-xs">!</span>
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600 font-bold text-xs">
+                    !
+                  </span>
                   <p className="font-medium">{formError}</p>
                 </div>
                 <button
@@ -185,9 +205,11 @@ export default function AddPropertyPage({ onBack }) {
               <div className="space-y-5 animate-in fade-in duration-300">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Property Name *</label>
-                    <input 
-                      type="text" 
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+                      Property Name *
+                    </label>
+                    <input
+                      type="text"
                       name="propertyName"
                       required
                       placeholder="e.g., Lekki Phase 1 Heights"
@@ -197,14 +219,18 @@ export default function AddPropertyPage({ onBack }) {
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Property Type</label>
-                    <select 
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+                      Property Type
+                    </label>
+                    <select
                       name="propertyType"
                       value={formData.propertyType}
                       onChange={handleInputChange}
                       className="w-full bg-[#F7F5F0] border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition-all duration-300 focus:border-[#00332F] focus:bg-white focus:ring-4 focus:ring-[#00332F]/10 cursor-pointer"
                     >
-                      <option value="Multi-Family">Multi-Family Apartments</option>
+                      <option value="Multi-Family">
+                        Multi-Family Apartments
+                      </option>
                       <option value="Single-Family">Single-Family House</option>
                       <option value="Commercial">Commercial Space</option>
                       <option value="Duplex">Duplex</option>
@@ -213,9 +239,11 @@ export default function AddPropertyPage({ onBack }) {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Street Address *</label>
-                  <input 
-                    type="text" 
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+                    Street Address *
+                  </label>
+                  <input
+                    type="text"
                     name="address"
                     required
                     placeholder="e.g., Plot 14B, Admiralty Way"
@@ -227,9 +255,11 @@ export default function AddPropertyPage({ onBack }) {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">City *</label>
-                    <input 
-                      type="text" 
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+                      City *
+                    </label>
+                    <input
+                      type="text"
                       name="city"
                       required
                       placeholder="e.g., Lekki"
@@ -239,27 +269,34 @@ export default function AddPropertyPage({ onBack }) {
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">State</label>
-                    <input 
-                      type="text" 
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+                      State
+                    </label>
+                    <input
+                      type="text"
                       name="state"
-                      placeholder='e.g., Lagos'
+                      placeholder="e.g., Lagos"
                       value={formData.state}
                       onChange={handleInputChange}
                       className="w-full bg-[#F7F5F0] border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition-all duration-300 focus:border-[#00332F] focus:bg-white focus:ring-4 focus:ring-[#00332F]/10"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Total Units *</label>
-                    <input 
-                      type="number" 
-                      name="totalUnits"
-                      min="1"
-                      required
-                      value={formData.totalUnits}
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+                      Property Category
+                    </label>
+                    <select
+                      name="propertyCategory"
+                      value={formData.propertyCategory}
                       onChange={handleInputChange}
-                      className="w-full bg-[#F7F5F0] border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition-all duration-300 focus:border-[#00332F] focus:bg-white focus:ring-4 focus:ring-[#00332F]/10 font-semibold"
-                    />
+                      className="w-full bg-[#F7F5F0] border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition-all duration-300 focus:border-[#00332F] focus:bg-white focus:ring-4 focus:ring-[#00332F]/10 cursor-pointer"
+                    >
+                      {PROPERTY_CATEGORIES.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               </div>
@@ -268,23 +305,32 @@ export default function AddPropertyPage({ onBack }) {
             {step === 2 && (
               <div className="space-y-6 animate-in fade-in duration-300">
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Property Photos</label>
-                  <input 
-                    type="file" 
-                    multiple 
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+                    Property Photos
+                  </label>
+                  <input
+                    type="file"
+                    multiple
                     accept="image/*"
                     id="photo-upload"
                     onChange={handlePhotoUpload}
                     className="hidden"
                   />
-                  <label htmlFor="photo-upload" className="border-2 border-dashed border-slate-200 bg-[#F7F5F0] rounded-2xl p-8 text-center hover:border-[#00332F] transition-colors cursor-pointer block group">
+                  <label
+                    htmlFor="photo-upload"
+                    className="border-2 border-dashed border-slate-200 bg-[#F7F5F0] rounded-2xl p-8 text-center hover:border-[#00332F] transition-colors cursor-pointer block group"
+                  >
                     <span className="flex h-12 w-12 mx-auto items-center justify-center rounded-2xl bg-[#00332F]/5 text-[#00332F] mb-3 group-hover:bg-[#00332F] group-hover:text-white transition-colors">
                       <Upload className="w-5 h-5" />
                     </span>
-                    <p className="text-sm font-semibold text-slate-800">Click to upload or drag and drop property images</p>
-                    <p className="text-xs text-slate-400 mt-1">PNG, JPG or GIF (max. 5MB each)</p>
+                    <p className="text-sm font-semibold text-slate-800">
+                      Click to upload or drag and drop property images
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      PNG, JPG or GIF (max. 5MB each)
+                    </p>
                   </label>
-                  
+
                   {photos.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">
                       {photos.map((photo, idx) => (
@@ -292,7 +338,9 @@ export default function AddPropertyPage({ onBack }) {
                           key={`${photo.name}-${photo.lastModified}-${idx}`}
                           className="flex items-center gap-2 rounded-xl bg-[#00332F]/10 px-3.5 py-2 text-xs font-semibold text-[#00332F] border border-[#00332F]/15"
                         >
-                          <span className="max-w-48 truncate">📎 {photo.name}</span>
+                          <span className="max-w-48 truncate">
+                            📎 {photo.name}
+                          </span>
                           <button
                             type="button"
                             onClick={() => handleRemovePhoto(idx)}
@@ -307,7 +355,10 @@ export default function AddPropertyPage({ onBack }) {
                   )}
 
                   {photoMessage && (
-                    <p className="mt-2 text-xs font-medium text-amber-700" role="status">
+                    <p
+                      className="mt-2 text-xs font-medium text-amber-700"
+                      role="status"
+                    >
                       {photoMessage}
                     </p>
                   )}
@@ -317,9 +368,11 @@ export default function AddPropertyPage({ onBack }) {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Default Target Rent per Unit (₦)</label>
-                  <input 
-                    type="text" 
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+                    Default Target Rent per Unit (₦)
+                  </label>
+                  <input
+                    type="text"
                     name="targetRent"
                     placeholder="e.g., 450,000"
                     value={formData.targetRent}
@@ -329,8 +382,10 @@ export default function AddPropertyPage({ onBack }) {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Property Description & Notes</label>
-                  <textarea 
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+                    Property Description & Notes
+                  </label>
+                  <textarea
                     rows="4"
                     name="description"
                     placeholder="Enter key details about the building, facilities, or security..."
@@ -368,7 +423,7 @@ export default function AddPropertyPage({ onBack }) {
                   onClick={handleNext}
                   className="px-8 cursor-pointer py-3 bg-[#00332F] text-white rounded-xl font-bold text-sm hover:bg-[#00332F]/90 shadow-lg shadow-[#00332F]/20 transition-all flex items-center gap-2 group"
                 >
-                  Continue to Units & Media
+                  Continue to Property Media
                 </button>
               ) : (
                 <button

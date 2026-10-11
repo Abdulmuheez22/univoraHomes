@@ -7,7 +7,6 @@ import {
   pgEnum,
   integer,
 } from "drizzle-orm/pg-core";
-import { id } from "zod/locales";
 
 export const roleEnum = pgEnum("role", ["landlord", "tenant", "agent"]);
 
@@ -50,7 +49,7 @@ export const propertyTable = pgTable("properties", {
 
   state: varchar().notNull(),
 
-  totalUnits: varchar().notNull(),
+  propertyCategory: varchar().notNull().default("Uncategorized"),
 
   description: varchar().notNull(),
 
@@ -99,7 +98,7 @@ export const connectionTable = pgTable("connectionTable",{
 //     address: '',
 //     city: '',
 //     state: '',
-//     totalUnits: 1,
+//     propertyCategory: 'Multi-Family',
 //     description: '',
 //     targetRent: '',
 //   });
