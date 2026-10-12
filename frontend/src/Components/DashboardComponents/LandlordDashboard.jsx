@@ -587,14 +587,14 @@ export default function LandlordDashboard() {
                   <X className="h-5 w-5" />
                 </button>
               </div>
-              <div className="mx-4 mb-5 rounded-2xl border border-white/10 bg-white/[0.07] p-4">
+              {/* <div className="mx-4 mb-5 rounded-2xl border border-white/10 bg-white/[0.07] p-4">
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-100/70">
                   Landlord workspace
                 </p>
                 <p className="mt-1 truncate text-sm font-semibold text-white">
                   {profile?.userName || userData.userName || "Welcome"}
                 </p>
-              </div>
+              </div> */}
               <nav className="flex-1 space-y-1 overflow-y-auto px-3">
                 {NAV.map((item) => {
                   const Icon = item.icon;
@@ -913,41 +913,41 @@ export default function LandlordDashboard() {
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                   {landLordPropertiesData?.properties?.map((property) => (
-                    <article
+                    <Link
                       key={property.propertyId}
-                      className="overflow-hidden rounded-xl border border-slate-100 bg-slate-50/50"
+                      to={`/landlord/properties/${property.propertyId}`}
+                      className="group block overflow-hidden rounded-xl border border-slate-100 bg-slate-50/50 transition hover:border-[#004741]/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#004741] focus-visible:ring-offset-2"
                     >
-                      <Link to={`/properties/${property.propertyId}`} className="block">
+                      <article>
                         {property.propertyImages?.[0] ? (
                           <img
                             src={property.propertyImages[0]}
                             alt={property.propertyName}
-                            className="h-40 w-full object-cover"
+                            className="h-40 w-full object-cover transition duration-300 group-hover:scale-[1.02]"
                           />
                         ) : (
                           <div className="flex h-40 items-center justify-center bg-slate-100 text-sm text-slate-400">
                             No property photo
                           </div>
                         )}
-                      </Link>
-                      <div className="p-4">
-                        <Link
-                          to={`/properties/${property.propertyId}`}
-                          className="font-bold text-slate-900 hover:text-[#004741]"
-                        >
-                          {property.propertyName}
-                        </Link>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {property.propertyType} · {property.city}, {property.state}
-                        </p>
-                        <p className="mt-3 text-sm font-semibold text-slate-600">
-                          Category: {property.propertyCategory || "Uncategorized"}
-                        </p>
-                        <p className="mt-1 text-sm font-extrabold text-[#004741]">
-                         ₦ {property.targetRent || 0}
-                        </p>
-                      </div>
-                    </article>
+                        <div className="p-4">
+                          <h3 className="font-bold text-slate-900 group-hover:text-[#004741]">
+                            {property.propertyName}
+                          </h3>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {property.propertyType} · {property.city},{" "}
+                            {property.state}
+                          </p>
+                          <p className="mt-3 text-sm font-semibold text-slate-600">
+                            Category:{" "}
+                            {property.propertyCategory || "Uncategorized"}
+                          </p>
+                          <p className="mt-1 text-sm font-extrabold text-[#004741]">
+                            ₦ {property.targetRent || 0}
+                          </p>
+                        </div>
+                      </article>
+                    </Link>
                   ))}
                 </div>
               )}

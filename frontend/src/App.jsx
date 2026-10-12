@@ -9,6 +9,7 @@ import Dashboard from "./Components/Dashboard";
 import Properties from "./Components/Properties";
 import AddPropertyModal from "./Components/DashboardComponents/Landlorddashboard/AddPropertyModal";
 import PropertyDetails from "./Components/PropertyDetails";
+import LandlordPropertyDetails from "./Components/LandlordPropertyDetails";
 
 const router = createBrowserRouter([
   {
@@ -42,6 +43,10 @@ const router = createBrowserRouter([
   {
     path: "/properties/:propertyId",
     element: <PropertyDetails />
+  },
+  {
+    path: "/landlord/properties/:propertyId",
+    element: <LandlordPropertyDetails />
   },
   {
     path: "/tenantdashboard",

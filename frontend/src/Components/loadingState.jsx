@@ -4,13 +4,12 @@ import { motion } from "framer-motion";
 const EASE = [0.22, 1, 0.36, 1];
 
 const BUILDINGS = [
-  { w: 60, h: 140, delay: 0.5 },
-  { w: 84, h: 220, delay: 0.65 },
-  { w: 52, h: 110, delay: 0.8 },
-  { w: 96, h: 260, delay: 0.55 },
-  { w: 64, h: 160, delay: 0.9 },
-  { w: 76, h: 200, delay: 0.7 },
-  { w: 56, h: 130, delay: 0.85 },
+  { w: 48, h: 120, delay: 0.5 },
+  { w: 72, h: 190, delay: 0.65 },
+  { w: 44, h: 100, delay: 0.8 },
+  { w: 80, h: 230, delay: 0.55 },
+  { w: 56, h: 150, delay: 0.9 },
+  { w: 64, h: 175, delay: 0.7 },
 ];
 
 const WINDOWS = [
@@ -44,35 +43,36 @@ export default function LoadingState() {
       transition={{ duration: 0.8, ease: EASE }}
       className="fixed inset-0 z-[999] flex flex-col items-center justify-center overflow-hidden bg-[#00332F]"
     >
+      {/* Subtle grid – pure CSS, no animation cost */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-[0.05]"
+        className="pointer-events-none absolute inset-0 opacity-[0.04]"
         style={{
-          backgroundImage:
-            "radial-gradient(circle, #ffffff 1px, transparent 1px)",
-          backgroundSize: "30px 30px",
+          backgroundImage: "radial-gradient(circle, #ffffff 1px, transparent 1px)",
+          backgroundSize: "32px 32px",
         }}
       />
+
+      {/* Soft ambient glow – single element */}
       <motion.div
-        animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.35, 0.2] }}
-        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-        className="pointer-events-none absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#F59E0B]/15 blur-3xl"
+        animate={{ scale: [1, 1.25, 1], opacity: [0.18, 0.28, 0.18] }}
+        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+        className="pointer-events-none absolute left-1/2 top-1/2 h-[380px] w-[380px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#F59E0B]/20 blur-3xl"
       />
 
       <div className="relative flex flex-col items-center">
+        {/* Logo / House */}
         <div className="relative mb-2">
+          {/* Orbiting dot */}
           <motion.div
             animate={{ rotate: 360 }}
-            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-            className="absolute -inset-8"
+            transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+            className="absolute -inset-7"
           >
-            <motion.span
-              animate={{ scale: [1, 1.6, 1], opacity: [1, 0.6, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="absolute left-1/2 top-0 h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-[#F59E0B] shadow-[0_0_16px_4px_rgba(245,158,11,0.5)]"
-            />
+            <span className="absolute left-1/2 top-0 h-2 w-2 -translate-x-1/2 rounded-full bg-[#F59E0B] shadow-[0_0_12px_3px_rgba(245,158,11,0.55)]" />
           </motion.div>
 
-          <svg width="180" height="180" viewBox="0 0 120 120" fill="none">
+          <svg width="170" height="170" viewBox="0 0 120 120" fill="none">
+            {/* Roof left */}
             <motion.path
               d="M60 14 L104 46"
               stroke="#F59E0B"
@@ -80,8 +80,9 @@ export default function LoadingState() {
               strokeLinecap="round"
               initial={{ pathLength: 0 }}
               animate={{ pathLength: 1 }}
-              transition={{ duration: 0.8, ease: EASE, delay: 0.2 }}
+              transition={{ duration: 0.75, ease: EASE, delay: 0.2 }}
             />
+            {/* Roof right */}
             <motion.path
               d="M16 46 L60 14"
               stroke="#F59E0B"
@@ -89,8 +90,9 @@ export default function LoadingState() {
               strokeLinecap="round"
               initial={{ pathLength: 0 }}
               animate={{ pathLength: 1 }}
-              transition={{ duration: 0.8, ease: EASE, delay: 0.35 }}
+              transition={{ duration: 0.75, ease: EASE, delay: 0.35 }}
             />
+            {/* Walls */}
             <motion.path
               d="M24 44 L24 96 L96 96 L96 44"
               stroke="#ffffff"
@@ -99,8 +101,9 @@ export default function LoadingState() {
               strokeLinejoin="round"
               initial={{ pathLength: 0 }}
               animate={{ pathLength: 1 }}
-              transition={{ duration: 1.1, ease: EASE, delay: 0.7 }}
+              transition={{ duration: 1, ease: EASE, delay: 0.65 }}
             />
+            {/* Door */}
             <motion.path
               d="M50 96 L50 70 Q50 64 56 64 L64 64 Q70 64 70 70 L70 96"
               stroke="#F59E0B"
@@ -109,16 +112,18 @@ export default function LoadingState() {
               strokeLinejoin="round"
               initial={{ pathLength: 0 }}
               animate={{ pathLength: 1 }}
-              transition={{ duration: 0.7, ease: EASE, delay: 1.5 }}
+              transition={{ duration: 0.65, ease: EASE, delay: 1.4 }}
             />
+            {/* Door center line */}
             <motion.path
               d="M60 64 L60 96"
               stroke="#F59E0B"
               strokeWidth="3"
               initial={{ pathLength: 0 }}
               animate={{ pathLength: 1 }}
-              transition={{ duration: 0.4, ease: EASE, delay: 1.9 }}
+              transition={{ duration: 0.35, ease: EASE, delay: 1.8 }}
             />
+            {/* Windows */}
             {WINDOWS.map((w, i) => (
               <motion.rect
                 key={i}
@@ -128,11 +133,12 @@ export default function LoadingState() {
                 height="12"
                 rx="2"
                 fill="#F59E0B"
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: [0, 1, 0.85, 1], scale: 1 }}
-                transition={{ delay: w.delay, duration: 0.6, ease: EASE }}
+                initial={{ opacity: 0, scale: 0.6 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: w.delay, duration: 0.5, ease: EASE }}
               />
             ))}
+            {/* Door knob */}
             <motion.circle
               cx="65"
               cy="80"
@@ -140,8 +146,9 @@ export default function LoadingState() {
               fill="#00332F"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 2.1 }}
+              transition={{ delay: 2.0 }}
             />
+            {/* Base line */}
             <motion.path
               d="M24 96 L96 96"
               stroke="#ffffff"
@@ -149,34 +156,36 @@ export default function LoadingState() {
               strokeLinecap="round"
               initial={{ pathLength: 0 }}
               animate={{ pathLength: 1 }}
-              transition={{ duration: 0.5, ease: EASE, delay: 2.2 }}
+              transition={{ duration: 0.45, ease: EASE, delay: 2.1 }}
             />
           </svg>
 
+          {/* Soft rising particles (only 3, lightweight) */}
           {[0, 1, 2].map((i) => (
             <motion.span
               key={i}
               initial={{ opacity: 0 }}
               animate={{
-                opacity: [0, 1, 0],
-                y: [-10, -34],
-                x: [0, i === 0 ? -18 : i === 1 ? 16 : -4],
+                opacity: [0, 0.7, 0],
+                y: [-8, -32],
+                x: [0, i === 0 ? -14 : i === 1 ? 14 : -2],
               }}
               transition={{
-                duration: 2.4,
+                duration: 2.6,
                 repeat: Infinity,
-                delay: 1.6 + i * 0.4,
+                delay: 1.5 + i * 0.45,
                 ease: "easeOut",
               }}
-              className="absolute left-1/2 top-6 h-1.5 w-1.5 rounded-full bg-white/60"
+              className="absolute left-1/2 top-5 h-1.5 w-1.5 rounded-full bg-white/50"
             />
           ))}
         </div>
 
+        {/* Brand */}
         <motion.h1
-          initial={{ opacity: 0, y: 14 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1, duration: 0.6, ease: EASE }}
+          transition={{ delay: 0.95, duration: 0.55, ease: EASE }}
           className="text-2xl font-extrabold tracking-tight text-white"
         >
           Univora<span className="text-[#F59E0B]"> Homes</span>
@@ -185,12 +194,13 @@ export default function LoadingState() {
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1.3, duration: 0.5 }}
+          transition={{ delay: 1.2, duration: 0.45 }}
           className="mt-2 text-xs font-medium uppercase tracking-[0.3em] text-white/40"
         >
           Property management, simplified
         </motion.p>
 
+        {/* Progress */}
         <div className="mt-10 w-56">
           <div className="mb-2 flex items-end justify-between">
             <span className="text-[10px] font-semibold uppercase tracking-widest text-white/40">
@@ -210,33 +220,26 @@ export default function LoadingState() {
         </div>
       </div>
 
-      <div className="pointer-events-none absolute bottom-0 left-0 right-0 flex items-end justify-center gap-1 opacity-30">
+      {/* Skyline – much lighter */}
+      <div className="pointer-events-none absolute bottom-0 left-0 right-0 flex items-end justify-center gap-1.5 opacity-25">
         {BUILDINGS.map((b, i) => (
           <motion.div
             key={i}
             initial={{ height: 0 }}
             animate={{ height: b.h }}
-            transition={{ delay: b.delay, duration: 0.9, ease: EASE }}
-            className="relative rounded-t-md bg-white/15"
+            transition={{ delay: b.delay, duration: 0.85, ease: EASE }}
+            className="relative rounded-t-md bg-white/20"
             style={{ width: b.w }}
           >
-            {[...Array(Math.floor(b.h / 34))].map((_, r) =>
-              [...Array(Math.floor(b.w / 22))].map((_, c) => (
-                <motion.span
-                  key={`${r}-${c}`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: [0, 1, 0.4] }}
-                  transition={{
-                    delay: b.delay + 0.5 + r * 0.15 + c * 0.1,
-                    duration: 1.6,
-                    repeat: Infinity,
-                    repeatDelay: Math.random() * 4 + 2,
-                  }}
-                  className="absolute h-2 w-2 rounded-sm bg-[#F59E0B]/60"
-                  style={{ left: 8 + c * 22, top: 12 + r * 34 }}
-                />
-              )),
-            )}
+            {/* Only 1–2 static-looking windows per building (no nested infinite loops) */}
+            <div className="absolute inset-x-0 top-3 flex flex-col gap-5 px-2">
+              {Array.from({ length: Math.min(3, Math.floor(b.h / 50)) }).map((_, r) => (
+                <div key={r} className="flex gap-2">
+                  <div className="h-1.5 w-1.5 rounded-[1px] bg-[#F59E0B]/50" />
+                  {b.w > 55 && <div className="h-1.5 w-1.5 rounded-[1px] bg-[#F59E0B]/50" />}
+                </div>
+              ))}
+            </div>
           </motion.div>
         ))}
       </div>

@@ -1,7 +1,12 @@
 import { db } from "./../src/test-db";
 import type { Request, Response } from "express";
 import { asc, eq, inArray, and } from "drizzle-orm";
-import { usersTable, propertyTable, tenantSaveTable } from "../src/db/schema";
+import {
+  connectionTable,
+  usersTable,
+  propertyTable,
+  tenantSaveTable,
+} from "../src/db/schema";
 import cloudinary from "../config/cloudinary.config";
 import { propertiesImgTable } from "../src/db/schema";
 
@@ -214,6 +219,7 @@ export const landLordProperties = async (req: Request, res: Response) => {
       propertyType: property.propertyType,
       propertyCategory: property.propertyCategory,
       propertyAddress: property.propertyAddress,
+      description: property.description,
       targetRent: property.targetRent,
       state: property.state,
       city: property.city,
@@ -235,6 +241,229 @@ export const landLordProperties = async (req: Request, res: Response) => {
     return res
       .status(500)
       .json({ message: "Error fetching landlord properties" });
+  }
+};
+
+export const updateLandlordProperty = async (req: Request, res: Response) => {
+  const uploadedImages: { secure_url: string; public_id: string }[] = [];
+
+  try {
+    const { propertyId } = req.params;
+    const userId = req.user.id;
+    const body = req.body;
+    const requiredFields = [
+      "propertyName",
+      "propertyType",
+      "propertyCategory",
+      "address",
+      "city",
+      "state",
+      "description",
+      "targetRent",
+    ];
+
+    if (typeof propertyId !== "string" || !propertyId) {
+      return res.status(400).json({ message: "A property ID is required" });
+    }
+
+    const missingField = requiredFields.find(
+      (field) =>
+        typeof body[field] !== "string" || !body[field].trim(),
+    );
+    if (missingField) {
+      return res.status(400).json({
+        message: `${missingField} is required`,
+      });
+    }
+    const targetRent = Number(body.targetRent);
+    if (!Number.isFinite(targetRent) || targetRent < 0) {
+      return res.status(400).json({
+        message: "Target rent must be a valid non-negative amount",
+      });
+    }
+
+    const [property] = await db
+      .select({ propertyId: propertyTable.propertyId })
+      .from(propertyTable)
+      .where(
+        and(
+          eq(propertyTable.propertyId, propertyId),
+          eq(propertyTable.landLordId, userId),
+        ),
+      );
+
+    if (!property) {
+      return res.status(404).json({ message: "Property not found" });
+    }
+
+    const files = (req.files as Express.Multer.File[] | undefined) ?? [];
+    const currentImages = await db
+      .select({ id: propertiesImgTable.id })
+      .from(propertiesImgTable)
+      .where(eq(propertiesImgTable.propertyId, propertyId));
+
+    if (currentImages.length + files.length > 5) {
+      return res.status(400).json({
+        message: "A property can have a maximum of 5 photos.",
+      });
+    }
+
+    const uploadResults = await Promise.allSettled(
+      files.map(
+        (file) =>
+          new Promise<{ secure_url: string; public_id: string }>(
+            (resolve, reject) => {
+              cloudinary.uploader
+                .upload_stream({ folder: "properties" }, (error, result) => {
+                  if (error) {
+                    reject(error);
+                  } else if (!result) {
+                    reject(new Error("Cloudinary returned no image result"));
+                  } else {
+                    resolve(result);
+                  }
+                })
+                .end(file.buffer);
+            },
+          ),
+      ),
+    );
+    const uploadFailure = uploadResults.find(
+      (result) => result.status === "rejected",
+    );
+    uploadedImages.push(
+      ...uploadResults.flatMap((result) =>
+        result.status === "fulfilled" ? [result.value] : [],
+      ),
+    );
+    if (uploadFailure?.status === "rejected") {
+      throw uploadFailure.reason;
+    }
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(propertyTable)
+        .set({
+          propertyName: body.propertyName.trim(),
+          propertyType: body.propertyType.trim(),
+          propertyCategory: body.propertyCategory.trim(),
+          propertyAddress: body.address.trim(),
+          city: body.city.trim(),
+          state: body.state.trim(),
+          description: body.description.trim(),
+          targetRent: body.targetRent.trim(),
+        })
+        .where(
+          and(
+            eq(propertyTable.propertyId, propertyId),
+            eq(propertyTable.landLordId, userId),
+          ),
+        );
+
+      if (uploadedImages.length > 0) {
+        await tx.insert(propertiesImgTable).values(
+          uploadedImages.map((image) => ({
+            propertyId,
+            imageUrl: image.secure_url,
+            imagePublicId: image.public_id,
+          })),
+        );
+      }
+    });
+
+    return res.status(200).json({ message: "Property updated successfully" });
+  } catch (error) {
+    const cleanupResults = await Promise.allSettled(
+      uploadedImages.map((image) => cloudinary.uploader.destroy(image.public_id)),
+    );
+    if (cleanupResults.some((result) => result.status === "rejected")) {
+      console.error(
+        "Some uploaded property images could not be cleaned up after an update failure.",
+        cleanupResults,
+      );
+    }
+    console.error("Error updating landlord property:", error);
+    return res.status(500).json({ message: "Unable to update property" });
+  }
+};
+
+export const deleteLandlordProperty = async (req: Request, res: Response) => {
+  try {
+    const { propertyId } = req.params;
+    const userId = req.user.id;
+
+    if (typeof propertyId !== "string" || !propertyId) {
+      return res.status(400).json({ message: "A property ID is required" });
+    }
+
+    const deletion = await db.transaction(async (tx) => {
+      const [property] = await tx
+        .select({ propertyId: propertyTable.propertyId })
+        .from(propertyTable)
+        .where(
+          and(
+            eq(propertyTable.propertyId, propertyId),
+            eq(propertyTable.landLordId, userId),
+          ),
+        );
+
+      if (!property) return null;
+
+      const images = await tx
+        .select({ imagePublicId: propertiesImgTable.imagePublicId })
+        .from(propertiesImgTable)
+        .where(eq(propertiesImgTable.propertyId, propertyId));
+
+      await tx
+        .delete(tenantSaveTable)
+        .where(eq(tenantSaveTable.propertyId, propertyId));
+      await tx
+        .delete(connectionTable)
+        .where(eq(connectionTable.propertyId, propertyId));
+      await tx
+        .delete(propertiesImgTable)
+        .where(eq(propertiesImgTable.propertyId, propertyId));
+      await tx
+        .delete(propertyTable)
+        .where(
+          and(
+            eq(propertyTable.propertyId, propertyId),
+            eq(propertyTable.landLordId, userId),
+          ),
+        );
+
+      return images;
+    });
+
+    if (!deletion) {
+      return res.status(404).json({ message: "Property not found" });
+    }
+
+    const cleanupResults = await Promise.allSettled(
+      deletion.map(({ imagePublicId }) =>
+        cloudinary.uploader.destroy(imagePublicId),
+      ),
+    );
+    const failedImageCleanup = cleanupResults.filter(
+      (result) => result.status === "rejected",
+    );
+    if (failedImageCleanup.length > 0) {
+      console.error(
+        `Property ${propertyId} was deleted, but ${failedImageCleanup.length} image(s) could not be removed from Cloudinary.`,
+        failedImageCleanup,
+      );
+    }
+
+    return res.status(200).json({
+      message:
+        failedImageCleanup.length > 0
+          ? "Property deleted, but some photos could not be removed."
+          : "Property deleted successfully",
+      imageCleanupPending: failedImageCleanup.length > 0,
+    });
+  } catch (error) {
+    console.error("Error deleting landlord property:", error);
+    return res.status(500).json({ message: "Unable to delete property" });
   }
 };
 

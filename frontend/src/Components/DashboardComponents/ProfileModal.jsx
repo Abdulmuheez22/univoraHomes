@@ -162,9 +162,9 @@ export default function ProfileModal({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.98 }}
             transition={{ duration: 0.2 }}
-            className="min-h-dvh w-full overflow-y-auto bg-white"
+            className="flex h-dvh w-full flex-col overflow-hidden bg-white"
           >
-            <div className="relative min-h-64 overflow-hidden bg-[#00332F] px-6 pb-8 pt-6 sm:px-10 lg:px-16">
+            <div className="relative min-h-64 shrink-0 overflow-hidden bg-[#00332F] px-4 pb-8 pt-6 sm:px-10 lg:px-16">
               <div className="pointer-events-none absolute -right-10 -top-16 h-64 w-64 rounded-full bg-[#F59E0B]/15 blur-3xl" />
               <div className="mx-auto flex w-full max-w-6xl justify-end">
                 <button
@@ -180,7 +180,7 @@ export default function ProfileModal({
                   <X className="h-6 w-6" />
                 </button>
               </div>
-              <div className="relative mx-auto mt-8 flex w-full max-w-6xl items-center gap-5 sm:mt-10">
+              <div className="mx-auto mt-8 flex w-full max-w-6xl items-center gap-4 sm:mt-10 sm:gap-5">
                 <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-[#F59E0B] text-2xl font-extrabold text-[#00332F] sm:h-24 sm:w-24">
                   {profile?.userName
                     ?.split(/\s+/)
@@ -209,7 +209,7 @@ export default function ProfileModal({
               </div>
             </div>
 
-            <div className="mx-auto w-full max-w-6xl px-6 py-10 sm:px-10 lg:px-16 lg:py-14">
+            <div className="mx-auto min-h-0 w-full max-w-6xl flex-1 overflow-y-auto px-4 py-5 sm:px-10 sm:py-10 lg:px-16 lg:py-14">
               {isLoading ? (
                 <p
                   className="py-8 text-center text-sm text-slate-500"
@@ -294,29 +294,29 @@ export default function ProfileModal({
                   )}
 
                   {isEditing ? (
-                    <div className="mt-6 flex flex-col-reverse justify-between gap-3 sm:flex-row">
+                    <div className="sticky bottom-0 z-10 -mx-4 mt-6 flex flex-col gap-3 border-t border-slate-100 bg-white/95 px-4 py-4 shadow-[0_-12px_24px_-18px_rgba(15,23,42,0.35)] backdrop-blur sm:static sm:mx-0 sm:flex-row sm:items-center sm:justify-between sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none sm:backdrop-blur-none">
                       <button
                         type="button"
                         onClick={openDeleteConfirmation}
                         disabled={updateProfileMutation.isPending}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 px-5 py-2.5 text-sm font-bold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 px-5 py-2.5 text-sm font-bold text-red-700 transition hover:bg-red-50 disabled:opacity-50 sm:w-auto"
                       >
                         <Trash2 className="h-4 w-4" />
                         Delete account
                       </button>
-                      <div className="flex justify-end gap-3">
+                      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                         <button
                           type="button"
                           onClick={cancelEditing}
                           disabled={updateProfileMutation.isPending}
-                          className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                          className="w-full rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 sm:w-auto"
                         >
                           Cancel
                         </button>
                         <button
                           type="submit"
                           disabled={updateProfileMutation.isPending}
-                          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#004741] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#00332F] disabled:cursor-wait disabled:opacity-70"
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#004741] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#00332F] disabled:cursor-wait disabled:opacity-70 sm:w-auto"
                         >
                           {updateProfileMutation.isPending ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -330,20 +330,20 @@ export default function ProfileModal({
                       </div>
                     </div>
                   ) : (
-                    <div className="mt-6 flex flex-col-reverse justify-between gap-3 sm:flex-row">
+                    <div className="sticky bottom-0 z-10 -mx-4 mt-6 flex flex-col gap-3 border-t border-slate-100 bg-white/95 px-4 py-4 shadow-[0_-12px_24px_-18px_rgba(15,23,42,0.35)] backdrop-blur sm:static sm:mx-0 sm:flex-row sm:items-center sm:justify-between sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none sm:backdrop-blur-none">
                       <button
                         type="button"
                         onClick={openDeleteConfirmation}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 px-5 py-2.5 text-sm font-bold text-red-700 transition hover:bg-red-50"
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 px-5 py-2.5 text-sm font-bold text-red-700 transition hover:bg-red-50 sm:w-auto"
                       >
                         <Trash2 className="h-4 w-4" />
                         Delete account
                       </button>
-                      <div className="flex justify-end">
+                      <div className="flex">
                         <button
                           type="button"
                           onClick={startEditing}
-                          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#004741] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#00332F]"
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#004741] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#00332F] sm:w-auto"
                         >
                           <Pencil className="h-4 w-4" />
                           Edit profile

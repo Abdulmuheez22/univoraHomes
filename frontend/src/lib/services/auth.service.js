@@ -86,6 +86,19 @@ export const landLordProperties = async () => {
   return response.data
 }
 
+export const updateLandlordProperty = async ({ propertyId, property }) => {
+  const response = await api.patch(
+    `/property/landlord/${propertyId}`,
+    property,
+  );
+  return response.data;
+};
+
+export const deleteLandlordProperty = async (propertyId) => {
+  const response = await api.delete(`/property/landlord/${propertyId}`);
+  return response.data;
+};
+
 export const connectionRequest = async (propertyId) => {
   const response = await api.post(
     "/connection/connectionRequest",
