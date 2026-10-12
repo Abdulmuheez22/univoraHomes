@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { deleteUserAccount, populateDashboard, updateUserProfile, userProfile } from "../controller/dashboard.controller";
 import { authmiddleware, optionalAuthMiddleware } from "../middleware/auth.middleware";
-import { fetchSavedProperties, fetchLandlordTenant, fetchTenantLandLord } from "../controller/dashboard.controller";
+import { fetchSavedProperties, fetchLandlordTenant, fetchTenantLandLord, switchRole } from "../controller/dashboard.controller";
 
 
 const dashboard = Router()
@@ -19,6 +19,8 @@ dashboard.get("/fetchSavedProperties", optionalAuthMiddleware, fetchSavedPropert
 dashboard.get("/fetchLandlordTenant", authmiddleware, fetchLandlordTenant)
 
 dashboard.get("/fetchTenantLandLord", authmiddleware, fetchTenantLandLord)
+
+dashboard.post("/switchRole", authmiddleware, switchRole)
 
 
 export default dashboard

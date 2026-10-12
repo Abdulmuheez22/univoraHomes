@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   motion,
   useMotionValue,
@@ -8,9 +8,10 @@ import {
   AnimatePresence,
 } from "framer-motion";
 import { Link } from "react-router-dom";
-
+import { Building2 } from "lucide-react";
 
 const EASE = [0.22, 1, 0.36, 1];
+const MotionLink = motion.create(Link);
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -21,24 +22,7 @@ const fadeUp = {
   }),
 };
 
-function useCountUp(target, start, duration = 1400) {
-  const [value, setValue] = useState(0);
-  useEffect(() => {
-    if (!start) return;
-    let raf;
-    const t0 = performance.now();
-    const tick = (now) => {
-      const p = Math.min((now - t0) / duration, 1);
-      setValue(Math.round(target * (1 - Math.pow(1 - p, 3))));
-      if (p < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [target, start, duration]);
-  return value;
-}
-
-function MagneticButton({ children, variant = "primary" }) {
+function MagneticButton({ children, variant = "primary", icon: Icon, to, label }) {
   const ref = useRef(null);
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -55,15 +39,19 @@ function MagneticButton({ children, variant = "primary" }) {
     y.set(0);
   };
 
-  const base =
-    "group relative min-w-0 overflow-hidden rounded-xl px-4 font-bold tracking-wide h-[54px] w-full sm:w-[210px] sm:px-8 cursor-pointer transition-shadow duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2";
-  const styles =
-    variant === "primary"
-      ? "bg-[#004741] text-white shadow-lg shadow-[#004741]/25 hover:shadow-xl hover:shadow-[#004741]/35 focus-visible:ring-[#004741]"
-      : "border border-[#B4C2B8] text-[#004741] bg-white/60 backdrop-blur hover:border-[#004741]/50 hover:bg-white focus-visible:ring-[#004741]";
+  const isPrimary = variant === "primary";
 
+  const base =
+    "group relative flex min-w-0 items-center justify-center overflow-hidden rounded-xl px-4 text-sm font-bold tracking-wide h-[52px] w-full cursor-pointer transition-shadow duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:h-[54px] sm:w-[224px] sm:px-7 sm:text-base";
+  const styles = isPrimary
+    ? "bg-[#004741] text-white shadow-lg shadow-[#004741]/25 hover:shadow-xl hover:shadow-[#004741]/35 focus-visible:ring-[#004741]"
+    : "border border-[#004741]/25 bg-white/80 text-[#004741] backdrop-blur hover:border-[#004741]/60 hover:bg-white hover:shadow-lg hover:shadow-[#004741]/10 focus-visible:ring-[#004741]";
+
+  const Component = to ? MotionLink : motion.button;
   return (
-    <motion.button
+    <Component
+      {...(to ? { to } : { type: "button" })}
+      aria-label={label}
       ref={ref}
       style={{ x: sx, y: sy }}
       onMouseMove={onMove}
@@ -75,13 +63,24 @@ function MagneticButton({ children, variant = "primary" }) {
       animate="visible"
       className={`${base} ${styles}`}
     >
-      {variant === "primary" && (
+      {isPrimary && (
         <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
       )}
-      <span className="relative flex items-center justify-center gap-2">
-        {children}
+      <span className="relative flex min-w-0 items-center justify-center gap-2">
+        {Icon && (
+          <span
+            className={
+              isPrimary
+                ? "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white transition-transform duration-300 group-hover:-rotate-6"
+                : "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#F59E0B]/20 text-[#8a5a00] transition-all duration-300 group-hover:bg-[#F59E0B] group-hover:text-white group-hover:-rotate-6"
+            }
+          >
+            <Icon className="h-3.5 w-3.5" strokeWidth={2.5} />
+          </span>
+        )}
+        <span className="truncate">{children}</span>
         <svg
-          className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1"
+          className="h-4 w-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -94,14 +93,13 @@ function MagneticButton({ children, variant = "primary" }) {
           />
         </svg>
       </span>
-    </motion.button>
+    </Component>
   );
 }
 
-function StatCard({ label, target, prefix = "", suffix = "", accent, delay }) {
+function StatCard({ label, value, accent, delay }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-40px" });
-  const value = useCountUp(target, inView);
 
   return (
     <motion.div
@@ -110,17 +108,15 @@ function StatCard({ label, target, prefix = "", suffix = "", accent, delay }) {
       animate={inView ? { opacity: 1, scale: 1 } : {}}
       transition={{ delay, duration: 0.5, ease: EASE }}
       whileHover={{ y: -4 }}
-      className="group cursor-default rounded-xl bg-[#f5f2e9] p-3 sm:p-4 transition-colors duration-300 hover:bg-[#004741]"
+      className="group min-w-0 cursor-default rounded-xl bg-[#f5f2e9] p-2 transition-colors duration-300 hover:bg-[#004741] sm:p-4"
     >
-      <p className="text-[9px] sm:text-[10px] uppercase tracking-widest font-semibold text-[#111827]/45 transition-colors duration-300 group-hover:text-white/60">
+      <p className="truncate text-[8px] font-semibold uppercase tracking-[0.08em] text-[#111827]/45 transition-colors duration-300 group-hover:text-white/60 min-[360px]:text-[9px] sm:text-[10px] sm:tracking-widest">
         {label}
       </p>
       <p
-        className={`mt-1 font-extrabold text-lg sm:text-2xl md:text-3xl tabular-nums transition-colors duration-300 group-hover:text-white ${accent ? "text-[#F59E0B]" : "text-[#004741]"}`}
+        className={`mt-1 truncate font-extrabold text-base tabular-nums transition-colors duration-300 group-hover:text-white min-[360px]:text-lg sm:text-2xl md:text-3xl ${accent ? "text-[#F59E0B]" : "text-[#004741]"}`}
       >
-        {prefix}
-        {value.toLocaleString()}
-        {suffix}
+        {value}
       </p>
     </motion.div>
   );
@@ -133,16 +129,18 @@ function ActivityRow({ icon, title, sub, badge, badgeClass, delay, amount }) {
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay, duration: 0.5, ease: EASE }}
       whileHover={{ x: 6, backgroundColor: "#f0ede4" }}
-      className="flex min-w-0 cursor-pointer items-center gap-2 rounded-xl p-2 sm:gap-3 sm:p-3 transition-colors duration-200"
+      className="flex min-w-0 cursor-pointer items-center gap-2 rounded-xl p-2 transition-colors duration-200 sm:gap-3 sm:p-3"
     >
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg sm:h-10 sm:w-10">
         {icon}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-xs sm:text-sm md:text-base font-semibold text-[#111827]">
+        <p className="truncate text-xs font-semibold text-[#111827] sm:text-sm md:text-base">
           {title}
         </p>
-        <p className="text-[10px] sm:text-xs text-[#111827]/50">{sub}</p>
+        <p className="truncate text-[10px] text-[#111827]/50 sm:text-xs">
+          {sub}
+        </p>
       </div>
       {amount && (
         <span className="shrink-0 whitespace-nowrap text-[11px] font-bold text-green-600 sm:text-sm">
@@ -181,7 +179,6 @@ function FloatingBadge({ className, delay, children }) {
 }
 
 export default function Hero() {
-  const MotionLink = motion(Link)
   const cardRef = useRef(null);
   const mx = useMotionValue(0.5);
   const my = useMotionValue(0.5);
@@ -206,25 +203,31 @@ export default function Hero() {
   };
 
   return (
-    <section id="home" className="relative flex min-h-screen w-full min-w-0 flex-col items-center justify-between gap-10 overflow-hidden bg-[#F0E8D5] px-3 pt-24 pb-10 sm:gap-14 sm:px-10 sm:pt-28 lg:flex-row md:gap-20 lg:px-16 lg:pt-0">
-      <div className="pointer-events-none absolute -top-32 -left-32 h-[500px] w-[500px] rounded-full bg-[#004741]/10 blur-3xl" />
+    <section
+      id="home"
+      className="relative flex min-h-screen w-full min-w-0 flex-col items-center justify-between gap-10 overflow-hidden bg-[#F0E8D5] px-4 pb-12 pt-12 sm:gap-14 sm:px-10 sm:pb-16 sm:pt-16 lg:flex-row lg:gap-16 lg:px-16 lg:py-20"
+    >
+      <div className="pointer-events-none absolute -left-32 -top-32 h-[500px] w-[500px] rounded-full bg-[#004741]/10 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-40 -right-24 h-[420px] w-[420px] rounded-full bg-[#F59E0B]/15 blur-3xl" />
 
-      <div className="relative z-10 flex min-w-0 max-w-xl flex-col items-center gap-7 text-center md:items-start md:text-left">
+      <div className="relative z-10 flex min-w-0 max-w-xl flex-col items-center gap-6 text-center sm:gap-7 md:items-start md:text-left">
+      
+
         <motion.h1
           variants={fadeUp}
           initial="hidden"
           animate="visible"
           custom={1}
-          className="text-3xl font-extrabold leading-[1.08] tracking-tight text-[#111827] sm:text-5xl md:text-6xl lg:text-6xl"
+          className="text-[1.75rem] font-extrabold leading-[1.1] tracking-tight text-[#111827] min-[360px]:text-3xl sm:text-5xl md:text-[3.25rem] lg:text-5xl xl:text-[3.5rem]"
         >
-          Manage every home
+          Find your next home
           <span className="relative mt-1 block text-[#004741]">
-            with confidence
+            or manage a property
             <svg
               className="absolute -bottom-2 left-0 w-full"
               viewBox="0 0 300 12"
               fill="none"
+              preserveAspectRatio="none"
             >
               <motion.path
                 d="M4 8 C 80 2, 220 2, 296 6"
@@ -244,10 +247,11 @@ export default function Hero() {
           initial="hidden"
           animate="visible"
           custom={2}
-          className="text-base leading-relaxed tracking-wide text-[#7C7C7C] sm:text-lg"
+          className="max-w-lg text-sm leading-relaxed tracking-wide text-[#5f5f5f] sm:text-lg"
         >
-          Collect rent, track maintenance, communicate with tenants, and grow
-          your portfolio — all from one simple platform.
+          Univora Homes helps landlords publish and manage listings while
+          tenants discover homes, save favourites, and send connection
+          requests — all through role-specific dashboards.
         </motion.p>
 
         <motion.div
@@ -255,36 +259,40 @@ export default function Hero() {
           initial="hidden"
           animate="visible"
           custom={3}
-          className="flex w-full flex-col gap-4 sm:w-auto sm:flex-row"
+          className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:gap-4"
         >
-          <MagneticButton variant="primary">Start free trial</MagneticButton>
-          <Link to="/properties">
-          <MagneticButton variant="ghost" to="/properties">
-            <span className="flex items-center gap-0">
-              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-              propertises
-            </span>
+          <MagneticButton
+            to="/signup"
+            variant="primary"
+            label="Create a Univora Homes account"
+          >
+            Start your journey
           </MagneticButton>
-          </Link>
+          <MagneticButton
+            to="/properties"
+            variant="ghost"
+            icon={Building2}
+            label="Browse available properties"
+          >
+            Browse properties
+          </MagneticButton>
         </motion.div>
-        
+
         <motion.div
           variants={fadeUp}
           initial="hidden"
           animate="visible"
           custom={4}
-          className="flex flex-col gap-3 sm:flex-row sm:gap-10"
+          className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2.5 sm:gap-x-10"
         >
-          {["No credit card required", "Free for 1 property"].map((t) => (
+          {["Landlord and tenant workspaces", "Browse properties without signing in"].map((t) => (
             <motion.span
               key={t}
               whileHover={{ x: 4 }}
-              className="flex cursor-default items-center gap-2 text-sm font-medium text-[#3d3f3d]"
+              className="flex cursor-default items-center gap-2 text-xs font-medium text-[#3d3f3d] sm:text-sm"
             >
               <svg
-                className="h-5 w-5 flex-shrink-0"
+                className="h-4 w-4 flex-shrink-0 sm:h-5 sm:w-5"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="#F59E0B"
@@ -305,11 +313,14 @@ export default function Hero() {
         className="relative z-10 w-full min-w-0 max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl"
         style={{ perspective: 1200 }}
       >
-        <FloatingBadge className="-top-5 -left-2 sm:-left-8" delay={0.9}>
-          <div className="flex items-center gap-2 rounded-2xl bg-white px-4 py-2.5 shadow-xl shadow-[#004741]/10">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100">
+        <FloatingBadge
+          className="-top-4 -left-1 origin-bottom-left scale-90 sm:-top-5 sm:-left-8 sm:scale-100"
+          delay={0.9}
+        >
+          <div className="flex items-center gap-2 rounded-2xl bg-white px-3 py-2 shadow-xl shadow-[#004741]/10 sm:px-4 sm:py-2.5">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-100 sm:h-8 sm:w-8">
               <svg
-                className="h-4 w-4 text-green-600"
+                className="h-3.5 w-3.5 text-green-600 sm:h-4 sm:w-4"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -322,17 +333,22 @@ export default function Hero() {
                 />
               </svg>
             </span>
-            <div>
-              <p className="text-xs font-bold text-[#111827]">Rent received</p>
-              <p className="text-[10px] text-[#111827]/50">just now</p>
+            <div className="min-w-0">
+              <p className="truncate text-[11px] font-bold text-[#111827] sm:text-xs">
+                Listing published
+              </p>
+              <p className="text-[10px] text-[#111827]/50">Property listing workflow</p>
             </div>
           </div>
         </FloatingBadge>
-        <FloatingBadge className="-bottom-5 -right-2 sm:-right-6" delay={1.1}>
-          <div className="flex items-center gap-2 rounded-2xl bg-white px-4 py-2.5 shadow-xl shadow-[#004741]/10">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100">
+        <FloatingBadge
+          className="-bottom-4 -right-1 origin-bottom-right scale-90 sm:-bottom-5 sm:-right-6 sm:scale-100"
+          delay={1.1}
+        >
+          <div className="flex items-center gap-2 rounded-2xl bg-white px-3 py-2 shadow-xl shadow-[#004741]/10 sm:px-4 sm:py-2.5">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 sm:h-8 sm:w-8">
               <svg
-                className="h-4 w-4 text-amber-600"
+                className="h-3.5 w-3.5 text-amber-600 sm:h-4 sm:w-4"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -345,11 +361,11 @@ export default function Hero() {
                 />
               </svg>
             </span>
-            <div>
-              <p className="text-xs font-bold text-[#111827]">
-                98% on-time payments
+            <div className="min-w-0">
+              <p className="truncate text-[11px] font-bold text-[#111827] sm:text-xs">
+                New connection request
               </p>
-              <p className="text-[10px] text-[#111827]/50">last 12 months</p>
+              <p className="text-[10px] text-[#111827]/50">Tenant-to-landlord workflow</p>
             </div>
           </div>
         </FloatingBadge>
@@ -370,16 +386,16 @@ export default function Hero() {
         >
           <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-[#004741]/25 to-[#F59E0B]/20 opacity-70 blur-2xl" />
           <div className="relative overflow-hidden rounded-2xl border border-[#004741]/5 bg-white shadow-2xl shadow-[#004741]/15">
-            <div className="flex items-center gap-2 border-b border-[#004741]/5 bg-[#004741]/5 px-4 py-3">
-              <div className="flex gap-1.5">
+            <div className="flex items-center gap-2 border-b border-[#004741]/5 bg-[#004741]/5 px-3 py-2.5 sm:px-4 sm:py-3">
+              <div className="flex shrink-0 gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-red-400 transition-transform hover:scale-125" />
                 <span className="h-2.5 w-2.5 rounded-full bg-yellow-400 transition-transform hover:scale-125" />
                 <span className="h-2.5 w-2.5 rounded-full bg-green-400 transition-transform hover:scale-125" />
               </div>
-              <div className="mx-3 flex-1">
-                <div className="flex h-6 items-center gap-2 rounded-md bg-white/70 px-3 text-xs text-[#111827]/40">
+              <div className="mx-1 min-w-0 flex-1 sm:mx-3">
+                <div className="flex h-6 min-w-0 items-center gap-2 rounded-md bg-white/70 px-2 text-[10px] text-[#111827]/40 sm:px-3 sm:text-xs">
                   <svg
-                    className="h-3 w-3"
+                    className="h-3 w-3 shrink-0"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -388,50 +404,42 @@ export default function Hero() {
                     <rect x="5" y="11" width="14" height="10" rx="2" />
                     <path d="M8 11V7a4 4 0 118 0v4" />
                   </svg>
-                  app.univorahomes.com
+                  <span className="truncate">app.univorahomes.com</span>
                 </div>
               </div>
             </div>
 
             <div className="min-w-0 p-3 sm:p-6">
-              <div className="mb-5 flex items-center justify-between sm:mb-6">
-                <div>
-                  <p className="text-xs font-medium text-[#111827]/50">
+              <div className="mb-4 flex items-center justify-between gap-2 sm:mb-6">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium text-[#111827]/50 sm:text-xs">
                     Welcome back
                   </p>
-                  <p className="text-xl font-bold text-[#004741] sm:text-2xl">
-                    Dashboard
+                  <p className="truncate text-lg font-bold text-[#004741] sm:text-2xl">
+                    Landlord workspace
                   </p>
                 </div>
                 <motion.div
                   whileHover={{ scale: 1.1, rotate: 4 }}
                   whileTap={{ scale: 0.92 }}
-                  className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-[#004741]/10 text-sm font-bold text-[#004741]"
+                  className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#004741]/10 text-xs font-bold text-[#004741] sm:h-10 sm:w-10 sm:text-sm"
                 >
                   AO
                 </motion.div>
               </div>
 
-              <div className="mb-5 grid min-w-0 grid-cols-3 gap-1.5 sm:mb-6 sm:gap-3">
-                <StatCard label="Properties" target={12} delay={0.5} />
-                <StatCard label="Tenants" target={28} delay={0.65} />
-                <StatCard
-                  label="Collected"
-                  target={4}
-                  suffix=".2M"
-                  prefix="₦"
-                  accent
-                  delay={0.8}
-                />
+              <div className="mb-4 grid min-w-0 grid-cols-3 gap-1.5 sm:mb-6 sm:gap-3">
+                <StatCard label="Listings" value="Manage" delay={0.5} />
+                <StatCard label="Requests" value="Review" delay={0.65} />
+                <StatCard label="Connections" value="View" accent delay={0.8} />
               </div>
 
               <AnimatePresence>
                 <motion.div layout className="space-y-1">
                   <ActivityRow
                     delay={0.9}
-                    title="Rent received — Flat 4B"
-                    sub="2 hours ago"
-                    amount="+₦450k"
+                    title="Property listing"
+                    sub="Photos, details and target rent"
                     icon={
                       <svg
                         className="h-5 w-5 text-green-600"
@@ -443,16 +451,16 @@ export default function Hero() {
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                          d="M3 10.5 12 3l9 7.5M5 9v11h14V9M9 20v-6h6v6"
                         />
                       </svg>
                     }
                   />
                   <ActivityRow
                     delay={1.0}
-                    title="Maintenance request"
-                    sub="Lekki Phase 1 • Today"
-                    badge="Open"
+                    title="Tenant connection"
+                    sub="A tenant is interested in this listing"
+                    badge="Review"
                     badgeClass="bg-amber-100 text-amber-700"
                     icon={
                       <svg
@@ -465,16 +473,16 @@ export default function Hero() {
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0ZM5 21v-2a7 7 0 0114 0v2"
                         />
                       </svg>
                     }
                   />
                   <ActivityRow
                     delay={1.1}
-                    title="New tenant applied"
-                    sub="Victoria Island • Yesterday"
-                    badge="Review"
+                    title="Saved property"
+                    sub="Tenants can keep a shortlist"
+                    badge="Saved"
                     badgeClass="bg-[#004741]/10 text-[#004741]"
                     icon={
                       <svg

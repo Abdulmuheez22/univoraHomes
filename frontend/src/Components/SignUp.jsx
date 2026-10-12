@@ -12,7 +12,6 @@ import {
   ChevronDown,
   Building2,
   KeyRound,
-  Rocket,
   Check,
   CheckCircle2,
   ArrowRight,
@@ -105,19 +104,27 @@ export default function SignUp() {
     navigate("/verifyotp", { state: { email: form.email } });
   };
 
-  const [apiResponse, setApiResponse] = useState({});
-
   const { mutate, isPending } = useMutation({
     mutationFn: signUp,
     onSuccess: (data) => {
-      setApiResponse(data);
-      console.log("Account Created", data);
+      if (data?.message === "Email already exists") {
+        setStatus("idle");
+        setExistingAccount(true);
+        setError(
+          "An account already exists for this email. Sign in or verify the existing account.",
+        );
+        return;
+      }
+      setExistingAccount(false);
       setStatus("done");
     },
     onError: (error) => {
-      console.log("something went wrong", error);
       setStatus("idle");
-      setError("Unable to create your account. Please try again.");
+      setExistingAccount(false);
+      setError(
+        error.response?.data?.message ||
+          "Unable to create your account. Please try again.",
+      );
     },
   });
 
@@ -138,12 +145,14 @@ export default function SignUp() {
   const [agree, setAgree] = useState(false);
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
+  const [existingAccount, setExistingAccount] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
 
   const update = (k) => (e) => {
     setForm((f) => ({ ...f, [k]: e.target.value }));
     setFieldErrors((prev) => ({ ...prev, [k]: "" }));
     setError("");
+    setExistingAccount(false);
   };
 
   const setFieldError = (key, message) => {
@@ -156,6 +165,7 @@ export default function SignUp() {
     e.preventDefault();
     setError("");
     setFieldErrors({});
+    setExistingAccount(false);
 
     if (!role) return setError("Please select your role to continue.");
 
@@ -177,15 +187,12 @@ export default function SignUp() {
     if (!agree) return setError("Please accept the terms to continue.");
     setStatus("loading");
     const payload = { ...form, role };
-    console.log(payload);
     mutate(payload);
   };
 
   const inputCls =
     "w-full rounded-xl border border-slate-200 bg-slate-50/60 py-3.5 pl-11 pr-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-300 focus:border-[#004741] focus:bg-white focus:ring-4 focus:ring-[#004741]/10";
 
-  // if(apiResponse){console.log(apiResponse)}
-  // else if(!apiResponse){console.log('no api response')}
   return (
     <div className="flex min-h-screen bg-white">
       <aside className="relative hidden w-[45%] overflow-hidden bg-[#004741] lg:flex lg:flex-col lg:justify-between lg:p-12">
@@ -312,21 +319,22 @@ export default function SignUp() {
                 </h1>
                 <p className="max-w-sm text-sm leading-relaxed text-slate-500">
                   Your {ROLES.find((r) => r.id === role)?.label.toLowerCase()}{" "}
-                  account is ready. We've sent a confirmation OTP to{" "}
+                  account was created. Enter the verification code sent to{" "}
                   <span className="font-semibold text-slate-700">
                     {form.email}
                   </span>
                   .
                 </p>
-                <motion.div
+                <motion.button
+                  type="button"
                   onClick={handleVerify}
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
-                  className="mt-4 flex items-center gap-2 cursor-pointer rounded-xl bg-[#004741] px-8 py-3.5 font-bold text-white shadow-lg shadow-[#004741]/25"
+                  className="mt-4 flex cursor-pointer items-center gap-2 rounded-xl bg-[#004741] px-8 py-3.5 font-bold text-white shadow-lg shadow-[#004741]/25"
                 >
                   Verify email
                   <ArrowRight className="h-4 w-4" />
-                </motion.div>
+                </motion.button>
               </motion.div>
             ) : (
               <motion.div
@@ -380,7 +388,7 @@ export default function SignUp() {
                             key={r.id}
                             type="button"
                             onClick={() => setRole(r.id)}
-                            className={`w-40 h-18 flex justify-between cursor-pointer flex-col items-center  gap-1.5 rounded-xl border-2 py-3.5 transition-all duration-300 ${
+                            className={`w-40 h-18 flex justify-between cursor-pointer flex-col items-center mt-3.5  gap-1.5 rounded-xl border-2 py-3.5 transition-all duration-300 ${
                               active
                                 ? "border-[#004741] bg-[#004741]/5 shadow-sm"
                                 : "border-slate-200 hover:border-slate-300"
@@ -699,32 +707,45 @@ export default function SignUp() {
                     </button>
                     <span className="text-xs leading-relaxed text-slate-500">
                       I agree to the{" "}
-                      <a
-                        href="#"
+                      <Link
+                        to="/terms"
+                        target="_blank"
+                        rel="noreferrer"
                         className="font-semibold text-[#004741] underline-offset-2 hover:underline"
                       >
                         Terms of Service
-                      </a>{" "}
+                      </Link>{" "}
                       and{" "}
-                      <a
-                        href="#"
+                      <Link
+                        to="/privacy"
+                        target="_blank"
+                        rel="noreferrer"
                         className="font-semibold text-[#004741] underline-offset-2 hover:underline"
                       >
                         Privacy Policy
-                      </a>
+                      </Link>
                     </span>
                   </motion.label>
 
                   <AnimatePresence>
                     {error && (
-                      <motion.p
+                      <motion.div
                         initial={{ opacity: 0, y: -8 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0 }}
-                        className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600"
+                        className="space-y-3 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600"
                       >
-                        {error}
-                      </motion.p>
+                        <p>{error}</p>
+                        {existingAccount && form.email && (
+                          <button
+                            type="button"
+                            onClick={handleVerify}
+                            className="font-semibold text-[#004741] underline underline-offset-4"
+                          >
+                            Verify this email or resend its code
+                          </button>
+                        )}
+                      </motion.div>
                     )}
                   </AnimatePresence>
 

@@ -1,10 +1,13 @@
 import { useRef } from "react";
 import { motion, useInView, useMotionValue, useSpring } from "framer-motion";
 import { ArrowRight, CalendarClock, Sparkles, Home } from "lucide-react";
+import { Link } from "react-router-dom";
+import { mailtoWithSubject } from "../../lib/site";
 
 const EASE = [0.22, 1, 0.36, 1];
+const MotionLink = motion.create(Link);
 
-function MagneticButton({ children, variant, delay, inView }) {
+function MagneticButton({ children, variant, delay, inView, to, href }) {
   const ref = useRef(null);
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -19,9 +22,16 @@ function MagneticButton({ children, variant, delay, inView }) {
   const reset = () => { x.set(0); y.set(0); };
 
   const primary = variant === "primary";
+  const Component = to ? MotionLink : href ? motion.a : motion.button;
+  const linkProps = to
+    ? { to }
+    : href
+      ? { href, rel: "noreferrer" }
+      : {};
 
   return (
-    <motion.button
+    <Component
+      {...linkProps}
       ref={ref}
       style={{ x: sx, y: sy }}
       onMouseMove={onMove}
@@ -30,7 +40,7 @@ function MagneticButton({ children, variant, delay, inView }) {
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{ delay, duration: 0.6, ease: EASE }}
       whileTap={{ scale: 0.96 }}
-      className={`group relative w-full overflow-hidden rounded-xl px-8 py-4 font-bold tracking-wide sm:w-auto ${
+      className={`group relative flex w-full items-center justify-center overflow-hidden rounded-xl px-8 py-4 font-bold tracking-wide sm:w-auto ${
         primary
           ? "bg-[#F59E0B] text-[#004741] shadow-xl shadow-black/30"
           : "border border-white/25 bg-white/5 text-white backdrop-blur hover:border-white/50 hover:bg-white/10"
@@ -45,7 +55,7 @@ function MagneticButton({ children, variant, delay, inView }) {
           ? <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
           : <CalendarClock className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12" />}
       </span>
-    </motion.button>
+    </Component>
   );
 }
 
@@ -53,10 +63,10 @@ export default function FinalCTA() {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-100px" });
 
-  const words = "scattered chats and missed payments".split(" ");
+  const words = "find and manage property".split(" ");
 
   return (
-    <section className="relative overflow-hidden bg-[#004741] py-28 lg:py-36">
+    <section className="relative overflow-hidden bg-[#004741] py-20 lg:py-36">
       <motion.div
         animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.25, 0.15] }}
         transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
@@ -93,25 +103,25 @@ export default function FinalCTA() {
         </motion.div>
       </motion.div>
 
-      <div ref={ref} className="relative mx-auto max-w-4xl px-6 text-center">
+      <div ref={ref} className="relative mx-auto max-w-4xl px-4 text-center sm:px-6">
         <motion.span
           initial={{ opacity: 0, scale: 0.8 }}
           animate={inView ? { opacity: 1, scale: 1 } : {}}
           transition={{ duration: 0.5, ease: EASE }}
-          className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-4 py-1.5 text-xs font-semibold tracking-widest text-white/70 backdrop-blur"
+          className="mb-7 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/70 backdrop-blur sm:px-4 sm:text-xs"
         >
           <Sparkles className="h-3.5 w-3.5 text-[#F59E0B]" />
-          READY WHEN YOU ARE
+          Ready when you are
         </motion.span>
 
         <motion.h2
           initial={{ opacity: 0, y: 32 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: 0.1, duration: 0.8, ease: EASE }}
-          className="text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl lg:text-6xl"
+          className="text-3xl font-bold leading-tight tracking-tight text-white sm:text-5xl lg:text-6xl"
         >
-          Your properties deserve better than{" "}
-          <span className="whitespace-nowrap">
+          A clearer way to{" "}
+          <span className="inline">
             {words.map((w, i) => (
               <motion.span
                 key={i}
@@ -130,17 +140,23 @@ export default function FinalCTA() {
           initial={{ opacity: 0 }}
           animate={inView ? { opacity: 1 } : {}}
           transition={{ delay: 0.5, duration: 0.7 }}
-          className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-white/70"
+          className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-white/70 sm:text-lg"
         >
-          Join landlords and agents already simplifying their property management with Univora Homes. Start free — no credit card required.
+          Create a landlord listing, discover properties as a tenant, and
+          manage requests and connections from one role-specific dashboard.
         </motion.p>
 
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-          <MagneticButton variant="primary" delay={0.7} inView={inView}>
-            Get Started Free
+          <MagneticButton variant="primary" delay={0.7} inView={inView} to="/signup">
+            Start your journey
           </MagneticButton>
-          <MagneticButton variant="ghost" delay={0.8} inView={inView}>
-            Book a Demo
+          <MagneticButton
+            variant="ghost"
+            delay={0.8}
+            inView={inView}
+            href={mailtoWithSubject("Univora Homes demo request")}
+          >
+            Book a demo
           </MagneticButton>
         </div>
 
@@ -150,7 +166,7 @@ export default function FinalCTA() {
           transition={{ delay: 1, duration: 0.6 }}
           className="mt-8 text-sm text-white/50"
         >
-          Free for 1 property · Set up in minutes · Cancel anytime
+          Choose your role during sign up · Switch workspaces from your profile
         </motion.p>
       </div>
     </section>

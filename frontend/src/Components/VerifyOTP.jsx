@@ -14,36 +14,19 @@ const EASE = [0.22, 1, 0.36, 1];
 const OTP_LENGTH = 6;
 const RESEND_SECONDS = 60;
 import { useMutation } from "@tanstack/react-query";
-import { verifyOtp } from "../lib/services/auth.service";
+import { resendOtp, verifyOtp } from "../lib/services/auth.service";
 import { useLocation } from "react-router-dom";
 
-export default function VerifyOTP({ onResend }) {
+export default function VerifyOTP() {
   const { state } = useLocation();
   const email = state?.email;
 
-  if (!email) {
-    return <div>No email provided. Please go back and try again.</div>;
-  }
-
-  const { mutateAsync, isLoading, isError } = useMutation({
+  const { mutateAsync } = useMutation({
     mutationFn: verifyOtp,
-    onSuccess: (data) => {
-      console.log("server response: ", data);
-    },
-    onError: (error) => {
-      // console.log("something went wrong fecthing from the db: ", error);
-    },
   });
-
-  const onVerify = async (code) => {
-    try {
-      const data = await mutateAsync({ email, otp: code });
-      return data?.message === true;
-    } catch (error) {
-      // console.log("something went wrong:", error);
-      return false;
-    }
-  };
+  const resendMutation = useMutation({
+    mutationFn: resendOtp,
+  });
 
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-60px" });
@@ -52,8 +35,10 @@ export default function VerifyOTP({ onResend }) {
   const [active, setActive] = useState(0);
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [resendTimer, setResendTimer] = useState(RESEND_SECONDS);
-  const [resent, setResent] = useState(false);
+  const [resendError, setResendError] = useState("");
+  const [resendMessage, setResendMessage] = useState("");
 
   useEffect(() => {
     if (resendTimer <= 0) return;
@@ -65,42 +50,51 @@ export default function VerifyOTP({ onResend }) {
     inputsRef.current[0]?.focus();
   }, []);
 
-  const verify = useCallback(
-    async (code) => {
-      setStatus("loading");
-      setError(false);
-      const ok = await onVerify?.(code);
-      setTimeout(() => {
-        if (ok === false) {
-          setStatus("idle");
-          setError(true);
-          setOtp(Array(OTP_LENGTH).fill(""));
-          setActive(0);
-          inputsRef.current[0]?.focus();
-          setTimeout(() => setError(false), 600);
-        } else {
-          setStatus("done");
-        }
-      }, 1400);
-    },
-    [onVerify],
-  );
+  const verify = useCallback(async (code) => {
+    setStatus("loading");
+    setError(false);
+    setErrorMessage("");
+    try {
+      const data = await mutateAsync({ email, otp: code });
+      if (data?.message !== true) {
+        setErrorMessage("That code doesn't match. Check your email and try again.");
+        setStatus("idle");
+        setError(true);
+        setOtp(Array(OTP_LENGTH).fill(""));
+        setActive(0);
+        inputsRef.current[0]?.focus();
+        setTimeout(() => setError(false), 600);
+        return;
+      }
+      setStatus("done");
+    } catch (error) {
+      setErrorMessage(
+        error.response?.data?.message ||
+          "Unable to verify your code. Please try again.",
+      );
+      setStatus("idle");
+      setError(true);
+      setOtp(Array(OTP_LENGTH).fill(""));
+      setActive(0);
+      inputsRef.current[0]?.focus();
+      setTimeout(() => setError(false), 600);
+    }
+  }, [email, mutateAsync]);
 
-  const setDigit = (i, val) => {
-    const digit = val.replace(/\D/g, "").slice(-1);
-    setOtp((prev) => {
-      const next = [...prev];
-      next[i] = digit;
-      return next;
-    });
+  const handleChange = (i, e) => {
+    setErrorMessage("");
+    setResendError("");
+    const digit = e.target.value.replace(/\D/g, "").slice(-1);
+    const next = [...otp];
+    next[i] = digit;
+    setOtp(next);
     if (digit) {
       const nextIndex = Math.min(i + 1, OTP_LENGTH - 1);
       setActive(nextIndex);
       inputsRef.current[nextIndex]?.focus();
     }
+    if (next.every((value) => value !== "")) verify(next.join(""));
   };
-
-  const handleChange = (i, e) => setDigit(i, e.target.value);
 
   const handleKeyDown = (i, e) => {
     if (e.key === "Backspace") {
@@ -131,6 +125,8 @@ export default function VerifyOTP({ onResend }) {
 
   const handlePaste = (e) => {
     e.preventDefault();
+    setErrorMessage("");
+    setResendError("");
     const pasted = e.clipboardData
       .getData("text")
       .replace(/\D/g, "")
@@ -147,31 +143,38 @@ export default function VerifyOTP({ onResend }) {
     if (pasted.length === OTP_LENGTH) verify(pasted);
   };
 
-  useEffect(() => {
-    const code = otp.join("");
-    if (
-      code.length === OTP_LENGTH &&
-      otp.every((d) => d !== "") &&
-      status === "idle"
-    ) {
-      const otpData = {
-        email: email,
-        otp: code,
-      };
-      verify(code);
-    }
-  }, [otp, status, verify]);
+  const handleResend = async () => {
+    if (resendTimer > 0 || resendMutation.isPending) return;
+    setResendError("");
+    setResendMessage("");
 
-  const handleResend = () => {
-    if (resendTimer > 0) return;
-    onResend?.();
-    setResent(true);
-    setResendTimer(RESEND_SECONDS);
-    setTimeout(() => setResent(false), 3000);
-    setOtp(Array(OTP_LENGTH).fill(""));
-    setActive(0);
-    inputsRef.current[0]?.focus();
+    try {
+      const response = await resendMutation.mutateAsync(email);
+      setResendMessage(
+        response?.message ||
+          "If this account needs verification, a new code has been sent.",
+      );
+      setResendTimer(RESEND_SECONDS);
+      setError(false);
+      setErrorMessage("");
+      setOtp(Array(OTP_LENGTH).fill(""));
+      setActive(0);
+      inputsRef.current[0]?.focus();
+    } catch (error) {
+      const retryAfter = Number(error.response?.data?.retryAfter);
+      if (Number.isFinite(retryAfter) && retryAfter > 0) {
+        setResendTimer(retryAfter);
+      }
+      setResendError(
+        error.response?.data?.message ||
+          "Unable to resend the code. Check your connection and try again.",
+      );
+    }
   };
+
+  if (!email) {
+    return <div>No email provided. Please go back and try again.</div>;
+  }
 
   return (
     <div className="flex min-h-screen bg-white">
@@ -435,14 +438,14 @@ export default function VerifyOTP({ onResend }) {
                   </motion.div>
 
                   <AnimatePresence>
-                    {error && (
+                    {errorMessage && (
                       <motion.p
                         initial={{ opacity: 0, y: -6 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0 }}
                         className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-center text-sm font-medium text-red-600"
                       >
-                        That code doesn't match. Check your email and try again.
+                        {errorMessage}
                       </motion.p>
                     )}
                   </AnimatePresence>
@@ -467,22 +470,43 @@ export default function VerifyOTP({ onResend }) {
                         Verifying your code...
                       </p>
                     ) : (
-                      <p className="text-sm text-slate-500">
-                        Didn't get the code?{" "}
-                        {resendTimer > 0 ? (
-                          <span className="font-semibold tabular-nums text-slate-400">
-                            Resend in 0:{String(resendTimer).padStart(2, "0")}
-                          </span>
-                        ) : (
-                          <button
-                            onClick={handleResend}
-                            className="group inline-flex items-center gap-1.5 font-semibold text-[#004741] underline-offset-4 hover:underline"
-                          >
-                            <RotateCcw className="h-3.5 w-3.5 transition-transform duration-500 group-hover:-rotate-180" />
-                            Resend code
-                          </button>
+                      <div className="text-sm text-slate-500">
+                        <p>
+                          Didn't get the code?{" "}
+                          {resendTimer > 0 ? (
+                            <span className="font-semibold tabular-nums text-slate-400">
+                              Resend in {Math.floor(resendTimer / 60)}:
+                              {String(resendTimer % 60).padStart(2, "0")}
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={handleResend}
+                              disabled={resendMutation.isPending}
+                              className="group inline-flex items-center gap-1.5 font-semibold text-[#004741] underline-offset-4 hover:underline disabled:cursor-wait disabled:opacity-60"
+                            >
+                              <RotateCcw
+                                className={`h-3.5 w-3.5 transition-transform duration-500 group-hover:-rotate-180 ${
+                                  resendMutation.isPending ? "animate-spin" : ""
+                                }`}
+                              />
+                              {resendMutation.isPending
+                                ? "Sending code..."
+                                : "Resend code"}
+                            </button>
+                          )}
+                        </p>
+                        {resendError && (
+                          <p role="alert" className="mt-3 text-sm font-medium text-red-600">
+                            {resendError}
+                          </p>
                         )}
-                      </p>
+                        {resendMessage && (
+                          <p role="status" className="mt-3 text-sm font-medium text-emerald-700">
+                            {resendMessage}
+                          </p>
+                        )}
+                      </div>
                     )}
                   </motion.div>
 

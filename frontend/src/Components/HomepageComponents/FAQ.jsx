@@ -1,33 +1,34 @@
 import { useRef, useState } from "react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
-import { HelpCircle, Plus, MessageCircleQuestion } from "lucide-react";
+import { HelpCircle, Plus, MessageCircleQuestion, Mail } from "lucide-react";
+import { SUPPORT_EMAIL, mailtoWithSubject } from "../../lib/site";
 
 const EASE = [0.22, 1, 0.36, 1];
 
 const FAQS = [
   {
-    q: "Is my data safe on Univora Homes?",
-    a: "Yes. All documents and information are securely stored and only accessible to the right people based on their role.",
+    q: "What can I do as a landlord?",
+    a: "You can create and manage property listings, review tenant connection requests, and view tenants connected to your properties.",
   },
   {
-    q: "Do I need to be tech-savvy to use it?",
-    a: "Not at all. Univora Homes is designed to be simple — if you can use WhatsApp, you can use this.",
+    q: "What can I do as a tenant?",
+    a: "You can browse and filter listings, save properties to revisit, send connection requests, track their status, and view landlord connections.",
   },
   {
-    q: "What happens when I exceed 5 properties on the free plan?",
-    a: "You'll be prompted to upgrade to a paid plan. Your existing data stays safe and nothing gets deleted.",
+    q: "Can I switch between landlord and tenant?",
+    a: "Yes. Use the role switch in your profile or dashboard sidebar to move between the landlord and tenant workspaces.",
   },
   {
-    q: "Can tenants pay rent through the app?",
-    a: "Online payment is coming soon. For now, landlords record payments manually after receiving them.",
+    q: "Do I need an account to browse properties?",
+    a: "Available property listings can be browsed publicly. Sign in or create an account to save properties and manage connection requests.",
   },
   {
-    q: "How do tenants get notified about rent?",
-    a: "Automatic reminders are sent via email. WhatsApp notifications are coming soon.",
+    q: "How do tenants connect with landlords?",
+    a: "Open a property listing and send a connection request. You can follow its status from your tenant dashboard.",
   },
   {
-    q: "Can one agent manage properties for multiple landlords?",
-    a: "Yes — agents have their own dashboard to manage multiple properties across different landlords.",
+    q: "Where can I get help?",
+    a: "Use the contact form or email our support team. The contact form opens a prefilled email draft for you to review and send.",
   },
 ];
 
@@ -52,10 +53,12 @@ function FaqItem({ faq, index, open, onToggle, inView }) {
       />
 
       <button
+        type="button"
         onClick={() => onToggle(open ? null : index)}
-        className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left sm:px-7"
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left sm:gap-4 sm:px-7 sm:py-5"
       >
-        <span className={`font-semibold transition-colors duration-300 ${open ? "text-[#004741]" : "text-slate-900"}`}>
+        <span className={`text-sm font-semibold transition-colors duration-300 sm:text-base ${open ? "text-[#004741]" : "text-slate-900"}`}>
           {faq.q}
         </span>
         <motion.span
@@ -76,7 +79,7 @@ function FaqItem({ faq, index, open, onToggle, inView }) {
             transition={{ duration: 0.4, ease: EASE }}
             className="overflow-hidden"
           >
-            <p className="px-6 pb-6 text-sm leading-relaxed text-slate-600 sm:px-7 sm:text-base">
+            <p className="px-4 pb-5 text-sm leading-relaxed text-slate-600 sm:px-7 sm:pb-6 sm:text-base">
               {faq.a}
             </p>
           </motion.div>
@@ -92,26 +95,18 @@ export default function FAQ() {
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section className="relative overflow-hidden bg-[#f7f5f0] py-24 lg:py-32">
+    <section id="faq" className="relative overflow-hidden bg-[#f7f5f0] py-20 lg:py-32">
       <div className="pointer-events-none absolute -left-24 top-24 h-72 w-72 rounded-full bg-[#004741]/5 blur-3xl" />
       <div className="pointer-events-none absolute -right-24 bottom-24 h-72 w-72 rounded-full bg-amber-100/40 blur-3xl" />
 
-      <div className="relative mx-auto max-w-3xl px-6">
-        <div className="mb-14 text-center">
-          <motion.span
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={inView ? { opacity: 1, scale: 1 } : {}}
-            transition={{ duration: 0.5, ease: EASE }}
-            className="mb-6 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-semibold tracking-widest text-slate-500"
-          >
-            <HelpCircle className="h-3.5 w-3.5 text-[#004741]" />
-            FAQ
-          </motion.span>
+      <div className="relative mx-auto max-w-3xl px-4 sm:px-6">
+        <div className="mb-12 text-center lg:mb-14">
+
           <motion.h2
             initial={{ opacity: 0, y: 28 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ delay: 0.1, duration: 0.7, ease: EASE }}
-            className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl"
+            className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl"
           >
             Frequently Asked{" "}
             <span className="relative inline-block text-[#004741]">
@@ -128,9 +123,9 @@ export default function FAQ() {
             initial={{ opacity: 0 }}
             animate={inView ? { opacity: 1 } : {}}
             transition={{ delay: 0.3, duration: 0.6 }}
-            className="mt-5 text-lg text-slate-600"
+            className="mt-5 text-base text-slate-600 sm:text-lg"
           >
-            Everything you're wondering, answered straight.
+            The questions we are asked most often, answered directly.
           </motion.p>
         </div>
 
@@ -151,24 +146,29 @@ export default function FAQ() {
           initial={{ opacity: 0, y: 16 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: 0.8, duration: 0.6, ease: EASE }}
-          className="mt-12 flex flex-col items-center gap-3 rounded-2xl border border-[#004741]/15 bg-white p-6 text-center sm:flex-row sm:justify-between sm:text-left"
+          className="mt-12 flex flex-col items-center gap-4 rounded-2xl border border-[#004741]/15 bg-white p-5 text-center sm:flex-row sm:justify-between sm:p-6 sm:text-left"
         >
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#004741]/10 text-[#004741]">
+            <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#004741]/10 text-[#004741]">
               <MessageCircleQuestion className="h-5 w-5" />
             </span>
-            <div>
+            <div className="min-w-0">
               <p className="font-semibold text-slate-900">Still have questions?</p>
-              <p className="text-sm text-slate-500">We reply within a few hours.</p>
+              <p className="text-sm text-slate-500">
+                Email our team and we will get back to you.
+              </p>
             </div>
           </div>
-          <motion.button
+          <motion.a
+            href={mailtoWithSubject("Univora Homes support request")}
+            aria-label={`Contact support by email at ${SUPPORT_EMAIL}`}
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.97 }}
-            className="rounded-xl bg-[#004741] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#004741]/25"
+            className="group flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-[#004741] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#004741]/25 sm:w-auto"
           >
+            <Mail className="h-4 w-4 transition-transform duration-300 group-hover:-rotate-6" />
             Contact support
-          </motion.button>
+          </motion.a>
         </motion.div>
       </div>
     </section>

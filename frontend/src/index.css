@@ -5,6 +5,21 @@ html {
   scroll-padding-top: 5rem;
 }
 
+/* Guard against horizontal overflow on very narrow viewports (~300px).
+   `clip` avoids the scroll-container side effects of `hidden` on sticky elements. */
+html,
+body {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

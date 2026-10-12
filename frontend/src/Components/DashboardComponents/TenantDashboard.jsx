@@ -40,6 +40,7 @@ import {
 import ProfileModal from "./ProfileModal";
 import SignOutConfirmation from "./SignOutConfirmation";
 import TenantPropertyBrowser from "./TenantPropertyBrowser";
+import RoleSwitchButton from "./RoleSwitchButton";
 
 const EASE = [0.22, 1, 0.36, 1];
 
@@ -219,6 +220,11 @@ export default function TenantDashboard({ accountData }) {
                 ))}
               </nav>
               <div className="px-3">
+                <RoleSwitchButton
+                  currentRole={profile?.userRole || accountData?.role}
+                  expanded
+                  onSwitch={() => setMobileNavOpen(false)}
+                />
                 <button
                   type="button"
                   onClick={() => {
@@ -318,6 +324,10 @@ export default function TenantDashboard({ accountData }) {
             })}
           </nav>
           <div className="px-3">
+            <RoleSwitchButton
+              currentRole={profile?.userRole || accountData?.role}
+              expanded={sidebar}
+            />
             <motion.div whileHover={{ x: 3 }} whileTap={{ scale: 0.97 }}>
               <button
                 type="button"

@@ -19,6 +19,7 @@ import {
   deleteUserAccount,
   updateUserProfile,
 } from "../../lib/services/auth.service";
+import RoleSwitchButton from "./RoleSwitchButton";
 
 const PROFILE_FIELDS = [
   { key: "userName", label: "Full name", icon: User, editable: true },
@@ -224,6 +225,10 @@ export default function ProfileModal({
                 </p>
               ) : (
                 <form onSubmit={handleSave}>
+                  <RoleSwitchButton
+                    currentRole={profile?.userRole}
+                    variant="profile"
+                  />
                   <div className="grid gap-4 sm:grid-cols-2">
                     {PROFILE_FIELDS.map(
                       ({ key, label, icon: Icon, editable }) => {

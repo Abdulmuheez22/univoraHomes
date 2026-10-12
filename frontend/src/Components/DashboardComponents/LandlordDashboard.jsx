@@ -43,6 +43,7 @@ import {
 } from "../../lib/services/auth.service";
 import ProfileModal from "./ProfileModal";
 import SignOutConfirmation from "./SignOutConfirmation";
+import RoleSwitchButton from "./RoleSwitchButton";
 
 const EASE = [0.22, 1, 0.36, 1];
 const MotionLink = motion(Link);
@@ -628,6 +629,11 @@ export default function LandlordDashboard() {
                 })}
               </nav>
               <div className="px-3 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-3">
+                <RoleSwitchButton
+                  currentRole={profile?.userRole || userData.role}
+                  expanded
+                  onSwitch={() => setMobileNavOpen(false)}
+                />
                 <button
                   type="button"
                   onClick={() => {
@@ -726,6 +732,10 @@ export default function LandlordDashboard() {
             <Link to="/">
             </Link>
           <div className="px-3">
+            <RoleSwitchButton
+              currentRole={profile?.userRole || userData.role}
+              expanded={sidebar}
+            />
             <motion.div whileHover={{ x: 3 }} whileTap={{ scale: 0.97 }}>
               <button
                 type="button"

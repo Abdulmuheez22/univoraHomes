@@ -10,6 +10,11 @@ export const verifyOtp = async (otp) => {
   return response.data;
 };
 
+export const resendOtp = async (email) => {
+  const response = await api.post("/auth/resendOtp", { email });
+  return response.data;
+};
+
 
 export const signIn = async (user) => {
   const response = await api.post("/auth/signIn", user, {withCredentials: true,})
@@ -62,6 +67,11 @@ export const updateUserProfile = async (profile) => {
 
 export const deleteUserAccount = async () => {
   const response = await api.delete("/dashboard/userProfile");
+  return response.data;
+};
+
+export const switchUserRole = async (newRole) => {
+  const response = await api.post("/dashboard/switchRole", { newRole });
   return response.data;
 };
 

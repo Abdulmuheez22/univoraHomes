@@ -1,44 +1,106 @@
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
+import { Link } from "react-router-dom";
+import { Home, Mail, MessageCircle, MapPin, ArrowUp } from "lucide-react";
 import {
-  Home,
-  Mail,
-  MessageCircle,
-  MapPin,
-  ArrowUp,
-  Heart,
-} from "lucide-react";
+  MAILTO_SUPPORT,
+  SITE_NAME,
+  SUPPORT_EMAIL,
+  WHATSAPP_DISPLAY,
+  WHATSAPP_URL,
+} from "../../lib/site";
 
 const EASE = [0.22, 1, 0.36, 1];
 
+const XIcon = (props) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
+
+const InstagramIcon = (props) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.9"
+    aria-hidden="true"
+    {...props}
+  >
+    <rect x="2.75" y="2.75" width="18.5" height="18.5" rx="5.25" />
+    <circle cx="12" cy="12" r="4.1" />
+    <circle cx="17.35" cy="6.65" r="1.15" fill="currentColor" stroke="none" />
+  </svg>
+);
+
+const LinkedInIcon = (props) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+    <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46zM5.34 7.43a2.07 2.07 0 1 1 0-4.13 2.07 2.07 0 0 1 0 4.13zM7.12 20.45H3.55V9h3.57zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z" />
+  </svg>
+);
+
+const FacebookIcon = (props) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+    <path d="M24 12.07C24 5.44 18.63.07 12 .07S0 5.44 0 12.07c0 5.99 4.39 10.95 10.13 11.86v-8.39H7.08v-3.47h3.05V9.43c0-3.01 1.79-4.67 4.53-4.67 1.31 0 2.69.24 2.69.24v2.95h-1.51c-1.49 0-1.96.93-1.96 1.87v2.25h3.33l-.53 3.47h-2.8v8.39C19.61 23.02 24 18.06 24 12.07z" />
+  </svg>
+);
+
 const SOCIALS = [
-  { icon: MessageCircle, label: "Twitter", href: "#" },
-  { icon: Home, label: "Instagram", href: "#" },
-  { icon: Mail, label: "LinkedIn", href: "#" },
-  { icon: MapPin, label: "Facebook", href: "#" },
+  { icon: XIcon, label: "Follow Univora Homes on X", href: "#" },
+  { icon: InstagramIcon, label: "Follow Univora Homes on Instagram", href: "#" },
+  { icon: LinkedInIcon, label: "Univora Homes on LinkedIn", href: "#" },
+  { icon: FacebookIcon, label: "Univora Homes on Facebook", href: "#" },
 ];
 
-const COLUMNS = [
+const LINK_COLUMNS = [
   {
     title: "Product",
-    links: ["Features", "Pricing", "FAQ"],
+    links: [
+      { label: "Properties", to: "/properties" },
+      { label: "Features", href: "#features" },
+      { label: "Workspaces", href: "#pricing" },
+      { label: "FAQ", href: "#faq" },
+    ],
   },
   {
     title: "Company",
-    links: ["About Us", "Contact Us", "Privacy Policy", "Terms of Service"],
+    links: [
+      { label: "How It Works", href: "#how-it-works" },
+      { label: "Contact Us", href: "#contact" },
+      { label: "Privacy Policy", to: "/privacy" },
+      { label: "Terms of Service", to: "/terms" },
+    ],
   },
 ];
 
-function FooterLink({ children, href = "#" }) {
+const linkCls =
+  "group relative w-fit text-sm text-white/60 transition-colors duration-300 hover:text-white";
+
+function Underline() {
+  return (
+    <span className="absolute -bottom-0.5 left-0 h-px w-0 bg-[#F59E0B] transition-all duration-300 group-hover:w-full" />
+  );
+}
+
+function FooterLink({ children, href = "#", to, ...rest }) {
+  if (to) {
+    return (
+      <Link to={to} className={linkCls} {...rest}>
+        {children}
+        <Underline />
+      </Link>
+    );
+  }
   return (
     <motion.a
       href={href}
       whileHover={{ x: 4 }}
       transition={{ type: "spring", stiffness: 350, damping: 22 }}
-      className="group relative w-fit text-sm text-white/60 transition-colors duration-300 hover:text-white"
+      className={linkCls}
+      {...rest}
     >
       {children}
-      <span className="absolute -bottom-0.5 left-0 h-px w-0 bg-[#F59E0B] transition-all duration-300 group-hover:w-full" />
+      <Underline />
     </motion.a>
   );
 }
@@ -75,29 +137,26 @@ export default function Footer() {
 
       <div
         ref={ref}
-        className="relative mx-auto max-w-7xl px-6 pt-16 pb-8 sm:pt-20"
+        className="relative mx-auto max-w-7xl px-4 pb-8 pt-14 sm:px-6 sm:pt-20"
       >
-        <div className="grid gap-12 pb-12 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+        <div className="grid gap-10 pb-12 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6, ease: EASE }}
-            className="flex flex-col items-start gap-5"
+            className="flex flex-col items-start gap-5 sm:col-span-2 lg:col-span-1"
           >
-            <motion.a
-              href="#"
-              whileHover={{ scale: 1.03 }}
-              className="flex items-center gap-2.5"
-            >
+            <Link to="/" className="flex items-center gap-2.5" aria-label={`${SITE_NAME} home`}>
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F59E0B]">
                 <Home className="h-5 w-5 text-[#004741]" strokeWidth={2.5} />
               </span>
-              <span className="text-xl font-extrabold tracking-tight text-white">
+              <span className="text-lg font-extrabold tracking-tight text-white sm:text-xl">
                 Univora<span className="text-[#F59E0B]"> Homes</span>
               </span>
-            </motion.a>
+            </Link>
             <p className="max-w-xs text-sm leading-relaxed text-white/50">
-              Property management, simplified.
+              A shared property platform for landlords and tenants to publish,
+              discover, save, and connect around property listings.
             </p>
             <div className="flex gap-3">
               {SOCIALS.map((s, i) => (
@@ -106,7 +165,7 @@ export default function Footer() {
             </div>
           </motion.div>
 
-          {COLUMNS.map((col, ci) => (
+          {LINK_COLUMNS.map((col, ci) => (
             <motion.nav
               key={col.title}
               initial={{ opacity: 0, y: 24 }}
@@ -119,8 +178,10 @@ export default function Footer() {
               </h3>
               <ul className="space-y-3">
                 {col.links.map((l) => (
-                  <li key={l}>
-                    <FooterLink>{l}</FooterLink>
+                  <li key={l.label}>
+                    <FooterLink to={l.to} href={l.href}>
+                      {l.label}
+                    </FooterLink>
                   </li>
                 ))}
               </ul>
@@ -138,33 +199,35 @@ export default function Footer() {
             <ul className="space-y-4">
               <li>
                 <motion.a
-                  href="mailto:univorahomes@gmail.com"
+                  href={MAILTO_SUPPORT}
                   whileHover={{ x: 4 }}
+                  aria-label={`Email ${SITE_NAME} at ${SUPPORT_EMAIL}`}
                   className="group flex items-center gap-3 text-sm text-white/60 transition-colors duration-300 hover:text-white"
                 >
                   <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white/5 transition-colors duration-300 group-hover:bg-[#F59E0B]/20">
-                    <Mail className="h-4 w-4 text-[#F59E0B]" />
+                    <Mail className="h-4 w-4 text-[#FBBF24]" />
                   </span>
-                  univorahomes@gmail.com
+                  <span className="break-all">{SUPPORT_EMAIL}</span>
                 </motion.a>
               </li>
               <li>
                 <motion.a
-                  href="https://wa.me/2349017942879"
+                  href={WHATSAPP_URL}
                   target="_blank"
                   rel="noreferrer"
                   whileHover={{ x: 4 }}
+                  aria-label={`Message ${SITE_NAME} on WhatsApp`}
                   className="group flex items-center gap-3 text-sm text-white/60 transition-colors duration-300 hover:text-white"
                 >
-                  <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white/5 transition-colors duration-300 group-hover:bg-green-500/20">
-                    <MessageCircle className="h-4 w-4 text-green-400" />
+                  <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white/5 transition-colors duration-300 group-hover:bg-emerald-400/20">
+                    <MessageCircle className="h-4 w-4 text-emerald-300" />
                   </span>
-                  0901 794 2879
+                  {WHATSAPP_DISPLAY}
                 </motion.a>
               </li>
               <li className="flex items-center gap-3 text-sm text-white/60">
                 <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white/5">
-                  <MapPin className="h-4 w-4 text-[#F59E0B]" />
+                  <MapPin className="h-4 w-4 text-sky-300" />
                 </span>
                 Nigeria
               </li>
@@ -179,15 +242,10 @@ export default function Footer() {
           className="flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-7 sm:flex-row"
         >
           <p className="text-center text-xs text-white/40 sm:text-left">
-            © 2026 Univora Homes. All rights reserved. · A subsidiary of{" "}
-            <a
-              href="#"
-              className="font-semibold text-white/60 transition-colors duration-300 hover:text-[#F59E0B]"
-            >
-              Univora Group
-            </a>
+            © {new Date().getFullYear()} {SITE_NAME}. All rights reserved.
           </p>
           <motion.button
+            type="button"
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             whileHover={{ y: -3 }}
             whileTap={{ scale: 0.92 }}
@@ -198,14 +256,6 @@ export default function Footer() {
           </motion.button>
         </motion.div>
       </div>
-
-      {/* <div className="pointer-events-none relative flex justify-center pb-4">
-        <p className="flex items-center gap-1.5 text-[11px] text-white/25">
-          Crafted with{" "}
-          <Heart className="h-3 w-3 fill-[#F59E0B] text-[#F59E0B]" /> by Univora
-          Group
-        </p> */}
-      {/* </div> */}
     </footer>
   );
 }

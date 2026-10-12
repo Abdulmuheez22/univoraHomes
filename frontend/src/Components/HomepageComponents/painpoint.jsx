@@ -1,8 +1,7 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring, useInView } from "framer-motion";
 import {
-  AlertTriangle, FileText, MessageSquare, CreditCard,
-  Clock, Bell, FolderOpen, Home, KeyRound, TrendingUp,
+  BookmarkCheck, Handshake, House, KeyRound, ListChecks, MapPinned, Users,
 } from "lucide-react";
 
 const EASE = [0.22, 1, 0.36, 1];
@@ -10,52 +9,67 @@ const EASE = [0.22, 1, 0.36, 1];
 const GROUPS = [
   {
     id: "landlords",
-    label: "Landlords & Agents",
-    icon: Home,
+    label: "Landlords",
+    shortLabel: "Landlords",
+    icon: House,
     accent: "#F59E0B",
     soft: "bg-amber-50 text-amber-600",
-    heading: "Managing properties without structure is a full-time headache",
+    heading: "A practical workspace for managing property interest",
     pains: [
-      { icon: CreditCard, title: "Rent is hard to track", desc: "Payments from multiple tenants scatter across bank alerts, WhatsApp and spreadsheets." },
-      { icon: Clock, title: "Maintenance requests get lost", desc: "Follow-ups pile up. Tenants keep chasing you because nothing is logged properly." },
-      { icon: FolderOpen, title: "Documents live everywhere", desc: "Leases, receipts and agreements are buried in email threads and random folders." },
-      { icon: Bell, title: "Reminders are pure manual work", desc: "Every rent due date or lease renewal means another round of personal messages." },
+      {
+        icon: House,
+        title: "Keep property listings organised",
+        desc: "Create, update, and review your property details, photos, location, and target rent from your landlord dashboard.",
+      },
+      {
+        icon: ListChecks,
+        title: "Review tenant requests",
+        desc: "See incoming connection requests and choose to accept or decline them from your workspace.",
+      },
+      {
+        icon: Users,
+        title: "See connected tenants",
+        desc: "Keep track of tenants connected to your properties and access their contact information.",
+      },
+      {
+        icon: KeyRound,
+        title: "Switch roles when needed",
+        desc: "Move between landlord and tenant workspaces from your profile or dashboard sidebar.",
+      },
     ],
-    stat: { value: 14, suffix: "hrs", label: "wasted weekly on manual follow-ups" },
   },
   {
     id: "tenants",
     label: "Tenants",
+    shortLabel: "Tenants",
     icon: KeyRound,
     accent: "#0F766E",
     soft: "bg-teal-50 text-teal-700",
-    heading: "Being a tenant shouldn't feel like chasing shadows",
+    heading: "A simpler way to discover and connect with homes",
     pains: [
-      { icon: CreditCard, title: "No clear payment history", desc: "You're never sure what's paid, what's outstanding, or whether the landlord received it." },
-      { icon: MessageSquare, title: "Maintenance feels like shouting into the void", desc: "You raise an issue… then wait. No status, no timeline, no accountability." },
-      { icon: FileText, title: "Important documents disappear", desc: "Receipts and agreements are hard to find the moment you actually need them." },
-      { icon: MessageSquare, title: "Communication is inconsistent", desc: "One day it's WhatsApp, the next it's a phone call. Nothing is centralised." },
+      {
+        icon: MapPinned,
+        title: "Find listings that fit",
+        desc: "Browse available properties and filter by location, property type, category, and price.",
+      },
+      {
+        icon: BookmarkCheck,
+        title: "Save properties to revisit",
+        desc: "Keep interesting homes in a personal shortlist so you can return to them later.",
+      },
+      {
+        icon: Handshake,
+        title: "Express interest clearly",
+        desc: "Send a connection request to a landlord and track the request status from your dashboard.",
+      },
+      {
+        icon: Users,
+        title: "View landlord connections",
+        desc: "See landlords you have connected with from your tenant workspace.",
+      },
     ],
-    stat: { value: 9, suffix: "days", label: "average wait with zero status updates" },
   },
 ];
-
-function Counter({ value, suffix, start }) {
-  const [n, setN] = useState(0);
-  useEffect(() => {
-    if (!start) return;
-    let raf;
-    const t0 = performance.now();
-    const tick = (now) => {
-      const p = Math.min((now - t0) / 1200, 1);
-      setN(Math.round(value * (1 - Math.pow(1 - p, 3))));
-      if (p < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [value, start]);
-  return <span>{n}{suffix}</span>;
-}
 
 function GlowCard({ children, accent }) {
   const ref = useRef(null);
@@ -74,14 +88,15 @@ function GlowCard({ children, accent }) {
       onMouseMove={onMove}
       whileHover={{ y: -6 }}
       transition={{ type: "spring", stiffness: 300, damping: 22 }}
-      className="group relative overflow-hidden rounded-3xl border border-slate-100 bg-white p-7 sm:p-9 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] cursor-default"
+      className="group relative cursor-default overflow-hidden rounded-3xl border border-slate-100 bg-white p-5 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] sm:p-9"
     >
       <motion.div
-        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-        style={{ background: useSpring(sx, { stiffness: 250, damping: 25 }) && sx, x: sx, y: sy }}
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 hidden opacity-0 transition-opacity duration-500 group-hover:opacity-100 md:block"
+        style={{ x: sx, y: sy }}
       >
         <div
-          className="absolute h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-20 blur-2xl transition-colors duration-500"
+          className="absolute h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-20 blur-2xl"
           style={{ background: accent }}
         />
       </motion.div>
@@ -100,18 +115,18 @@ function PainItem({ icon: Icon, title, desc, accent, index }) {
       transition={{ delay: 0.1 + index * 0.09, duration: 0.5, ease: EASE }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="relative flex cursor-default items-start gap-4 rounded-2xl p-3 -m-3 transition-colors duration-300 hover:bg-slate-50"
+      className="relative -m-3 flex cursor-default items-start gap-3 rounded-2xl p-3 transition-colors duration-300 hover:bg-slate-50 sm:gap-4"
     >
       <motion.div
         animate={hovered ? { scale: 1.12, rotate: -6 } : { scale: 1, rotate: 0 }}
         transition={{ type: "spring", stiffness: 400, damping: 15 }}
-        className="mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition-colors duration-300"
+        className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition-colors duration-300 sm:h-10 sm:w-10"
         style={hovered ? { background: `${accent}1A`, color: accent } : {}}
       >
-        <Icon className="h-5 w-5" />
+        <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
       </motion.div>
-      <div>
-        <p className="font-semibold text-slate-900">{title}</p>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-slate-900 sm:text-base">{title}</p>
         <p className="mt-0.5 text-sm leading-relaxed text-slate-500">{desc}</p>
       </div>
       <motion.span
@@ -129,8 +144,6 @@ export default function PainPoints() {
   const group = GROUPS[active];
   const sectionRef = useRef(null);
   const inView = useInView(sectionRef, { once: true, margin: "-100px" });
-  const statRef = useRef(null);
-  const statInView = useInView(statRef, { once: true });
 
   const switchGroup = (i) => {
     if (i === active) return;
@@ -145,7 +158,7 @@ export default function PainPoints() {
   };
 
   return (
-    <section id="" ref={sectionRef} className="relative overflow-hidden bg-[#f7f5f0] py-24 lg:py-32">
+    <section id="why-univora" ref={sectionRef} className="relative overflow-hidden bg-[#f7f5f0] py-20 lg:py-32">
       <motion.div
         animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.6, 0.4] }}
         transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
@@ -157,18 +170,19 @@ export default function PainPoints() {
         className="pointer-events-none absolute -bottom-40 right-1/4 h-80 w-80 rounded-full bg-amber-100/40 blur-3xl"
       />
 
-      <div className="relative mx-auto max-w-6xl px-6">
+      <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 32 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.7, ease: EASE }}
-          className="mx-auto mb-12 max-w-3xl text-center lg:mb-14"
+          className="mx-auto mb-10 max-w-3xl text-center lg:mb-14"
         >
 
-          <h2 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
-            The old way is a{" "}
+
+          <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl">
+            Property workflows, made clearer{" "}
             <span className="relative inline-block">
-              <span className="relative z-10">full-time headache</span>
+              <span className="relative z-10">for both sides</span>
               <motion.span
                 initial={{ scaleX: 0 }}
                 animate={inView ? { scaleX: 1 } : {}}
@@ -181,9 +195,10 @@ export default function PainPoints() {
             initial={{ opacity: 0 }}
             animate={inView ? { opacity: 1 } : {}}
             transition={{ delay: 0.4, duration: 0.6 }}
-            className="mt-5 text-lg leading-relaxed text-slate-600"
+            className="mt-5 text-base leading-relaxed text-slate-600 sm:text-lg"
           >
-            Whether you manage properties or live in one, everything still feels scattered, manual, and stressful.
+            Landlords and tenants need a clear way to publish listings, find
+            homes, and manage connection requests.
           </motion.p>
         </motion.div>
 
@@ -193,7 +208,7 @@ export default function PainPoints() {
           transition={{ delay: 0.3, duration: 0.6, ease: EASE }}
           className="mb-10 flex justify-center"
         >
-          <div className="relative flex rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
+          <div className="relative flex w-full max-w-[22rem] rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
             <motion.span
               animate={{ x: active === 0 ? 0 : "100%" }}
               transition={{ type: "spring", stiffness: 350, damping: 30 }}
@@ -202,14 +217,16 @@ export default function PainPoints() {
             {GROUPS.map((g, i) => (
               <button
                 key={g.id}
+                type="button"
                 onClick={() => switchGroup(i)}
-                className={`relative z-10 flex w-40 items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition-colors duration-300 sm:w-52 ${
+                aria-pressed={active === i}
+                className={`relative z-10 flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl py-3 text-xs font-semibold transition-colors duration-300 sm:text-sm ${
                   active === i ? "text-white" : "text-slate-500 hover:text-slate-800"
                 }`}
               >
-                <g.icon className="h-4 w-4" />
-                <span className="hidden sm:inline">{g.label}</span>
-                <span className="sm:hidden">{g.id === "landlords" ? "Landlords" : "Tenants"}</span>
+                <g.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                <span className="truncate sm:hidden">{g.shortLabel}</span>
+                <span className="hidden truncate sm:inline">{g.label}</span>
               </button>
             ))}
           </div>
@@ -226,27 +243,25 @@ export default function PainPoints() {
               exit="exit"
             >
               <GlowCard accent={group.accent}>
-                <div className="relative mb-8 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-start gap-4">
+                <div className="relative mb-7 flex flex-col gap-5 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-start gap-3 sm:gap-4">
                     <motion.div
                       initial={{ rotate: -12, scale: 0.8 }}
                       animate={{ rotate: 0, scale: 1 }}
                       transition={{ delay: 0.2, type: "spring", stiffness: 260, damping: 16 }}
-                      className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl ${group.soft}`}
+                      className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl sm:h-12 sm:w-12 ${group.soft}`}
                     >
-                      <group.icon className="h-6 w-6" />
+                      <group.icon className="h-5 w-5 sm:h-6 sm:w-6" />
                     </motion.div>
-                    <div>
-                      <h3 className="text-xl font-bold text-slate-900 sm:text-2xl">{group.heading}</h3>
+                    <div className="min-w-0">
+                      <h3 className="text-lg font-bold text-slate-900 sm:text-2xl">{group.heading}</h3>
                     </div>
                   </div>
-                  <div ref={statRef} className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-5 py-3">
-                    <TrendingUp className="h-5 w-5" style={{ color: group.accent }} />
-                    <div>
-                      <p className="text-2xl font-extrabold tabular-nums text-slate-900">
-                        <Counter value={group.stat.value} suffix={group.stat.suffix} start={statInView} />
-                      </p>
-                      <p className="text-xs text-slate-500">{group.stat.label}</p>
+                  <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 sm:px-5">
+                    <group.icon className="h-5 w-5 shrink-0" style={{ color: group.accent }} aria-hidden="true" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-slate-900 sm:text-base">Workspace focus</p>
+                      <p className="text-xs text-slate-500">Property connections</p>
                     </div>
                   </div>
                 </div>
@@ -269,7 +284,7 @@ export default function PainPoints() {
           transition={{ delay: 0.8, duration: 0.6 }}
           className="mt-10 text-center text-sm font-medium text-slate-400"
         >
-          Sound familiar? There's a better way below.
+          One platform with distinct tools for landlords and tenants.
         </motion.p>
       </div>
     </section>

@@ -13,6 +13,9 @@ import crypto from "node:crypto";
 import { sendOtpEmail } from "../services/otpMail.services";
 import type { Request, Response } from "express";
 
+const OTP_LIFETIME_MS = 10 * 60 * 1000;
+const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
+
 export const signUp = async (req: any, res: any) => {
   try {
     const validatedUser = signUpValidation.safeParse(req.body);
@@ -61,6 +64,65 @@ export const signUp = async (req: any, res: any) => {
   } catch (err) {
     console.log("this error is from the signup catch: ", err);
     return res.status(500).send("error creating user");
+  }
+};
+
+export const resendOtp = async (req: Request, res: Response) => {
+  try {
+    const validateEmailData = otpValidator.pick({ email: true }).safeParse(req.body);
+    if (!validateEmailData.success) {
+      return res.status(400).json({ message: "Enter a valid email address." });
+    }
+
+    const [user] = await db
+      .select({
+        email: usersTable.email,
+        isVerified: usersTable.isVerified,
+        otp: usersTable.otp,
+        otpExpiry: usersTable.otpExpiry,
+      })
+      .from(usersTable)
+      .where(eq(usersTable.email, validateEmailData.data.email));
+
+    if (!user || user.isVerified) {
+      return res.status(200).json({
+        message:
+          "If this email belongs to an account that needs verification, a new code has been sent.",
+      });
+    }
+
+    if (user.otpExpiry) {
+      const issuedAt =
+        new Date(user.otpExpiry).getTime() - OTP_LIFETIME_MS;
+      const retryAfterMs = OTP_RESEND_COOLDOWN_MS - (Date.now() - issuedAt);
+      if (retryAfterMs > 0) {
+        return res.status(429).json({
+          message: "Please wait before requesting another verification code.",
+          retryAfter: Math.ceil(retryAfterMs / 1000),
+        });
+      }
+    }
+
+    const otp = crypto.randomInt(100000, 1000000).toString();
+    const hashedOtp = await hashPassword(otp);
+    const otpExpiry = new Date(Date.now() + OTP_LIFETIME_MS);
+
+    await sendOtpEmail(user.email, otp);
+
+    await db
+      .update(usersTable)
+      .set({ otp: hashedOtp, otpExpiry })
+      .where(eq(usersTable.email, user.email));
+
+    return res.status(200).json({
+      message:
+        "If this email belongs to an account that needs verification, a new code has been sent.",
+    });
+  } catch (error) {
+    console.error("resendOtp error:", error);
+    return res.status(500).json({
+      message: "Unable to send a new verification code. Please try again.",
+    });
   }
 };
 
@@ -224,17 +286,3 @@ export const signOut = (_req: Request, res: Response) => {
     .status(200)
     .json({ message: "Signed out successfully" });
 };
-
-
-
-export const editProfile = (req: Request, res: Response) => {
-  try {
-    const userId = req.user.id
-
-    if(!userId){return res.status(401).json({message: 'Unautorized'})}
-    
-  } catch (error) {
-    console.log("editProfile error: ", error)
-    res.status(500).json({message: 'Error Editing Profile'})
-  }
-}

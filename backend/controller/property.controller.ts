@@ -524,3 +524,6 @@ export const unSaveProperty = async (req: Request, res: Response) => {
   }
 };
 // tenantSaveTable
+
+
+
