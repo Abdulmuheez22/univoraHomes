@@ -216,6 +216,13 @@ export const signIn = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Unverifield User" });
     }
 
+    // Google-only accounts never set a password, so there is nothing to compare.
+    if (!userDb.password) {
+      return res
+        .status(400)
+        .json({ message: "This account uses Google sign in." });
+    }
+
     const verifyPassword = await confrimHashPassword(
       userPassword,
       userDb.password,

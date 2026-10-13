@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { signUp } from "../lib/services/auth.service";
+import GoogleAuthButton from "./GoogleAuthButton";
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 
@@ -201,7 +202,6 @@ export default function SignUp() {
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
           className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-[#F59E0B]/20 blur-3xl"
         />
-        j
         <motion.div
           animate={{ scale: [1.2, 1, 1.2], opacity: [0.15, 0.25, 0.15] }}
           transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
@@ -783,6 +783,28 @@ export default function SignUp() {
                       )}
                     </span>
                   </motion.button>
+
+                  {/* <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={inView ? { opacity: 1 } : {}}
+                    transition={{ delay: 0.68, duration: 0.5 }}
+                    className="flex items-center gap-4 py-1"
+                  >
+                    <span className="h-px flex-1 bg-slate-200" />
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      or continue with
+                    </span>
+                    <span className="h-px flex-1 bg-slate-200" />
+                  </motion.div> */}
+
+                  {/* <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={inView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ delay: 0.7, duration: 0.5, ease: EASE }}
+                    className="flex items-center justify-center"
+                  >
+                    <GoogleAuthButton role={role || "tenant"} />
+                  </motion.div> */}
 
                   <motion.div
                     initial={{ opacity: 0 }}

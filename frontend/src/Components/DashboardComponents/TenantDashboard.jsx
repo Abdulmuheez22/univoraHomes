@@ -84,6 +84,8 @@ export default function TenantDashboard({ accountData }) {
   } = useQuery({
     queryKey: ["tenant-connection-requests"],
     queryFn: fetchTenantConnectionRequests,
+    refetchInterval: 15000,
+    refetchIntervalInBackground: false,
   });
   const {
     data: landlords = [],
@@ -102,6 +104,7 @@ export default function TenantDashboard({ accountData }) {
   });
 
   const [activeTab, setActiveTab] = useState("overview");
+  const [selectedBrowsePropertyId, setSelectedBrowsePropertyId] = useState(null);
   const [sidebar, setSidebar] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [toast, setToast] = useState(null);
@@ -115,6 +118,18 @@ export default function TenantDashboard({ accountData }) {
     setToast(msg);
     setTimeout(() => setToast(null), 2800);
   };
+
+  const acceptedRequestIds = inquiries
+    .filter(
+      (item) =>
+        String(item.requestStatus || "").toLowerCase() === "accepted",
+    )
+    .map((item) => item.requestId)
+    .join(",");
+
+  useEffect(() => {
+    if (acceptedRequestIds) void refetchLandlords();
+  }, [acceptedRequestIds, refetchLandlords]);
 
   const pendingInquiries = inquiries.filter(
     (item) => String(item.requestStatus || "").toLowerCase() === "pending",
@@ -358,15 +373,6 @@ export default function TenantDashboard({ accountData }) {
               </h1>
             </div>
             <div className="ml-auto flex items-center gap-2">
-              <div className="relative hidden sm:block">
-                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <motion.input
-                  whileFocus={{ scale: 1.01 }}
-                  transition={{ duration: 0.2 }}
-                  placeholder="Search listings..."
-                  className="h-10 w-56 rounded-xl border border-slate-200 bg-slate-50/60 pl-10 pr-4 text-sm outline-none transition-all duration-300 focus:border-[#004741] focus:bg-white focus:ring-4 focus:ring-[#004741]/10 lg:w-72"
-                />
-              </div>
               <motion.button 
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -448,7 +454,12 @@ export default function TenantDashboard({ accountData }) {
               </motion.div>
             </motion.div>
 
-            {activeTab === "browse" && <TenantPropertyBrowser />}
+            {activeTab === "browse" && (
+              <TenantPropertyBrowser
+                selectedPropertyId={selectedBrowsePropertyId}
+                setSelectedPropertyId={setSelectedBrowsePropertyId}
+              />
+            )}
 
             {activeTab === "landlord" && (
               <motion.section
@@ -827,11 +838,17 @@ export default function TenantDashboard({ accountData }) {
                         </div>
                         <div className="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between">
                           <span className="text-sm font-extrabold text-[#004741]">₦{property.targetRent || 0}</span>
-                          <motion.div whileHover={{ x: 2 }}>
-                            <Link to={`/properties/${property.propertyId}`} className="text-xs font-bold text-[#004741] hover:underline flex items-center gap-1">
-                              View details <ChevronRight className="h-3 w-3" />
-                            </Link>
-                          </motion.div>
+                          <motion.button
+                            type="button"
+                            whileHover={{ x: 2 }}
+                            onClick={() => {
+                              setSelectedBrowsePropertyId(property.propertyId);
+                              activateTab("browse");
+                            }}
+                            className="flex items-center gap-1 text-xs font-bold text-[#004741] hover:underline"
+                          >
+                            View details <ChevronRight className="h-3 w-3" />
+                          </motion.button>
                         </div>
                       </motion.div>
                     ))}
@@ -1066,3 +1083,6 @@ export default function TenantDashboard({ accountData }) {
     </>
   );
 }
+
+
+

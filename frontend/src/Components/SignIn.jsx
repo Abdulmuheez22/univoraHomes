@@ -8,36 +8,19 @@ import {
   EyeOff,
   Check,
   ArrowRight,
-  Apple,
   Loader2,
   AlertCircle,
   Sparkles,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { signIn } from "../lib/services/auth.service";
+import GoogleAuthButton from "./GoogleAuthButton";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-// 
+//
 import { useContext } from "react";
 
 const EASE = [0.22, 1, 0.36, 1];
-
-const SOCIALS = [
-  { id: "google", label: "Google" },
-  //   { id: "facebook", label: "Facebook", icon: FacebookIcon },
-  //   { id: "apple", label: "Apple", icon: Apple },
-];
-
-function FacebookIcon() {
-  return (
-    <svg className="h-4.5 w-4.5" viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M13.5 21v-8.2h2.8l.4-3.2h-3.2V7.5c0-.9.3-1.6 1.6-1.6h1.7V3.1c-.3 0-1.3-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.3v2.4H7.3v3.2h2.8V21h3.4Z"
-      />
-    </svg>
-  );
-}
 
 const PERKS = [
   "Rent tracking in real time",
@@ -45,30 +28,7 @@ const PERKS = [
   "Documents, always findable",
 ];
 
-function GoogleIcon() {
-  return (
-    <svg className="h-4.5 w-4.5" viewBox="0 0 24 24">
-      <path
-        fill="#4285F4"
-        d="M23.5 12.27c0-.85-.08-1.66-.22-2.45H12v4.64h6.45a5.52 5.52 0 0 1-2.39 3.62v3h3.87c2.26-2.09 3.57-5.16 3.57-8.81z"
-      />
-      <path
-        fill="#34A853"
-        d="M12 24c3.24 0 5.96-1.07 7.93-2.91l-3.87-3c-1.07.72-2.44 1.15-4.06 1.15-3.12 0-5.77-2.11-6.71-4.95H1.29v3.1A12 12 0 0 0 12 24z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M5.29 14.29A7.2 7.2 0 0 1 4.89 12c0-.8.14-1.57.38-2.29v-3.1H1.29a12 12 0 0 0 0 10.78l4-3.1z"
-      />
-      <path
-        fill="#EA4335"
-        d="M12 4.77c1.76 0 3.34.6 4.58 1.8l3.44-3.44A11.97 11.97 0 0 0 12 0 12 12 0 0 0 1.29 6.61l4 3.1c.94-2.84 3.59-4.94 6.71-4.94z"
-      />
-    </svg>
-  );
-}
-
-export default function SignIn({ onSignIn, onSocial }) {
+export default function SignIn({ onSignIn }) {
   // const {setSharedData } = useContext(ThemeContext)
   const navigate = useNavigate();
 
@@ -106,13 +66,6 @@ export default function SignIn({ onSignIn, onSocial }) {
           "Unable to sign in. Please check your details and try again.",
       );
     }
-  };
-
-  const social = async (provider) => {
-    setError("");
-    setStatus("loading");
-    await onSocial?.(provider);
-    setStatus("idle");
   };
 
   const inputCls =
@@ -401,37 +354,14 @@ export default function SignIn({ onSignIn, onSocial }) {
               <span className="h-px flex-1 bg-slate-200" />
             </motion.div>
 
-            <motion.div
+            {/* <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.5, duration: 0.5, ease: EASE }}
               className="flex items-center justify-center"
             >
-              {SOCIALS.map((s) => (
-                <motion.button
-                  key={s.id}
-                  type="button"
-                  onClick={() => social(s.id)}
-                  whileHover={{ y: -3 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="group cursor-pointer w-36 flex flex-col items-center gap-1.5 rounded-xl border border-slate-200 bg-white py-3.5 transition-all duration-300 hover:border-[#004741]/30 hover:shadow-md"
-                >
-                  {s.id === "google" ? (
-                    <GoogleIcon />
-                  ) : (
-                    <s.icon
-                      className="h-4.5 w-4.5"
-                      style={{
-                        color: s.id === "facebook" ? "#1877F2" : "#000000",
-                      }}
-                    />
-                  )}
-                  <span className="text-[11px] font-semibold text-slate-500 transition-colors group-hover:text-slate-800">
-                    {s.label}
-                  </span>
-                </motion.button>
-              ))}
-            </motion.div>
+              <GoogleAuthButton />
+            </motion.div> */}
 
             <motion.p
               initial={{ opacity: 0 }}
@@ -440,7 +370,7 @@ export default function SignIn({ onSignIn, onSocial }) {
               className="flex items-center justify-center gap-1.5 pt-1 text-xs text-slate-400"
             >
               <Sparkles className="h-3.5 w-3.5 text-[#F59E0B]" />
-              Protected by 256-bit encryption
+              Your data is encrypted and never shared
             </motion.p>
           </form>
         </motion.div>

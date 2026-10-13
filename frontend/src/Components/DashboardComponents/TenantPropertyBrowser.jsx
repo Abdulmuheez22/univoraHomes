@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowUpRight,
   ArrowLeft,
   Bookmark,
   Building2,
@@ -33,21 +32,42 @@ const PROPERTY_CATEGORY_FILTERS = [
   ...PROPERTY_CATEGORIES,
   "Uncategorized",
 ];
+const PRICE_RANGES = ["All prices", "Under ₦5M", "₦5M - ₦10M", "Above ₦10M"];
 
 const formatNaira = (amount) =>
   `₦${(amount || 0).toLocaleString("en-NG")}`;
+
+const getPropertyPrice = (property) => {
+  const amount = property.target ?? property.targetRent ?? property.rent;
+  if (amount === null || amount === undefined || amount === "") return null;
+  const price = Number(amount);
+  return Number.isFinite(price) ? price : null;
+};
+
+const matchesPriceRange = (price, range) => {
+  if (range === "All prices") return true;
+  if (price === null) return false;
+  if (range === "Under ₦5M") return price < 5_000_000;
+  if (range === "₦5M - ₦10M") return price >= 5_000_000 && price <= 10_000_000;
+  return price > 10_000_000;
+};
 
 const propertyImage = (property) => {
   const image = property.propertyImages?.[0];
   return typeof image === "string" ? image : image?.imageUrl || image?.url;
 };
 
-export default function TenantPropertyBrowser() {
+export default function TenantPropertyBrowser({
+  selectedPropertyId,
+  setSelectedPropertyId,
+}) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState("All locations");
   const [selectedType, setSelectedType] = useState("All types");
   const [selectedCategory, setSelectedCategory] = useState("All categories");
-  const [selectedPropertyId, setSelectedPropertyId] = useState(null);
+  const [priceRange, setPriceRange] = useState("All prices");
+  const [sortBy, setSortBy] = useState("default");
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   const {
@@ -103,10 +123,20 @@ export default function TenantPropertyBrowser() {
     enabled: Boolean(selectedPropertyId),
   });
 
+  const allProperties = useMemo(
+    () => data?.pages.flatMap((page) => page.properties || []) || [],
+    [data],
+  );
+  const locations = useMemo(
+    () => [
+      "All locations",
+      ...new Set(allProperties.map((property) => property.state).filter(Boolean)),
+    ],
+    [allProperties],
+  );
   const properties = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase();
-    return (data?.pages.flatMap((page) => page.properties || []) || []).filter(
-      (property) => {
+    const filteredProperties = allProperties.filter((property) => {
         const type = property.propertyType || "Property";
         const category = property.propertyCategory || "Uncategorized";
         const searchable = [
@@ -123,30 +153,63 @@ export default function TenantPropertyBrowser() {
         return (
           (!normalizedSearch || searchable.includes(normalizedSearch)) &&
           (selectedType === "All types" || type === selectedType) &&
+          (selectedLocation === "All locations" ||
+            property.state === selectedLocation) &&
           (selectedCategory === "All categories" ||
-            category === selectedCategory)
+            category === selectedCategory) &&
+          matchesPriceRange(getPropertyPrice(property), priceRange)
         );
-      },
-    );
-  }, [data, search, selectedType, selectedCategory]);
+      });
+    if (sortBy === "default") return filteredProperties;
+    return [...filteredProperties].sort((left, right) => {
+      const leftPrice = getPropertyPrice(left);
+      const rightPrice = getPropertyPrice(right);
+      if (leftPrice === null) return rightPrice === null ? 0 : 1;
+      if (rightPrice === null) return -1;
+      return sortBy === "low-high"
+        ? leftPrice - rightPrice
+        : rightPrice - leftPrice;
+    });
+  }, [
+    allProperties,
+    search,
+    selectedLocation,
+    selectedType,
+    selectedCategory,
+    priceRange,
+    sortBy,
+  ]);
 
   const propertyTypes = useMemo(
     () => [
       "All types",
       ...new Set(
-        (data?.pages.flatMap((page) => page.properties || []) || [])
+        allProperties
           .map((property) => property.propertyType)
           .filter(Boolean),
       ),
     ],
-    [data],
+    [allProperties],
   );
   const savedPropertyIds = new Set(
     savedProperties.map((property) => property.propertyId),
   );
-  const inquiryPropertyIds = new Set(
-    inquiries.map((inquiry) => inquiry.propertyId).filter(Boolean),
+  const inquiryByPropertyId = new Map(
+    inquiries
+      .filter((inquiry) => inquiry.propertyId)
+      .map((inquiry) => [
+        inquiry.propertyId,
+        String(inquiry.requestStatus || "Pending").toLowerCase(),
+      ]),
   );
+  const clearFilters = () => {
+    setSearch("");
+    setSelectedLocation("All locations");
+    setSelectedType("All types");
+    setSelectedCategory("All categories");
+    setPriceRange("All prices");
+    setSortBy("default");
+  };
 
   const saveMutation = useMutation({
     mutationFn: saveProperty,
@@ -172,7 +235,8 @@ export default function TenantPropertyBrowser() {
 
   if (selectedPropertyId) {
     const images = selectedProperty?.propertyImages || [];
-    const hasInterest = inquiryPropertyIds.has(selectedPropertyId);
+    const requestStatus = inquiryByPropertyId.get(selectedPropertyId);
+    const hasInterest = Boolean(requestStatus);
     const isSendingInterest =
       interestMutation.isPending &&
       interestMutation.variables === selectedPropertyId;
@@ -353,8 +417,10 @@ export default function TenantPropertyBrowser() {
                   }
                   onClick={() => interestMutation.mutate(selectedPropertyId)}
                   className={`inline-flex h-12 items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold transition disabled:cursor-not-allowed ${
-                    hasInterest
-                      ? "bg-emerald-50 text-emerald-800"
+                    requestStatus === "declined"
+                      ? "bg-red-50 text-red-700"
+                      : hasInterest
+                        ? "bg-emerald-50 text-emerald-800"
                       : "bg-[#004741] text-white hover:bg-[#00332F] disabled:opacity-60"
                   }`}
                 >
@@ -368,7 +434,7 @@ export default function TenantPropertyBrowser() {
                   {isSendingInterest
                     ? "Sending..."
                     : hasInterest
-                      ? "Interest sent"
+                      ? `Request ${requestStatus}`
                       : "I'm interested"}
                 </button>
                 <button
@@ -452,7 +518,7 @@ export default function TenantPropertyBrowser() {
       </div>
 
       <div className="p-5 sm:p-8">
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row">
+        <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <label className="relative flex-1">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
@@ -464,6 +530,18 @@ export default function TenantPropertyBrowser() {
               className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm outline-none transition focus:border-[#004741] focus:bg-white focus:ring-4 focus:ring-[#004741]/10"
             />
           </label>
+          <select
+            value={selectedLocation}
+            onChange={(event) => setSelectedLocation(event.target.value)}
+            aria-label="Filter by location"
+            className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 outline-none focus:border-[#004741] focus:ring-4 focus:ring-[#004741]/10"
+          >
+            {locations.map((location) => (
+              <option key={location} value={location}>
+                {location}
+              </option>
+            ))}
+          </select>
           <select
             value={selectedType}
             onChange={(event) => setSelectedType(event.target.value)}
@@ -488,6 +566,49 @@ export default function TenantPropertyBrowser() {
               </option>
             ))}
           </select>
+          <select
+            value={priceRange}
+            onChange={(event) => setPriceRange(event.target.value)}
+            aria-label="Filter by price range"
+            className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 outline-none focus:border-[#004741] focus:ring-4 focus:ring-[#004741]/10"
+          >
+            {PRICE_RANGES.map((range) => (
+              <option key={range} value={range}>
+                {range}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <label className="flex items-center gap-2 text-xs font-bold text-slate-500">
+            Sort by
+            <select
+              value={sortBy}
+              onChange={(event) => setSortBy(event.target.value)}
+              aria-label="Sort properties"
+              className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none focus:border-[#004741]"
+            >
+              <option value="default">Featured</option>
+              <option value="low-high">Price: low to high</option>
+              <option value="high-low">Price: high to low</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            onClick={clearFilters}
+            disabled={
+              !search.trim() &&
+              selectedLocation === "All locations" &&
+              selectedType === "All types" &&
+              selectedCategory === "All categories" &&
+              priceRange === "All prices" &&
+              sortBy === "default"
+            }
+            className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-[#004741] transition hover:border-[#004741] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <X className="h-4 w-4" />
+            Clear filters
+          </button>
         </div>
 
         {isLoading ? (
@@ -524,10 +645,12 @@ export default function TenantPropertyBrowser() {
             <Search className="mx-auto h-8 w-8 text-slate-300" />
             <p className="mt-3 font-bold text-slate-700">
               {search ||
-              selectedType !== "All types" ||
-              selectedCategory !== "All categories"
-                ? "No homes match those filters"
-                : "No properties are listed yet"}
+                selectedLocation !== "All locations" ||
+                selectedType !== "All types" ||
+                selectedCategory !== "All categories" ||
+                priceRange !== "All prices"
+                  ? "No homes match those filters"
+                  : "No properties are listed yet"}
             </p>
             <p className="mt-1 text-sm text-slate-500">
               Try a different search or check back soon.
@@ -550,9 +673,8 @@ export default function TenantPropertyBrowser() {
             <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {properties.map((property, index) => {
                 const isSaved = savedPropertyIds.has(property.propertyId);
-                const hasInterest = inquiryPropertyIds.has(
-                  property.propertyId,
-                );
+                const requestStatus = inquiryByPropertyId.get(property.propertyId);
+                const hasInterest = Boolean(requestStatus);
                 const isSaving =
                   saveMutation.isPending || unsaveMutation.isPending;
                 const isInterested =
@@ -566,9 +688,18 @@ export default function TenantPropertyBrowser() {
                     initial={{ opacity: 0, y: 18 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: Math.min(index, 8) * 0.045 }}
-                    className="group overflow-hidden rounded-2xl border border-slate-100 bg-white transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_36px_-18px_rgba(0,51,47,0.28)]"
+                    className="group relative overflow-hidden rounded-2xl border border-slate-100 bg-white transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_36px_-18px_rgba(0,51,47,0.28)]"
                   >
-                    <div className="relative aspect-[4/3] overflow-hidden bg-[#f1f3ef]">
+                    <button
+                      type="button"
+                      aria-label={`View details for ${property.propertyName}`}
+                      onClick={() => {
+                        setSelectedPropertyId(property.propertyId);
+                        setActiveImageIndex(0);
+                      }}
+                      className="absolute inset-0 z-0 cursor-pointer"
+                    />
+                    <div className="pointer-events-none relative z-10 aspect-[4/3] overflow-hidden bg-[#f1f3ef]">
                       {image ? (
                         <img
                           src={image}
@@ -601,14 +732,14 @@ export default function TenantPropertyBrowser() {
                                 propertyId: property.propertyId,
                               })
                         }
-                        className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-slate-600 shadow-sm backdrop-blur transition hover:text-rose-500 disabled:opacity-50"
+                        className="pointer-events-auto absolute right-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-slate-600 shadow-sm backdrop-blur transition hover:text-rose-500 disabled:opacity-50"
                       >
                         <Bookmark
                           className={`h-4 w-4 ${isSaved ? "fill-current text-rose-500" : ""}`}
                         />
                       </button>
                     </div>
-                    <div className="p-5">
+                    <div className="pointer-events-none relative z-10 p-5">
                       <h3 className="truncate text-base font-extrabold text-slate-900">
                         {property.propertyName}
                       </h3>
@@ -632,24 +763,19 @@ export default function TenantPropertyBrowser() {
                             per year · {property.propertyCategory || "Uncategorized"}
                           </p>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedPropertyId(property.propertyId);
-                            setActiveImageIndex(0);
-                          }}
-                          className="inline-flex items-center gap-1 text-xs font-bold text-[#004741] hover:underline"
-                        >
-                          Details <ArrowUpRight className="h-3.5 w-3.5" />
-                        </button>
+                        <span className="text-xs font-bold text-[#004741]">
+                          View property
+                        </span>
                       </div>
                       <button
                         type="button"
                         disabled={hasInterest || isInterested || interestMutation.isPending}
                         onClick={() => interestMutation.mutate(property.propertyId)}
-                        className={`mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold transition disabled:cursor-not-allowed ${
-                          hasInterest
-                            ? "bg-emerald-50 text-emerald-800"
+                        className={`pointer-events-auto relative z-20 mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold transition disabled:cursor-not-allowed ${
+                          requestStatus === "declined"
+                            ? "bg-red-50 text-red-700"
+                            : hasInterest
+                              ? "bg-emerald-50 text-emerald-800"
                             : "bg-[#004741] text-white hover:bg-[#00332F] disabled:opacity-60"
                         }`}
                       >
@@ -663,7 +789,7 @@ export default function TenantPropertyBrowser() {
                         {isInterested
                           ? "Sending interest..."
                           : hasInterest
-                            ? "Interest sent"
+                            ? `Request ${requestStatus}`
                             : "I'm interested"}
                       </button>
                       {interestMutation.isError &&

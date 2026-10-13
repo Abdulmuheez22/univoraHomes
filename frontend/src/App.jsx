@@ -10,8 +10,6 @@ import Properties from "./Components/Properties";
 import AddPropertyModal from "./Components/DashboardComponents/Landlorddashboard/AddPropertyModal";
 import PropertyDetails from "./Components/PropertyDetails";
 import LandlordPropertyDetails from "./Components/LandlordPropertyDetails";
-import TermsOfService from "./Components/LegalComponents/TermsOfService";
-import PrivacyPolicy from "./Components/LegalComponents/PrivacyPolicy";
 
 const router = createBrowserRouter([
   {
@@ -53,14 +51,6 @@ const router = createBrowserRouter([
   {
     path: "/tenantdashboard",
     element: <Dashboard />
-  },
-  {
-    path: "/terms",
-    element: <TermsOfService />
-  },
-  {
-    path: "/privacy",
-    element: <PrivacyPolicy />
   },
   {
     path: "*",

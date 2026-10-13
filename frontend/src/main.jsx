@@ -1,12 +1,16 @@
-import React from 'react';
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import ReactDOM from 'react-dom/client';
-import './index.css'
-import App from './App.jsx'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+import "./index.css";
+import App from "./App.jsx";
 
-createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-)
+// Vite only exposes env vars prefixed with VITE_ to the browser.
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+createRoot(document.getElementById("root")).render(
+  <StrictMode>
+    <GoogleOAuthProvider clientId={googleClientId}>
+      <App />
+    </GoogleOAuthProvider>
+  </StrictMode>,
+);

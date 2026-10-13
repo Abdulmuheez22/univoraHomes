@@ -18,7 +18,7 @@ export const populateDashboard = async (req: Request, res: Response, next: NextF
         const landLordProperty = await db.select().from(propertyTable).where(eq(propertyTable.landLordId, user.id))
 
         // console.log(landLordProperty.length)
-
+        
        const frontendUser = {
         userName: user.fullName,
         role: user.role,
@@ -291,7 +291,7 @@ export const fetchLandlordTenant = async (req: Request, res: Response) => {
 
     const result = connections.map((conn) => {
       const property = propertyMap.get(conn.propertyId);
-      const landlord = tenantMap.get(conn.tenatId);
+      const tenant = tenantMap.get(conn.tenatId);
 
       return {
         property: {
@@ -300,10 +300,13 @@ export const fetchLandlordTenant = async (req: Request, res: Response) => {
           propertyType: property?.propertyType ?? null,
           propertyCategory: property?.propertyCategory ?? null,
         },
-        landlord: {
-          tenantName: landlord?.fullName ?? null,
-          tenantEmail: landlord?.email ?? null,
-          tenantNumber: landlord?.phoneNumber ?? null,
+        tenant: {
+          tenantId: tenant?.id ?? null,
+          tenantName: tenant?.fullName ?? null,
+          tenantEmail: tenant?.email ?? null,
+          tenantNumber: tenant?.phoneNumber ?? null,
+          tenantCity: tenant?.city ?? null,
+          tenantState: tenant?.state ?? null,
         },
       };
     });

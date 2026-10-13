@@ -8,6 +8,7 @@ import {
   resendOtp,
   userProfile,
 } from "../controller/user.controller";
+import { googleSignIn } from "../controller/googleAuth.controller";
 import { authmiddleware } from "../middleware/auth.middleware";
 
 
@@ -17,6 +18,11 @@ const auth = Router();
 auth.post("/signUp", signUp);
 
 auth.post("/signIn", signIn);
+
+auth.post("/google", googleSignIn);
+
+// Same handler as /signOut: both only need to clear the session cookie.
+auth.post("/logout", signOut);
 
 auth.post("/signOut", signOut);
 

@@ -9,23 +9,18 @@ import {
   CheckCircle2,
   LayoutDashboard,
   Users,
-  Wrench,
   LogOut,
   Bell,
-  Search,
   Bookmark,
   Plus,
   ChevronRight,
-  TrendingUp,
-  TrendingDown,
-  Clock,
-  CreditCard,
   CircleUserRound,
   X,
   ArrowUpRight,
   Loader2,
   MessageCircle,
   Phone,
+  MapPin,
   Menu,
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -44,159 +39,16 @@ import {
 import ProfileModal from "./ProfileModal";
 import SignOutConfirmation from "./SignOutConfirmation";
 import RoleSwitchButton from "./RoleSwitchButton";
+import SavedPropertyDetails from "./SavedPropertyDetails";
 
 const EASE = [0.22, 1, 0.36, 1];
-const MotionLink = motion(Link);
 const MOBILE_TAB_LABELS = [
-  "Dashboard",
+  "Overview",
   "Properties",
   "Connection Requests",
   "Tenants",
   "Profile",
 ];
-
-const STATS = [
-  {
-    label: "Total Properties",
-    value: 0,
-    icon: Building2,
-    accent: "#004741",
-    delta: "+2",
-    up: true,
-  },
-  {
-    label: "Property Categories",
-    value: 0,
-    icon: Building2,
-    accent: "#0F766E",
-    delta: "Across your listings",
-    up: true,
-  },
-  // {
-  //   label: "Rent Collected This Month",
-  //   value: 1850000,
-  //   icon: Wallet,
-  //   accent: "#004741",
-  //   money: true,
-  //   delta: "+12.4%",
-  //   up: true,
-  // },
-  // {
-  //   label: "Overdue Payments",
-  //   value: 3,
-  //   icon: AlertCircle,
-  //   accent: "#DC2626",
-  //   delta: "-₦450k",
-  //   up: false,
-  // },
-];
-
-const PAYMENTS = [
-  {
-    tenant: "Adaeze Okonkwo",
-    unit: "Flat 4B, Lekki Phase 1",
-    amount: 450000,
-    date: "Today, 9:41 AM",
-    status: "Paid",
-  },
-  {
-    tenant: "Ibrahim Musa",
-    unit: "Unit 2, Yaba",
-    amount: 320000,
-    date: "Yesterday",
-    status: "Paid",
-  },
-  {
-    tenant: "Chinedu Eze",
-    unit: "Duplex A, V.I",
-    amount: 850000,
-    date: "2 days ago",
-    status: "Paid",
-  },
-  {
-    tenant: "Blessing Adeyemi",
-    unit: "Flat 1C, Ikeja",
-    amount: 280000,
-    date: "3 days ago",
-    status: "Partial",
-  },
-  {
-    tenant: "Tunde Balogun",
-    unit: "Unit 5, Surulere",
-    amount: 300000,
-    date: "5 days ago",
-    status: "Paid",
-  },
-];
-
-const MAINTENANCE = [
-  {
-    title: "Leaking kitchen sink",
-    unit: "Flat 4B, Lekki",
-    priority: "High",
-    time: "2h ago",
-  },
-  {
-    title: "AC not cooling",
-    unit: "Unit 2, Yaba",
-    priority: "Medium",
-    time: "5h ago",
-  },
-  {
-    title: "Broken corridor light",
-    unit: "Flat 1C, Ikeja",
-    priority: "Low",
-    time: "1d ago",
-  },
-  {
-    title: "Water heater fault",
-    unit: "Duplex A, V.I",
-    priority: "High",
-    time: "1d ago",
-  },
-];
-
-const EXPIRING = [
-  { tenant: "Ngozi Nwosu", unit: "Flat 2A, Lekki", days: 5, amount: 450000 },
-  { tenant: "Emeka Obi", unit: "Unit 3, Yaba", days: 12, amount: 320000 },
-  { tenant: "Fatima Bello", unit: "Flat 6D, Ikeja", days: 19, amount: 280000 },
-  { tenant: "Kunle Alabi", unit: "Unit 1, Surulere", days: 27, amount: 300000 },
-];
-
-const CHART = [62, 78, 55, 91, 70, 100];
-
-const ACTIONS = [
-  {
-    icon: Building2,
-    label: "Add New Property",
-    desc: "List a new building",
-    color: "#004741",
-  },
-  {
-    icon: Users,
-    label: "Add Tenant",
-    desc: "Onboard a tenant",
-    color: "#0F766E",
-  },
-  {
-    icon: CreditCard,
-    label: "Record Payment",
-    desc: "Log a rent payment",
-    color: "#F59E0B",
-  },
-  {
-    icon: Wrench,
-    label: "All Maintenance",
-    desc: "View every request",
-    color: "#DC2626",
-  },
-];
-
-const PRIORITY = {
-  High: "bg-red-100 text-red-700",
-  Medium: "bg-amber-100 text-amber-700",
-  Low: "bg-slate-100 text-slate-500",
-};
 
 const naira = (n) => "₦" + n.toLocaleString("en-NG");
 
@@ -230,6 +82,11 @@ function StatCard({ stat, index }) {
   const [hovered, setHovered] = useState(false);
   const value = useCountUp(stat.value, inView);
   const Icon = stat.icon;
+  const displayValue = stat.isLoading
+    ? "..."
+    : stat.isError
+      ? "—"
+      : value.toLocaleString();
   return (
     <motion.div
       ref={ref}
@@ -248,7 +105,7 @@ function StatCard({ stat, index }) {
           background: `radial-gradient(240px circle at 80% 0%, ${stat.accent}0d, transparent 70%)`,
         }}
       />
-      <div className="relative flex items-start justify-between">
+      <div className="relative flex items-center">
         <motion.span
           animate={
             hovered ? { rotate: -8, scale: 1.1 } : { rotate: 0, scale: 1 }
@@ -259,19 +116,9 @@ function StatCard({ stat, index }) {
         >
           <Icon className="h-5 w-5" />
         </motion.span>
-        <span
-          className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${stat.up ? "bg-green-50 text-green-600" : "bg-slate-50 text-slate-500"}`}
-        >
-          {stat.up ? (
-            <TrendingUp className="h-3 w-3" />
-          ) : (
-            <TrendingDown className="h-3 w-3" />
-          )}
-          {stat.delta}
-        </span>
       </div>
       <p className="relative mt-4 text-2xl font-extrabold tabular-nums tracking-tight text-slate-900">
-        {stat.money ? naira(value) : value.toLocaleString()}
+        {displayValue}
       </p>
       <p className="relative mt-0.5 text-xs font-medium text-slate-500">
         {stat.label}
@@ -280,74 +127,262 @@ function StatCard({ stat, index }) {
   );
 }
 
-function ChartCard() {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-40px" });
-  const months = ["Apr", "May", "Jun", "Jul", "Aug", "Sep"];
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 28 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ delay: 0.2, duration: 0.6, ease: EASE }}
-      className="rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]"
-    >
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h3 className="font-bold text-slate-900">Rent Collection</h3>
-          <p className="text-xs text-slate-400">Last 6 months</p>
-        </div>
-        <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-green-600">
-          +18% vs last month
-        </span>
-      </div>
-      <div className="flex h-36 items-end gap-3 sm:gap-4">
-        {CHART.map((h, i) => (
-          <div
-            key={i}
-            className="group flex flex-1 flex-col items-center gap-2"
-          >
-            <motion.div
-              initial={{ height: 0 }}
-              animate={inView ? { height: `${h}%` } : {}}
-              transition={{ delay: 0.3 + i * 0.08, duration: 0.7, ease: EASE }}
-              className={`relative w-full rounded-t-lg transition-colors duration-300 ${
-                i === CHART.length - 1
-                  ? "bg-gradient-to-t from-[#004741] to-[#0F766E]"
-                  : "bg-slate-100 group-hover:bg-[#004741]/20"
-              }`}
-            >
-              {i === CHART.length - 1 && (
-                <motion.span
-                  animate={{ opacity: [0.4, 1, 0.4] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="absolute -top-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rounded-full bg-[#F59E0B] shadow-[0_0_12px_3px_rgba(245,158,11,0.5)]"
-                />
-              )}
-            </motion.div>
-            <span className="text-[11px] font-medium text-slate-400">
-              {months[i]}
-            </span>
-          </div>
-        ))}
-      </div>
-    </motion.div>
-  );
-}
+function LandlordOverview({
+  name,
+  properties,
+  propertiesLoading,
+  propertiesError,
+  onRetryProperties,
+  pendingRequests,
+  requestsLoading,
+  requestsError,
+  onRetryRequests,
+  tenants,
+  tenantsLoading,
+  tenantsError,
+  responding,
+  onRespond,
+  onNavigate,
+}) {
+  const stats = [
+    {
+      label: "My Properties",
+      value: properties?.length ?? 0,
+      icon: Building2,
+      accent: "#004741",
+      isLoading: propertiesLoading,
+      isError: propertiesError,
+    },
+    {
+      label: "Pending Requests",
+      value: pendingRequests.length,
+      icon: Bell,
+      accent: "#0F766E",
+      isLoading: requestsLoading,
+      isError: requestsError,
+    },
+    {
+      label: "Connected Tenants",
+      value: tenants.length,
+      icon: Users,
+      accent: "#F59E0B",
+      isLoading: tenantsLoading,
+      isError: tenantsError,
+    },
+  ];
 
-function SectionHeader({ title, action, onAction }) {
   return (
-    <div className="mb-4 flex items-center justify-between">
-      <h3 className="font-bold text-slate-900">{title}</h3>
-      <motion.button
-        whileHover={{ x: 2 }}
-        onClick={onAction}
-        className="group flex items-center gap-1 text-xs font-semibold text-[#004741] hover:text-[#F59E0B] transition-colors cursor-pointer"
-      >
-        {action}
-        <ChevronRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-      </motion.button>
-    </div>
+    <>
+      <section className="relative overflow-hidden rounded-3xl bg-linear-to-r from-[#00332F] via-[#004741] to-[#0F766E] p-5 text-white shadow-lg shadow-[#004741]/15 sm:p-7 lg:p-8">
+        <div className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-[#F59E0B]/15 blur-3xl" />
+        <div className="relative flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/55">
+              Landlord workspace
+            </p>
+            <h2 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">
+              Welcome back{name ? `, ${name.split(" ")[0]}` : ""}
+            </h2>
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/70">
+              Keep your listings and tenant connection requests moving from one
+              place.
+            </p>
+          </div>
+          <Link
+            to="/addproperty"
+            className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-[#F59E0B] px-5 py-3 text-sm font-bold text-[#00332F] shadow-md transition hover:bg-amber-300 sm:w-auto"
+          >
+            <Plus className="h-4 w-4" strokeWidth={2.5} />
+            Add property
+          </Link>
+        </div>
+      </section>
+
+      <section aria-label="Landlord account summary" className="grid gap-3 sm:grid-cols-3 sm:gap-4">
+        {stats.map((stat, index) => (
+          <StatCard key={stat.label} stat={stat} index={index} />
+        ))}
+      </section>
+
+      <div className="grid items-start gap-5 xl:grid-cols-2">
+        <section className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)] sm:p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h3 className="font-bold text-slate-900">Recent properties</h3>
+              <p className="mt-1 text-xs text-slate-500">
+                Your latest listings at a glance.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onNavigate("Properties")}
+              className="shrink-0 text-xs font-bold text-[#004741] hover:underline"
+            >
+              View all
+            </button>
+          </div>
+
+          {propertiesLoading ? (
+            <p className="py-8 text-center text-sm text-slate-500">
+              Loading properties...
+            </p>
+          ) : propertiesError ? (
+            <div className="py-8 text-center">
+              <p className="text-sm text-red-600">Couldn't load properties.</p>
+              <button
+                type="button"
+                onClick={onRetryProperties}
+                className="mt-2 text-sm font-semibold text-[#004741] hover:underline"
+              >
+                Try again
+              </button>
+            </div>
+          ) : properties.length === 0 ? (
+            <div className="rounded-xl bg-slate-50 px-4 py-8 text-center">
+              <Building2 className="mx-auto h-8 w-8 text-[#004741]/60" />
+              <p className="mt-3 font-semibold text-slate-800">
+                No properties listed yet
+              </p>
+              <p className="mt-1 text-sm text-slate-500">
+                Add a listing to start connecting with tenants.
+              </p>
+              <Link
+                to="/addproperty"
+                className="mt-4 inline-flex rounded-lg bg-[#004741] px-4 py-2.5 text-sm font-bold text-white"
+              >
+                Add your first property
+              </Link>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {properties.slice(0, 3).map((property) => (
+                <Link
+                  key={property.propertyId}
+                  to={`/landlord/properties/${property.propertyId}`}
+                  className="flex min-w-0 items-center gap-3 py-3 first:pt-0 last:pb-0"
+                >
+                  {property.propertyImages?.[0] ? (
+                    <img
+                      src={property.propertyImages[0]}
+                      alt=""
+                      className="h-14 w-16 shrink-0 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-14 w-16 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[#004741]">
+                      <Building2 className="h-5 w-5" />
+                    </span>
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-slate-900">
+                      {property.propertyName}
+                    </span>
+                    <span className="mt-1 block truncate text-xs text-slate-500">
+                      {property.propertyType} · {property.city}, {property.state}
+                    </span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)] sm:p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h3 className="font-bold text-slate-900">Tenant requests</h3>
+              <p className="mt-1 text-xs text-slate-500">
+                Review people interested in your listings.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onNavigate("Connection Requests")}
+              className="shrink-0 text-xs font-bold text-[#004741] hover:underline"
+            >
+              View all
+            </button>
+          </div>
+
+          {requestsLoading ? (
+            <p className="py-8 text-center text-sm text-slate-500">
+              Loading requests...
+            </p>
+          ) : requestsError ? (
+            <div className="py-8 text-center">
+              <p className="text-sm text-red-600">Couldn't load requests.</p>
+              <button
+                type="button"
+                onClick={onRetryRequests}
+                className="mt-2 text-sm font-semibold text-[#004741] hover:underline"
+              >
+                Try again
+              </button>
+            </div>
+          ) : pendingRequests.length === 0 ? (
+            <div className="rounded-xl bg-slate-50 px-4 py-8 text-center">
+              <CheckCircle2 className="mx-auto h-8 w-8 text-[#0F766E]" />
+              <p className="mt-3 font-semibold text-slate-800">
+                You're all caught up
+              </p>
+              <p className="mt-1 text-sm text-slate-500">
+                New tenant requests will appear here.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {pendingRequests.slice(0, 3).map((request) => {
+                const isResponding =
+                  responding.isPending &&
+                  responding.variables?.requestId === request.requestId;
+                return (
+                  <article
+                    key={request.requestId}
+                    className="rounded-xl border border-slate-100 p-3"
+                  >
+                    <div className="flex min-w-0 items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-900">
+                          {request.tenantName || "Tenant"}
+                        </p>
+                        <p className="mt-1 truncate text-xs text-slate-500">
+                          Interested in {request.propertyName || "your property"}
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700">
+                        Pending
+                      </span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onRespond({ requestId: request.requestId, status: "Accepted" })
+                        }
+                        disabled={isResponding}
+                        className="rounded-lg bg-[#004741] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#00332F] disabled:opacity-50"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onRespond({ requestId: request.requestId, status: "Declined" })
+                        }
+                        disabled={isResponding}
+                        className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-red-200 hover:text-red-600 disabled:opacity-50"
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      </div>
+    </>
   );
 }
 
@@ -362,7 +397,7 @@ function Avatar({ name }) {
   const color = colors[name.length % colors.length];
   return (
     <span
-      className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-sm"
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-sm"
       style={{ background: color }}
     >
       {initials}
@@ -370,10 +405,7 @@ function Avatar({ name }) {
   );
 }
 
-const STATUS = {
-  Paid: "text-green-600",
-  Partial: "text-amber-600",
-};
+
 
 export default function LandlordDashboard() {
   // const [landLordProperties, setLandLordProperties] = useState({})
@@ -395,14 +427,14 @@ export default function LandlordDashboard() {
   }, []);
 
   const [sidebar, setSidebar] = useState(false);
-  const [activeNav, setActiveNav] = useState("Dashboard");
+  const [activeNav, setActiveNav] = useState("Overview");
+  const [selectedSavedPropertyId, setSelectedSavedPropertyId] =
+    useState(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [toast, setToast] = useState(null);
   const [dismissedNotifications, setDismissedNotifications] = useState([]);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSignOutOpen, setIsSignOutOpen] = useState(false);
-  const mainRef = useRef(null);
-  const inView = useInView(mainRef, { once: true, margin: "-40px" });
   const queryClient = useQueryClient();
   const {
     data: profile,
@@ -450,16 +482,6 @@ export default function LandlordDashboard() {
     queryFn: fetchLandlordTenant,
   });
 
-  const propertySummary = landLordPropertiesData?.summary;
-  const dashboardStatValues = {
-    "Total Properties": propertySummary?.totalProperties ?? 0,
-    "Property Categories": propertySummary?.propertyCategories ?? 0,
-  };
-  const dashboardStats = STATS.map((stat) => ({
-    ...stat,
-    value: dashboardStatValues[stat.label] ?? stat.value,
-  }));
-
   const notify = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2800);
@@ -485,9 +507,15 @@ export default function LandlordDashboard() {
 
   const respondToRequest = useMutation({
     mutationFn: respondToConnectionRequest,
-    onSuccess: (data) =>
-      queryClient
-        .invalidateQueries({ queryKey: ["landlord-connection-requests"] })
+    onSuccess: (data, variables) =>
+      Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["landlord-connection-requests"],
+        }),
+        variables.status === "Accepted"
+          ? queryClient.invalidateQueries({ queryKey: ["landlord-tenants"] })
+          : Promise.resolve(),
+      ])
         .then(() => notify(data?.message || "Connection request updated.")),
     onError: () =>
       notify("Couldn't update connection request. Please try again."),
@@ -498,7 +526,7 @@ export default function LandlordDashboard() {
   );
 
   const NAV = [
-    { icon: LayoutDashboard, label: "Dashboard" },
+    { icon: LayoutDashboard, label: "Overview" },
     { icon: Building2, label: "Properties" },
     {
       icon: Bell,
@@ -516,7 +544,6 @@ export default function LandlordDashboard() {
       label: "Saved Properties",
       badge: savedProperties.length || null,
     },
-    // { icon: Wrench, label: "Maintenance", badge: 4, active: false },
     // { icon: FileText, label: "Documents", active: false },
     { icon: CircleUserRound, label: "Profile", active: false },
   ];
@@ -569,7 +596,7 @@ export default function LandlordDashboard() {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ duration: 0.28, ease: EASE }}
-              className="fixed inset-y-0 left-0 z-[60] flex w-[min(20rem,88vw)] flex-col overflow-hidden bg-gradient-to-b from-[#00332F] via-[#004741] to-[#002825] py-6 shadow-2xl md:hidden"
+              className="fixed inset-y-0 left-0 z-60 flex w-[min(20rem,88vw)] flex-col overflow-hidden bg-linear-to-b from-[#00332F] via-[#004741] to-[#002825] py-6 shadow-2xl md:hidden"
             >
               <div className="mb-7 flex items-center justify-between px-5">
                 <Link
@@ -650,7 +677,7 @@ export default function LandlordDashboard() {
           </>
         )}
       </AnimatePresence>
-      <div className="flex min-h-[100dvh] overflow-x-clip bg-[#f7f5f0]">
+      <div className="flex min-h-dvh overflow-x-clip bg-[#f7f5f0]">
         <motion.aside
           animate={{ width: sidebar ? 240 : 76 }}
           transition={{ duration: 0.35, ease: EASE }}
@@ -729,8 +756,6 @@ export default function LandlordDashboard() {
               </motion.button>
             ))}
           </nav>
-            <Link to="/">
-            </Link>
           <div className="px-3">
             <RoleSwitchButton
               currentRole={profile?.userRole || userData.role}
@@ -783,15 +808,6 @@ export default function LandlordDashboard() {
               )}
             </div>
             <div className="ml-auto flex shrink-0 items-center gap-2">
-              <div className="relative hidden sm:block">
-                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <motion.input
-                  whileFocus={{ scale: 1.01 }}
-                  transition={{ duration: 0.2 }}
-                  placeholder="Search tenants, units..."
-                  className="h-10 w-56 rounded-xl border border-slate-200 bg-slate-50/60 pl-10 pr-4 text-sm outline-none transition-all duration-300 focus:border-[#004741] focus:bg-white focus:ring-4 focus:ring-[#004741]/10 lg:w-72"
-                />
-              </div>
               <motion.button
                 type="button"
                 whileHover={{ scale: 1.05 }}
@@ -830,7 +846,6 @@ export default function LandlordDashboard() {
           </header>
 
           <main
-            ref={mainRef}
             className="space-y-5 px-3 pb-28 pt-5 sm:space-y-6 sm:px-5 sm:pb-28 md:p-8"
           >
             <AnimatePresence mode="wait" initial={false}>
@@ -842,39 +857,24 @@ export default function LandlordDashboard() {
                 transition={{ duration: 0.28, ease: EASE }}
                 className="space-y-6"
               >
-            {activeNav === "Dashboard" && (
-              <>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, ease: EASE }}
-              className="flex flex-wrap items-center justify-between gap-4"
-            >
-              <div>
-                <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">
-                  Dashboard
-                </h2>
-                <p className="mt-0.5 text-sm text-slate-500">
-                  Here's what's happening across your portfolio today.
-                </p>
-              </div>
-              <MotionLink
-                to="/addproperty"
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-                onClick={() => notify("Add Property flow coming right up")}
-                className="flex items-center gap-2 rounded-xl bg-[#004741] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-[#004741]/25"
-              >
-                <Plus className="h-4 w-4" strokeWidth={2.5} />
-                Add New Property
-              </MotionLink>
-            </motion.div>
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
-              {dashboardStats.map((s, i) => (
-                <StatCard key={s.label} stat={s} index={i} />
-              ))}
-            </div>
-              </>
+            {activeNav === "Overview" && (
+              <LandlordOverview
+                name={profile?.userName || userData.userName}
+                properties={landLordPropertiesData?.properties || []}
+                propertiesLoading={landLordPropertiesIsLoading}
+                propertiesError={landLordPropertiesIsError}
+                onRetryProperties={refetchLandLordProperties}
+                pendingRequests={pendingConnectionRequests}
+                requestsLoading={areConnectionRequestsLoading}
+                requestsError={areConnectionRequestsError}
+                onRetryRequests={refetchConnectionRequests}
+                tenants={landlordTenants}
+                tenantsLoading={areLandlordTenantsLoading}
+                tenantsError={areLandlordTenantsError}
+                responding={respondToRequest}
+                onRespond={(variables) => respondToRequest.mutate(variables)}
+                onNavigate={activateNav}
+              />
             )}
 
             {activeNav === "Properties" && (
@@ -1204,7 +1204,12 @@ export default function LandlordDashboard() {
                 <Bookmark className="h-5 w-5 text-[#F59E0B]" />
               </div>
 
-              {isSavedPropertiesLoading ? (
+              {selectedSavedPropertyId ? (
+                <SavedPropertyDetails
+                  propertyId={selectedSavedPropertyId}
+                  onBack={() => setSelectedSavedPropertyId(null)}
+                />
+              ) : isSavedPropertiesLoading ? (
                 <p className="py-8 text-center text-sm text-slate-500">
                   Loading saved properties...
                 </p>
@@ -1243,9 +1248,12 @@ export default function LandlordDashboard() {
                       key={property.propertyId}
                       className="overflow-hidden rounded-xl border border-slate-100 bg-slate-50/50"
                     >
-                      <Link
-                        to={`/properties/${property.propertyId}`}
-                        className="block"
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedSavedPropertyId(property.propertyId)
+                        }
+                        className="block w-full cursor-pointer text-left"
                       >
                         {property.propertyImages?.[0] ? (
                           <img
@@ -1258,16 +1266,19 @@ export default function LandlordDashboard() {
                             No property photo
                           </div>
                         )}
-                      </Link>
+                      </button>
                       <div className="p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <Link
-                              to={`/properties/${property.propertyId}`}
-                              className="font-bold text-slate-900 hover:text-[#004741]"
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSelectedSavedPropertyId(property.propertyId)
+                              }
+                              className="text-left font-bold text-slate-900 hover:text-[#004741]"
                             >
                               {property.propertyName}
-                            </Link>
+                            </button>
                             <p className="mt-1 text-xs text-slate-500">
                               {property.propertyCategory || "Uncategorized"} ·{" "}
                               {property.propertyType} · {property.city},{" "}
@@ -1289,312 +1300,21 @@ export default function LandlordDashboard() {
                         <p className="mt-3 text-sm font-extrabold text-[#004741]">
                           {naira(Number(property.targetRent || 0))}
                         </p>
-                        <Link
-                          to={`/properties/${property.propertyId}`}
-                          className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#004741] hover:underline"
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSelectedSavedPropertyId(property.propertyId)
+                          }
+                          className="mt-3 inline-flex cursor-pointer items-center gap-1 text-xs font-bold text-[#004741] hover:underline"
                         >
                           View details <ArrowUpRight className="h-3.5 w-3.5" />
-                        </Link>
+                        </button>
                       </div>
                     </article>
                   ))}
                 </div>
               )}
             </section>
-            )}
-
-            {activeNav === "Dashboard" && (
-              <>
-            <div className="grid gap-6 xl:grid-cols-3">
-              <div className="xl:col-span-2">
-                <ChartCard />
-              </div>
-              <motion.div
-                initial={{ opacity: 0, y: 28 }}
-                animate={inView ? { opacity: 1, y: 0 } : {}}
-                transition={{ delay: 0.25, duration: 0.6, ease: EASE }}
-                className="rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]"
-              >
-                <SectionHeader
-                  title="Occupancy"
-                  action="View units"
-                  onAction={() => notify("Units view")}
-                />
-                {[
-                  { label: "Occupied", value: 24, total: 28, color: "#004741" },
-                  { label: "Vacant", value: 4, total: 28, color: "#F59E0B" },
-                  { label: "Overdue", value: 3, total: 28, color: "#DC2626" },
-                ].map((r, i) => (
-                  <div key={r.label} className="mb-4 last:mb-0">
-                    <div className="mb-1.5 flex justify-between text-xs font-semibold">
-                      <span className="text-slate-500">{r.label}</span>
-                      <span className="text-slate-900">{r.value} units</span>
-                    </div>
-                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={
-                          inView
-                            ? { width: `${(r.value / r.total) * 100}%` }
-                            : {}
-                        }
-                        transition={{
-                          delay: 0.4 + i * 0.12,
-                          duration: 0.8,
-                          ease: EASE,
-                        }}
-                        className="h-full rounded-full"
-                        style={{ background: r.color }}
-                      />
-                    </div>
-                  </div>
-                ))}
-                <div className="mt-5 rounded-xl bg-[#f7f5f0] p-4">
-                  <p className="text-xs text-slate-500">
-                    Monthly recurring income
-                  </p>
-                  <p className="text-xl font-extrabold tabular-nums text-[#004741]">
-                    {naira(2480000)}
-                  </p>
-                </div>
-              </motion.div>
-            </div>
-            <div className="grid gap-6 xl:grid-cols-3">
-              <motion.div
-                initial={{ opacity: 0, y: 28 }}
-                animate={inView ? { opacity: 1, y: 0 } : {}}
-                transition={{ delay: 0.15, duration: 0.6, ease: EASE }}
-                className="rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]"
-              >
-                <SectionHeader
-                  title="Recent Payments"
-                  action="View all"
-                  onAction={() => notify("All payments")}
-                />
-                <div className="space-y-1">
-                  {PAYMENTS.map((p, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: -16 }}
-                      animate={inView ? { opacity: 1, x: 0 } : {}}
-                      transition={{
-                        delay: 0.3 + i * 0.08,
-                        duration: 0.5,
-                        ease: EASE,
-                      }}
-                      whileHover={{ x: 4, backgroundColor: "#f7f5f0" }}
-                      className="flex cursor-pointer items-center gap-3 rounded-xl p-2.5 transition-colors duration-200"
-                    >
-                      <Avatar name={p.tenant} />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-slate-900">
-                          {p.tenant}
-                        </p>
-                        <p className="truncate text-xs text-slate-400">
-                          {p.unit}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p
-                          className={`text-sm font-bold tabular-nums ${STATUS[p.status]}`}
-                        >
-                          +{naira(p.amount)}
-                        </p>
-                        <p className="text-[11px] text-slate-400">{p.date}</p>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 28 }}
-                animate={inView ? { opacity: 1, y: 0 } : {}}
-                transition={{ delay: 0.2, duration: 0.6, ease: EASE }}
-                className="rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]"
-              >
-                <SectionHeader
-                  title="Pending Maintenance"
-                  action="View all"
-                  onAction={() => notify("All maintenance requests")}
-                />
-                <div className="space-y-3">
-                  {MAINTENANCE.map((m, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: -16 }}
-                      animate={inView ? { opacity: 1, x: 0 } : {}}
-                      transition={{
-                        delay: 0.35 + i * 0.08,
-                        duration: 0.5,
-                        ease: EASE,
-                      }}
-                      whileHover={{ x: 4 }}
-                      className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-100 p-3.5 transition-colors duration-200 hover:border-[#004741]/20 hover:bg-slate-50/60"
-                    >
-                      <span
-                        className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${PRIORITY[m.priority]}`}
-                      >
-                        <Wrench className="h-4 w-4" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-slate-900">
-                          {m.title}
-                        </p>
-                        <p className="flex items-center gap-1 text-xs text-slate-400">
-                          <Clock className="h-3 w-3" /> {m.unit} · {m.time}
-                        </p>
-                      </div>
-                      <span
-                        className={`rounded-full px-2 py-1 text-[10px] font-bold ${PRIORITY[m.priority]}`}
-                      >
-                        {m.priority}
-                      </span>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 28 }}
-                animate={inView ? { opacity: 1, y: 0 } : {}}
-                transition={{ delay: 0.25, duration: 0.6, ease: EASE }}
-                className="rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]"
-              >
-                <SectionHeader
-                  title="Expiring Rent Soon"
-                  action="v2"
-                  onAction={() => {}}
-                />
-                <div className="space-y-3">
-                  {EXPIRING.map((e, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: -16 }}
-                      animate={inView ? { opacity: 1, x: 0 } : {}}
-                      transition={{
-                        delay: 0.4 + i * 0.08,
-                        duration: 0.5,
-                        ease: EASE,
-                      }}
-                      whileHover={{ x: 4 }}
-                      className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-100 p-3.5 transition-colors duration-200 hover:border-[#F59E0B]/30 hover:bg-amber-50/40"
-                    >
-                      <div className="relative flex h-11 w-11 flex-shrink-0 items-center justify-center">
-                        <svg
-                          className="absolute inset-0 h-full w-full -rotate-90"
-                          viewBox="0 0 44 44"
-                        >
-                          <circle
-                            cx="22"
-                            cy="22"
-                            r="19"
-                            fill="none"
-                            stroke="#f1f5f9"
-                            strokeWidth="4"
-                          />
-                          <motion.circle
-                            cx="22"
-                            cy="22"
-                            r="19"
-                            fill="none"
-                            stroke={
-                              e.days <= 7
-                                ? "#DC2626"
-                                : e.days <= 14
-                                  ? "#F59E0B"
-                                  : "#0F766E"
-                            }
-                            strokeWidth="4"
-                            strokeLinecap="round"
-                            strokeDasharray={119.4}
-                            initial={{ strokeDashoffset: 119.4 }}
-                            animate={
-                              inView
-                                ? {
-                                    strokeDashoffset: 119.4 * (1 - e.days / 30),
-                                  }
-                                : {}
-                            }
-                            transition={{
-                              delay: 0.5 + i * 0.1,
-                              duration: 0.9,
-                              ease: EASE,
-                            }}
-                          />
-                        </svg>
-                        <span
-                          className={`text-[11px] font-extrabold tabular-nums ${e.days <= 7 ? "text-red-600" : e.days <= 14 ? "text-amber-600" : "text-teal-700"}`}
-                        >
-                          {e.days}d
-                        </span>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-slate-900">
-                          {e.tenant}
-                        </p>
-                        <p className="truncate text-xs text-slate-400">
-                          {e.unit}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold tabular-nums text-slate-900">
-                          {naira(e.amount)}
-                        </p>
-                        <p className="text-[11px] text-slate-400">
-                          due in {e.days} days
-                        </p>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-            </div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 28 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ delay: 0.35, duration: 0.6, ease: EASE }}
-              className="grid grid-cols-2 gap-4 lg:grid-cols-4"
-            >
-              {ACTIONS.map((a, i) => (
-                <motion.button
-                  key={a.label}
-                  initial={{ opacity: 0, scale: 0.92 }}
-                  animate={inView ? { opacity: 1, scale: 1 } : {}}
-                  transition={{
-                    delay: 0.45 + i * 0.08,
-                    duration: 0.5,
-                    ease: EASE,
-                  }}
-                  whileHover={{ y: -5 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => notify(`${a.label} — coming up`)}
-                  className="group relative flex flex-col items-start gap-3 overflow-hidden rounded-2xl border border-slate-100 bg-white p-5 text-left shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)] cursor-pointer"
-                >
-                  <motion.span
-                    className="absolute left-0 top-0 h-1 w-full origin-left scale-x-0"
-                    style={{ background: a.color }}
-                    whileHover={{ scaleX: 1 }}
-                    transition={{ duration: 0.35, ease: EASE }}
-                  />
-                  <span
-                    className="flex h-11 w-11 items-center justify-center rounded-xl"
-                    style={{ background: `${a.color}14`, color: a.color }}
-                  >
-                    <a.icon className="h-5 w-5" />
-                  </span>
-                  <div>
-                    <p className="flex items-center gap-1 text-sm font-bold text-slate-900">
-                      {a.label}
-                      <ArrowUpRight className="h-3.5 w-3.5 text-slate-300 transition-all duration-300 group-hover:text-[#F59E0B]" />
-                    </p>
-                    <p className="text-xs text-slate-400">{a.desc}</p>
-                  </div>
-                </motion.button>
-              ))}
-            </motion.div>
-              </>
             )}
 
             {activeNav === "Tenants" && (
@@ -1662,6 +1382,15 @@ export default function LandlordDashboard() {
                             {record.tenant?.tenantNumber && (
                               <p className="mt-1 text-sm text-slate-500">
                                 {record.tenant.tenantNumber}
+                              </p>
+                            )}
+                            {(record.tenant?.tenantCity ||
+                              record.tenant?.tenantState) && (
+                              <p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
+                                <MapPin className="h-3.5 w-3.5 shrink-0" />
+                                {[record.tenant.tenantCity, record.tenant.tenantState]
+                                  .filter(Boolean)
+                                  .join(", ")}
                               </p>
                             )}
                           </div>
