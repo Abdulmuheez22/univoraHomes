@@ -44,7 +44,7 @@ app.use(express.json())
 app.use(cookieParser())
 app.use(
   cors({
-    origin: [env.frontendUrl, "http://localhost:5173"],
+    origin: [env.frontendUrl, "univora-homes-kvo6wgxpn-abdulmuheez.vercel.app",  "http://localhost:5173"],
     credentials: true,
   })
 );
