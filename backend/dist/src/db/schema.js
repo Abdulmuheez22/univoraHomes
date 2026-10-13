@@ -8,10 +8,16 @@ export const usersTable = pgTable("users", {
     otp: varchar("otp", { length: 255 }),
     otpExpiry: timestamp("otpExpiry"),
     isVerified: boolean("isVerified").default(false).notNull(),
-    phoneNumber: varchar("phoneNumber", { length: 20 }).notNull().unique(),
+    // Nullable because Google sign up does not collect a phone number.
+    phoneNumber: varchar("phoneNumber", { length: 20 }).unique(),
     state: varchar("state", { length: 255 }),
     city: varchar("city", { length: 255 }),
-    password: varchar("password", { length: 255 }).notNull(),
+    // Nullable because Google-only accounts never set a password. Postgres
+    // allows many NULLs in a unique column, so this stays safe.
+    password: varchar("password", { length: 255 }),
+    // Google's "sub" claim. Unique so one Google account maps to one user.
+    googleId: varchar("googleId", { length: 255 }).unique(),
+    avatar: varchar("avatar", { length: 500 }),
 });
 export const propertyTable = pgTable("properties", {
     propertyId: uuid("propertyId").primaryKey().defaultRandom(),

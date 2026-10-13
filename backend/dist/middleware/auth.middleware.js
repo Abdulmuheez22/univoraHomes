@@ -1,5 +1,5 @@
-import env from "../config/env";
-import { verifyToken } from "../utils/jwt";
+import env from "../config/env.js";
+import { verifyToken } from "../utils/jwt.js";
 const authenticate = (req, res, next, required) => {
     const authorization = req.get("authorization");
     const bearerMatch = authorization?.match(/^Bearer\s+(.+)$/i);

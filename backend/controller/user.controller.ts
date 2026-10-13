@@ -2,15 +2,15 @@ import {
   signUpValidation,
   signInValidator,
   otpValidator,
-} from "../utils/user.validate";
-import { hashPassword, confrimHashPassword } from "../utils/hasher";
-import { usersTable } from "../src/db/schema";
+} from "../utils/user.validate.js";
+import { hashPassword, confrimHashPassword } from "../utils/hasher.js";
+import { usersTable } from "../src/db/schema.js";
 import { eq } from "drizzle-orm";
-import { db } from "../src/test-db";
-import { tokenGenerator } from "../utils/jwt";
-import env from "../config/env";
+import { db } from "../src/test-db.js";
+import { tokenGenerator } from "../utils/jwt.js";
+import env from "../config/env.js";
 import crypto from "node:crypto";
-import { sendOtpEmail } from "../services/otpMail.services";
+import { sendOtpEmail } from "../services/otpMail.services.js";
 import type { Request, Response } from "express";
 
 const OTP_LIFETIME_MS = 10 * 60 * 1000;

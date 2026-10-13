@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
-import env from "../config/env";
-import { verifyToken } from "../utils/jwt";
+import env from "../config/env.js";
+import { verifyToken } from "../utils/jwt.js";
 
 const authenticate = (
   req: Request,

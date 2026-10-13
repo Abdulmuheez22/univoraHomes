@@ -19,14 +19,14 @@
 
 
 import express from "express";
-import env from "./config/env"
+import env from "./config/env.js"
 import cors from "cors"
-import user from "./routes/user.route";
-import dashboard from "./routes/dashboard.route";
-import { showReqMethod } from "./middleware/logger.middleware";
+import user from "./routes/user.route.js";
+import dashboard from "./routes/dashboard.route.js";
+import { showReqMethod } from "./middleware/logger.middleware.js";
 import cookieParser from "cookie-parser";
-import property from "./routes/propety.route";
-import connection from "./routes/connection.route";
+import property from "./routes/propety.route.js";
+import connection from "./routes/connection.route.js";
 
 const app = express();
 
@@ -42,17 +42,12 @@ const allowedOrigins = new Set([
 
 app.use(express.json())
 app.use(cookieParser())
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.has(origin)) {
-      callback(null, true);
-      return;
-    }
-
-    callback(new Error(`Origin ${origin} is not allowed by CORS`));
-  },
-  credentials: true,
-}))
+app.use(
+  cors({
+    origin: [env.frontendUrl, "http://localhost:5173"],
+    credentials: true,
+  })
+);
 app.use(showReqMethod)
 app.use("/api/auth", user)
 app.use("/api/dashboard", dashboard)

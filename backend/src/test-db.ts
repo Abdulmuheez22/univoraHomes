@@ -10,10 +10,10 @@
 
 
 
-import env from '../config/env';
+import env from '../config/env.js';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { eq } from 'drizzle-orm';
-import { usersTable } from './db/schema';
+import { usersTable } from './db/schema.js';
 
   
 export const db = drizzle(env.dbURL!);

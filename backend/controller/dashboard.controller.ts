@@ -1,10 +1,10 @@
 import type { Request, Response, NextFunction } from "express"
-import { db } from "../src/test-db"
-import { connectionTable, tenantSaveTable, usersTable } from "../src/db/schema"
+import { db } from "../src/test-db.js"
+import { connectionTable, tenantSaveTable, usersTable } from "../src/db/schema.js"
 import { and, eq, inArray, or } from "drizzle-orm"
-import { propertiesImgTable, propertyTable } from '../src/db/schema';
-import { profileUpdateValidator } from "../utils/user.validate";
-import cloudinary from "../config/cloudinary.config";
+import { propertiesImgTable, propertyTable } from '../src/db/schema.js';
+import { profileUpdateValidator } from "../utils/user.validate.js";
+import cloudinary from "../config/cloudinary.config.js";
 
 
 

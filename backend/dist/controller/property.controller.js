@@ -1,8 +1,8 @@
-import { db } from "./../src/test-db";
+import { db } from "../src/test-db.js";
 import { asc, eq, inArray, and } from "drizzle-orm";
-import { connectionTable, usersTable, propertyTable, tenantSaveTable, } from "../src/db/schema";
-import cloudinary from "../config/cloudinary.config";
-import { propertiesImgTable } from "../src/db/schema";
+import { connectionTable, usersTable, propertyTable, tenantSaveTable, } from "../src/db/schema.js";
+import cloudinary from "../config/cloudinary.config.js";
+import { propertiesImgTable } from "../src/db/schema.js";
 export const addProperty = async (req, res) => {
     try {
         console.log("req.body: ", req.body);

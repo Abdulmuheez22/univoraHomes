@@ -7,9 +7,9 @@ import {
   signOut,
   resendOtp,
   userProfile,
-} from "../controller/user.controller";
-import { googleSignIn } from "../controller/googleAuth.controller";
-import { authmiddleware } from "../middleware/auth.middleware";
+} from "../controller/user.controller.js";
+import { googleSignIn } from "../controller/googleAuth.controller.js";
+import { authmiddleware } from "../middleware/auth.middleware.js";
 
 
 const auth = Router();

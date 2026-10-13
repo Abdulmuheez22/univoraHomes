@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { deleteUserAccount, populateDashboard, updateUserProfile, userProfile } from "../controller/dashboard.controller";
-import { authmiddleware, optionalAuthMiddleware } from "../middleware/auth.middleware";
-import { fetchSavedProperties, fetchLandlordTenant, fetchTenantLandLord, switchRole } from "../controller/dashboard.controller";
+import { deleteUserAccount, populateDashboard, updateUserProfile, userProfile } from "../controller/dashboard.controller.js";
+import { authmiddleware, optionalAuthMiddleware } from "../middleware/auth.middleware.js";
+import { fetchSavedProperties, fetchLandlordTenant, fetchTenantLandLord, switchRole } from "../controller/dashboard.controller.js";
 
 
 const dashboard = Router()

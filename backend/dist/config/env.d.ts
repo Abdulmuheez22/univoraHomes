@@ -5,6 +5,7 @@ declare const env: {
     appEmail: string;
     appPassword: string;
     frontendUrl: string;
+    googleClientId: string;
     cloudName: string;
     cloudinaryApiKey: string;
     cloudinaryApiSecret: string;

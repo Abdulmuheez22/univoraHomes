@@ -1,9 +1,9 @@
 import { OAuth2Client, type TokenPayload } from "google-auth-library";
 import { eq } from "drizzle-orm";
-import { db } from "../src/test-db";
-import { usersTable } from "../src/db/schema";
-import { tokenGenerator } from "../utils/jwt";
-import env from "../config/env";
+import { db } from "../src/test-db.js";
+import { usersTable } from "../src/db/schema.js";
+import { tokenGenerator } from "../utils/jwt.js";
+import env from "../config/env.js";
 import type { Request, Response } from "express";
 
 // One client is enough: it only needs our client id as the expected audience.

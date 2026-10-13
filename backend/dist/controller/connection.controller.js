@@ -1,7 +1,7 @@
-import { db } from "../src/test-db";
-import { connectionTable, propertyTable, usersTable } from "../src/db/schema";
+import { db } from "../src/test-db.js";
+import { connectionTable, propertyTable, usersTable } from "../src/db/schema.js";
 import { and, eq, inArray } from "drizzle-orm";
-import { notifyLandlord, notifyTenant, notifyTenantOnDecline } from "../services/otpMail.services";
+import { notifyLandlord, notifyTenant, notifyTenantOnDecline } from "../services/otpMail.services.js";
 export const connectionRequest = async (req, res) => {
     try {
         const userId = req.user.id;

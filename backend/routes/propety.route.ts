@@ -3,12 +3,12 @@ import {
   addProperty,
   deleteLandlordProperty,
   updateLandlordProperty,
-} from "../controller/property.controller";
-import { authmiddleware } from "../middleware/auth.middleware";
-import { upload } from "../middleware/upload.middleware";
-import { fetchProperties, fetchPropertyById, saveProperty} from "../controller/property.controller";
-import { landLordProperties } from "../controller/property.controller";
-import { unSaveProperty } from "../controller/property.controller";
+} from "../controller/property.controller.js";
+import { authmiddleware } from "../middleware/auth.middleware.js";
+import { upload } from "../middleware/upload.middleware.js";
+import { fetchProperties, fetchPropertyById, saveProperty} from "../controller/property.controller.js";
+import { landLordProperties } from "../controller/property.controller.js";
+import { unSaveProperty } from "../controller/property.controller.js";
 
 const property = Router()
 

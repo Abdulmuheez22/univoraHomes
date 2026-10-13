@@ -1,10 +1,10 @@
 import { Router } from "express";
-import { addProperty, deleteLandlordProperty, updateLandlordProperty, } from "../controller/property.controller";
-import { authmiddleware } from "../middleware/auth.middleware";
-import { upload } from "../middleware/upload.middleware";
-import { fetchProperties, fetchPropertyById, saveProperty } from "../controller/property.controller";
-import { landLordProperties } from "../controller/property.controller";
-import { unSaveProperty } from "../controller/property.controller";
+import { addProperty, deleteLandlordProperty, updateLandlordProperty, } from "../controller/property.controller.js";
+import { authmiddleware } from "../middleware/auth.middleware.js";
+import { upload } from "../middleware/upload.middleware.js";
+import { fetchProperties, fetchPropertyById, saveProperty } from "../controller/property.controller.js";
+import { landLordProperties } from "../controller/property.controller.js";
+import { unSaveProperty } from "../controller/property.controller.js";
 const property = Router();
 property.post("/addProperty", authmiddleware, upload.array("images", 5), addProperty);
 property.get("/fetchProperties", fetchProperties);

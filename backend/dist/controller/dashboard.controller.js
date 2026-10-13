@@ -1,9 +1,9 @@
-import { db } from "../src/test-db";
-import { connectionTable, tenantSaveTable, usersTable } from "../src/db/schema";
+import { db } from "../src/test-db.js";
+import { connectionTable, tenantSaveTable, usersTable } from "../src/db/schema.js";
 import { and, eq, inArray, or } from "drizzle-orm";
-import { propertiesImgTable, propertyTable } from '../src/db/schema';
-import { profileUpdateValidator } from "../utils/user.validate";
-import cloudinary from "../config/cloudinary.config";
+import { propertiesImgTable, propertyTable } from '../src/db/schema.js';
+import { profileUpdateValidator } from "../utils/user.validate.js";
+import cloudinary from "../config/cloudinary.config.js";
 export const populateDashboard = async (req, res, next) => {
     try {
         const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user.id));
@@ -226,7 +226,7 @@ export const fetchLandlordTenant = async (req, res) => {
         const tenantMap = new Map(tenants.map((t) => [t.id, t]));
         const result = connections.map((conn) => {
             const property = propertyMap.get(conn.propertyId);
-            const landlord = tenantMap.get(conn.tenatId);
+            const tenant = tenantMap.get(conn.tenatId);
             return {
                 property: {
                     propertyName: property?.propertyName ?? null,
@@ -234,10 +234,13 @@ export const fetchLandlordTenant = async (req, res) => {
                     propertyType: property?.propertyType ?? null,
                     propertyCategory: property?.propertyCategory ?? null,
                 },
-                landlord: {
-                    tenantName: landlord?.fullName ?? null,
-                    tenantEmail: landlord?.email ?? null,
-                    tenantNumber: landlord?.phoneNumber ?? null,
+                tenant: {
+                    tenantId: tenant?.id ?? null,
+                    tenantName: tenant?.fullName ?? null,
+                    tenantEmail: tenant?.email ?? null,
+                    tenantNumber: tenant?.phoneNumber ?? null,
+                    tenantCity: tenant?.city ?? null,
+                    tenantState: tenant?.state ?? null,
                 },
             };
         });
@@ -297,6 +300,40 @@ export const fetchTenantLandLord = async (req, res) => {
     catch (error) {
         console.error("fetchTenantLandLord error:", error);
         return res.status(500).json({ message: "Unable to fetch landlords" });
+    }
+};
+export const switchRole = async (req, res) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+        const newRole = req.body?.newRole;
+        if (newRole !== "landlord" && newRole !== "tenant") {
+            return res.status(400).json({
+                message: "newRole must be either landlord or tenant",
+            });
+        }
+        const [currentUser] = await db
+            .select({ role: usersTable.role })
+            .from(usersTable)
+            .where(eq(usersTable.id, userId));
+        if (!currentUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        if (currentUser.role !== newRole) {
+            await db
+                .update(usersTable)
+                .set({ role: newRole })
+                .where(eq(usersTable.id, userId));
+        }
+        return res
+            .status(200)
+            .json({ message: "Account switched successfully", role: newRole });
+    }
+    catch (error) {
+        console.error("switchRole error:", error);
+        return res.status(500).json({ message: "Error switching role" });
     }
 };
 //# sourceMappingURL=dashboard.controller.js.map

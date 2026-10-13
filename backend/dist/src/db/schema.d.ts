@@ -108,13 +108,13 @@ export declare const usersTable: import("drizzle-orm/pg-core").PgTableWithColumn
             identity: undefined;
             generated: undefined;
         }>;
-        phoneNumber: import("drizzle-orm/pg-core").PgBuildColumn<"users", import("drizzle-orm/pg-core").SetNotNull<import("drizzle-orm/pg-core").PgVarcharBuilder<[string, ...string[]]>>, {
+        phoneNumber: import("drizzle-orm/pg-core").PgBuildColumn<"users", import("drizzle-orm/pg-core").PgVarcharBuilder<[string, ...string[]]>, {
             name: string;
             tableName: "users";
             dataType: "string";
             data: string;
             driverParam: string;
-            notNull: true;
+            notNull: false;
             hasDefault: false;
             isPrimaryKey: false;
             isAutoincrement: false;
@@ -153,13 +153,43 @@ export declare const usersTable: import("drizzle-orm/pg-core").PgTableWithColumn
             identity: undefined;
             generated: undefined;
         }>;
-        password: import("drizzle-orm/pg-core").PgBuildColumn<"users", import("drizzle-orm/pg-core").SetNotNull<import("drizzle-orm/pg-core").PgVarcharBuilder<[string, ...string[]]>>, {
+        password: import("drizzle-orm/pg-core").PgBuildColumn<"users", import("drizzle-orm/pg-core").PgVarcharBuilder<[string, ...string[]]>, {
             name: string;
             tableName: "users";
             dataType: "string";
             data: string;
             driverParam: string;
-            notNull: true;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            identity: undefined;
+            generated: undefined;
+        }>;
+        googleId: import("drizzle-orm/pg-core").PgBuildColumn<"users", import("drizzle-orm/pg-core").PgVarcharBuilder<[string, ...string[]]>, {
+            name: string;
+            tableName: "users";
+            dataType: "string";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            identity: undefined;
+            generated: undefined;
+        }>;
+        avatar: import("drizzle-orm/pg-core").PgBuildColumn<"users", import("drizzle-orm/pg-core").PgVarcharBuilder<[string, ...string[]]>, {
+            name: string;
+            tableName: "users";
+            dataType: "string";
+            data: string;
+            driverParam: string;
+            notNull: false;
             hasDefault: false;
             isPrimaryKey: false;
             isAutoincrement: false;

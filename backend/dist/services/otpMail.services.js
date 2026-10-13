@@ -1,21 +1,15 @@
-import { notifyTenantEmailTemplate, notifyTenantEmailOnDecline } from "./notifyTenantEmailTemplate";
-import transporter from "../config/mailer";
-import env from "../config/env";
-import htmlTemplate from "./notifyLandlordEmailTemplat.servises";
+import { notifyTenantEmailTemplate, notifyTenantEmailOnDecline } from "./notifyTenantEmailTemplate.js";
+import transporter from "../config/mailer.js";
+import env from "../config/env.js";
+import htmlTemplate from "./notifyLandlordEmailTemplat.servises.js";
 export const sendOtpEmail = async (userEmail, otp) => {
-    try {
-        const info = await transporter.sendMail({
-            from: `<${env.appEmail}>`, // sender address
-            to: userEmail, // list of recipients
-            subject: "OTP VERIFICATION", // subject line
-            // text: 'Your verification code is: ${otp}', // plain text body
-            html: `<b>Your verification code is: ${otp}</b>`, // HTML body
-        });
-        console.log("Message sent: %s", info.message);
-    }
-    catch (err) {
-        console.error("Error while sending mail:", err);
-    }
+    const info = await transporter.sendMail({
+        from: `<${env.appEmail}>`,
+        to: userEmail,
+        subject: "OTP VERIFICATION",
+        html: `<b>Your verification code is: ${otp}</b>`,
+    });
+    console.log("Message sent: %s", info.message);
 };
 export const notifyTenant = async (tenantEmail, tenantName, propertyName, propertyAddress) => {
     try {

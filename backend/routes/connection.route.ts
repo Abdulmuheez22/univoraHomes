@@ -1,11 +1,11 @@
 import { Router } from "express";
-import { authmiddleware, optionalAuthMiddleware } from "../middleware/auth.middleware";
-import {  connectionRequest,  getConnectionRequestStatus,  getTenantConnectionRequests,} from "../controller/connection.controller";
+import { authmiddleware, optionalAuthMiddleware } from "../middleware/auth.middleware.js";
+import {  connectionRequest,  getConnectionRequestStatus,  getTenantConnectionRequests,} from "../controller/connection.controller.js";
 import {
   acceptConnectionRequest,
   declineConnectionRequest,
   updateLandLordConnectionRequest,
-} from "../controller/connection.controller";
+} from "../controller/connection.controller.js";
 
 const connection = Router()
 

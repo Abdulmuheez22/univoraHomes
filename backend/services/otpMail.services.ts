@@ -1,7 +1,7 @@
-import {notifyTenantEmailTemplate, notifyTenantEmailOnDecline} from "./notifyTenantEmailTemplate";
-import transporter from "../config/mailer";
-import env from "../config/env";
-import htmlTemplate from "./notifyLandlordEmailTemplat.servises";
+import {notifyTenantEmailTemplate, notifyTenantEmailOnDecline} from "./notifyTenantEmailTemplate.js";
+import transporter from "../config/mailer.js";
+import env from "../config/env.js";
+import htmlTemplate from "./notifyLandlordEmailTemplat.servises.js";
 
 
 export const sendOtpEmail = async (userEmail: string, otp: string) => {

@@ -1,4 +1,4 @@
-import { signIn } from './../controller/user.controller';
+import { signIn } from '../controller/user.controller.js';
 import * as z from "zod";
 
 const fullName = z
