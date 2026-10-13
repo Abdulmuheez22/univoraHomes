@@ -30,7 +30,8 @@ import connection from "./routes/connection.route.js";
 
 const app = express();
 
-const port:number = env.port
+const port = "https://univorahomes.onrender.com"
+
 const frontendUrl = env.frontendUrl
 const allowedOrigins = new Set([
   frontendUrl,
@@ -56,5 +57,5 @@ app.use("/api/connection", connection)
 
 
 app.listen(port, () => {
-    console.log(`univoraHomes is running on http://localhost:${port}`)
+    console.log(`univoraHomes is running on ${port}`)
 })
