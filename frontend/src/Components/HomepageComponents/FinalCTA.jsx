@@ -1,8 +1,7 @@
 import { useRef } from "react";
 import { motion, useInView, useMotionValue, useSpring } from "framer-motion";
-import { ArrowRight, CalendarClock, Sparkles, Home } from "lucide-react";
+import { ArrowRight, Sparkles, Home } from "lucide-react";
 import { Link } from "react-router-dom";
-import { mailtoWithSubject } from "../../lib/site";
 
 const EASE = [0.22, 1, 0.36, 1];
 const MotionLink = motion.create(Link);
@@ -149,14 +148,6 @@ export default function FinalCTA() {
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <MagneticButton variant="primary" delay={0.7} inView={inView} to="/signup">
             Start your journey
-          </MagneticButton>
-          <MagneticButton
-            variant="ghost"
-            delay={0.8}
-            inView={inView}
-            href={mailtoWithSubject("Univora Homes demo request")}
-          >
-            Book a demo
           </MagneticButton>
         </div>
 

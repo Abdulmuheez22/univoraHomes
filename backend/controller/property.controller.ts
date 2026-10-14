@@ -9,11 +9,14 @@ import {
 } from "../src/db/schema.js";
 import cloudinary from "../config/cloudinary.config.js";
 import { propertiesImgTable } from "../src/db/schema.js";
+import { addPropertyValidation } from "../utils/property.validate.js";
+import {
+  collectFieldErrors,
+  summarizeFieldErrors,
+} from "../utils/validationErrors.js";
 
 export const addProperty = async (req: Request, res: Response) => {
   try {
-    console.log("req.body: ", req.body);
-    console.log("req.file: ", req.files);
     const body = req.body;
     const [user] = await db
       .select()
@@ -24,18 +27,32 @@ export const addProperty = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "unauthorized" });
     }
 
-    if (!req.files) {
-      return res.status(400).json({ message: "Image is required" });
+    const files = (req.files as Express.Multer.File[] | undefined) ?? [];
+
+    // Every field is checked at once so the form can highlight all of them,
+    // not just the first problem it runs into.
+    const validated = addPropertyValidation.safeParse(body);
+    if (!validated.success) {
+      const fieldErrors = collectFieldErrors(validated.error);
+      return res.status(400).json({
+        message: summarizeFieldErrors(fieldErrors),
+        errors: fieldErrors,
+      });
     }
 
-    if (
-      typeof body.propertyCategory !== "string" ||
-      !body.propertyCategory.trim()
-    ) {
-      return res.status(400).json({ message: "Property category is required" });
+    if (files.length === 0) {
+      return res.status(400).json({
+        message: "Add at least one property photo.",
+        errors: { photos: "Add at least one property photo." },
+      });
     }
 
-    const files = req.files as Express.Multer.File[];
+    if (files.length > 5) {
+      return res.status(400).json({
+        message: "A property can have a maximum of 5 photos.",
+        errors: { photos: "A property can have a maximum of 5 photos." },
+      });
+    }
 
     const results = await Promise.all(
       files.map(
@@ -59,14 +76,14 @@ export const addProperty = async (req: Request, res: Response) => {
       .insert(propertyTable)
       .values({
         landLordId: user.id,
-        propertyName: body.propertyName,
-        propertyType: body.propertyType,
-        propertyAddress: body.address,
-        city: body.city,
-        state: body.state,
-        propertyCategory: body.propertyCategory.trim(),
-        description: body.description,
-        targetRent: body.targetRent,
+        propertyName: validated.data.propertyName,
+        propertyType: validated.data.propertyType,
+        propertyAddress: validated.data.address,
+        city: validated.data.city,
+        state: validated.data.state,
+        propertyCategory: validated.data.propertyCategory,
+        description: validated.data.description,
+        targetRent: validated.data.targetRent,
       })
       .returning({ id: propertyTable.propertyId });
 
@@ -78,7 +95,9 @@ export const addProperty = async (req: Request, res: Response) => {
       .insert(propertiesImgTable)
       .values(images.map((img: any) => ({ ...img, propertyId: property.id })));
 
-    return res.status(201).json({ message: "property added" });
+    return res
+      .status(201)
+      .json({ message: "property added", propertyId: property.id });
   } catch (error) {
     console.log("this error is from the addProperty catch: ", error);
     return res.status(500).json({ message: "something went wrong" });
@@ -275,10 +294,21 @@ export const updateLandlordProperty = async (req: Request, res: Response) => {
         message: `${missingField} is required`,
       });
     }
-    const targetRent = Number(body.targetRent);
-    if (!Number.isFinite(targetRent) || targetRent < 0) {
+    // Same rule as adding a property: rent is stored as plain digits so the
+    // listing can filter and sort on Number(rent).
+    const targetRent = body.targetRent.replace(/[^\d]/g, "");
+    if (!targetRent || Number(targetRent) <= 0) {
       return res.status(400).json({
-        message: "Target rent must be a valid non-negative amount",
+        message: "Target rent must be a valid amount",
+        errors: { targetRent: "Enter the target rent as a number." },
+      });
+    }
+    if (Number(targetRent) > 1_000_000_000) {
+      return res.status(400).json({
+        message: "Target rent is higher than this platform allows",
+        errors: {
+          targetRent: "Target rent is higher than this platform allows.",
+        },
       });
     }
 
@@ -351,7 +381,7 @@ export const updateLandlordProperty = async (req: Request, res: Response) => {
           city: body.city.trim(),
           state: body.state.trim(),
           description: body.description.trim(),
-          targetRent: body.targetRent.trim(),
+          targetRent,
         })
         .where(
           and(

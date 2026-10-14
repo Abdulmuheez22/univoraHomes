@@ -67,8 +67,6 @@ const LINK_COLUMNS = [
     links: [
       { label: "How It Works", href: "#how-it-works" },
       { label: "Contact Us", href: "#contact" },
-      { label: "Privacy Policy", to: "/privacy" },
-      { label: "Terms of Service", to: "/terms" },
     ],
   },
 ];

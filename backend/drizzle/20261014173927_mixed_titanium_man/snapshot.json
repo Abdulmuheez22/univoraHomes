@@ -1,9 +1,9 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "2bba6e3c-df17-4394-88bb-7db9e128854f",
+  "id": "f6edd52e-bb7e-4799-9be6-add604896c2d",
   "prevIds": [
-    "439739f3-75b2-47aa-9b16-88a9f99700fe"
+    "00000000-0000-0000-0000-000000000000"
   ],
   "ddl": [
     {
@@ -411,6 +411,45 @@
       "table": "users"
     },
     {
+      "type": "varchar(255)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "resetOtp",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "users"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "resetOtpExpiry",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "users"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "0",
+      "generated": null,
+      "identity": null,
+      "name": "resetOtpAttempts",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "users"
+    },
+    {
       "type": "boolean",
       "typeSchema": null,
       "notNull": true,
@@ -426,7 +465,7 @@
     {
       "type": "varchar(20)",
       "typeSchema": null,
-      "notNull": true,
+      "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
@@ -465,7 +504,7 @@
     {
       "type": "varchar(255)",
       "typeSchema": null,
-      "notNull": true,
+      "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,

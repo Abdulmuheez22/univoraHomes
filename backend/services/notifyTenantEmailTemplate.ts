@@ -1,5 +1,5 @@
 export const notifyTenantEmailTemplate = (tenantName: string, propertyName: string, propertyAddress: string ) => {
-    return `Put your HTML text here<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">

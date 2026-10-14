@@ -40,7 +40,13 @@ function FaqItem({ faq, index, open, onToggle, inView }) {
       initial={{ opacity: 0, y: 24 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{ delay: 0.25 + index * 0.07, duration: 0.55, ease: EASE }}
-      onMouseEnter={() => setHovered(true)}
+      onMouseEnter={() => {
+        setHovered(true);
+        /* Touch devices fire a synthetic mouseenter right before click, which
+           would open the item and immediately close it again on tap. */
+        if (!window.matchMedia?.("(hover: hover)").matches) return;
+        onToggle(index);
+      }}
       onMouseLeave={() => setHovered(false)}
       className={`relative overflow-hidden rounded-2xl border transition-colors duration-300 ${
         open ? "border-[#004741]/20 bg-white shadow-lg shadow-[#004741]/5" : "border-slate-200 bg-white/70 hover:border-slate-300"

@@ -17,53 +17,17 @@ import { fetchSavedProperties } from "../lib/services/auth.service";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import { PROPERTY_CATEGORIES } from "../lib/propertyCategories";
+import { NIGERIAN_STATES } from "../lib/nigerianStates";
 
 const EASE = [0.22, 1, 0.36, 1];
 const LIMIT = 12;
 
+// Rent is stored as plain digits; older rows may still carry separators, so
+// anything that isn't a digit is dropped before formatting.
 const naira = (amount) =>
-  `₦${Number(amount || 0).toLocaleString("en-NG")}`;
+  `₦${Number(String(amount ?? "").replace(/[^\d]/g, "") || 0).toLocaleString("en-NG")}`;
 
-const LOCATIONS = [
-  "All Locations",
-  "Abia",
-  "Adamawa",
-  "Akwa Ibom",
-  "Anambra",
-  "Bauchi",
-  "Bayelsa",
-  "Benue",
-  "Borno",
-  "Cross River",
-  "Delta",
-  "Ebonyi",
-  "Edo",
-  "Ekiti",
-  "Enugu",
-  "Gombe",
-  "Imo",
-  "Jigawa",
-  "Kaduna",
-  "Kano",
-  "Katsina",
-  "Kebbi",
-  "Kogi",
-  "Kwara",
-  "Lagos",
-  "Nasarawa",
-  "Niger",
-  "Ogun",
-  "Ondo",
-  "Osun",
-  "Oyo",
-  "Plateau",
-  "Rivers",
-  "Sokoto",
-  "Taraba",
-  "Yobe",
-  "Zamfara",
-  "FCT",
-];
+const LOCATIONS = ["All Locations", ...NIGERIAN_STATES];
 const PROPERTY_TYPES = [
   "All Types",
   "Multi-Family",
@@ -81,7 +45,10 @@ const PRICE_RANGES = ["All Prices", "Under ₦5M", "₦5M - ₦10M", "Above ₦1
 const normalize = (value) => String(value ?? "").trim().toLocaleLowerCase();
 const normalizeLocation = (value) => {
   const location = normalize(value).replace(/\s+state$/, "");
-  return ["fct", "abuja", "federal capital territory"].includes(location)
+  // "FCT", "Abuja", "FCT - Abuja" and the long form are all the same place.
+  return ["fct", "abuja", "fct - abuja", "federal capital territory"].includes(
+    location,
+  )
     ? "fct"
     : location;
 };
@@ -237,7 +204,7 @@ function PropertyCard({ property, index, isSaved }) {
           <div className="mt-4 flex items-end justify-between border-t border-slate-100 pt-4">
             <div>
               <p className="text-lg font-extrabold tabular-nums tracking-tight text-[#004741]">
-               ₦ {rent}
+                {naira(rent)}
               </p>
               <p className="text-[11px] text-slate-400">per year</p>
             </div>
@@ -374,12 +341,21 @@ export default function Properties() {
               Univora<span className="text-[#F59E0B]"> Homes</span>
             </span>
           </Link>
-          <Link
-            to="/signup"
-            className="rounded-xl bg-[#004741] px-5 py-2.5 text-sm font-bold text-white transition-all hover:bg-[#003530]"
-          >
-            Get Started
-          </Link>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link
+              to="/"
+              className="flex items-center gap-2 rounded-xl border border-[#004741]/20 px-3 py-2.5 text-sm font-bold text-[#004741] transition-all hover:border-[#004741]/50 hover:bg-[#F0E8D5]/40 sm:px-5"
+            >
+              <Home className="h-4 w-4 shrink-0 text-[#F59E0B]" strokeWidth={2.5} />
+              Home
+            </Link>
+            <Link
+              to="/signup"
+              className="rounded-xl bg-[#004741] px-4 py-2.5 text-sm font-bold text-white transition-all hover:bg-[#003530] sm:px-5"
+            >
+              Get Started
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -551,11 +527,7 @@ export default function Properties() {
           </motion.div>
         )}
       </AnimatePresence>
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 px-1">
-        <p className="text-sm text-slate-500" aria-live="polite">
-          Showing {properties.length} of {rawProperties.length} loaded{" "}
-          {rawProperties.length === 1 ? "property" : "properties"}
-        </p>
+      <div className="mt-3 flex flex-wrap items-center justify-end gap-3 px-1">
         <button
           type="button"
           onClick={clearFilters}
@@ -679,7 +651,7 @@ export default function Properties() {
             </div>
 
             <div className="mt-12 flex justify-center">
-              {hasNextPage ? (
+              {hasNextPage && (
                 <motion.button
                   onClick={() => fetchNextPage()}
                   disabled={isFetchingNextPage}
@@ -696,11 +668,6 @@ export default function Properties() {
                     "Load more properties"
                   )}
                 </motion.button>
-              ) : (
-                <p className="text-sm font-medium text-slate-400">
-                  You've seen all {properties.length}{" "}
-                  {properties.length === 1 ? "property" : "properties"}
-                </p>
               )}
             </div>
           </>

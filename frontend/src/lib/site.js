@@ -9,8 +9,3 @@ export const WHATSAPP_URL = "https://wa.me/2349017942879";
 
 export const mailtoWithSubject = (subject) =>
   `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}`;
-
-/** Shared across the Terms of Service and Privacy Policy pages. Bump when either is revised. */
-export const LEGAL_LAST_UPDATED = "12 October 2026";
-
-export const LEGAL_JURISDICTION = "Federal Republic of Nigeria";

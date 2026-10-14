@@ -4,8 +4,10 @@ import { Link, useParams } from "react-router-dom";
 import { landLordProperties } from "../lib/services/auth.service";
 import LandlordPropertyActions from "./LandlordPropertyActions";
 
+// Matches the listing: rent is stored as plain digits, so separators are
+// dropped before the amount is formatted.
 const formatNaira = (amount) =>
-  `₦${Number(amount || 0).toLocaleString("en-NG")}`;
+  `₦${Number(String(amount ?? "").replace(/[^\d]/g, "") || 0).toLocaleString("en-NG")}`;
 
 export default function LandlordPropertyDetails() {
   const { propertyId } = useParams();

@@ -23,26 +23,28 @@ export const usersTable = pgTable("users", {
 
   otpExpiry: timestamp("otpExpiry"),
 
+  // Password reset uses its own fields so a reset request can never clobber a
+  // pending sign-up verification code (and vice versa).
+  resetOtp: varchar("resetOtp", { length: 255 }),
+
+  resetOtpExpiry: timestamp("resetOtpExpiry"),
+
+  resetOtpAttempts: integer("resetOtpAttempts").default(0).notNull(),
+
   isVerified: boolean("isVerified").default(false).notNull(),
 
-  // Nullable because Google sign up does not collect a phone number.
   phoneNumber: varchar("phoneNumber", { length: 20 }).unique(),
 
   state: varchar("state", { length: 255 }),
 
   city: varchar("city", { length: 255 }),
 
-  // Nullable because Google-only accounts never set a password. Postgres
-  // allows many NULLs in a unique column, so this stays safe.
   password: varchar("password", { length: 255 }),
 
-  // Google's "sub" claim. Unique so one Google account maps to one user.
-  googleId: varchar("googleId", { length: 255 }).unique(),
-
-  avatar: varchar("avatar", { length: 500 }),
 });
 
 export const propertyTable = pgTable("properties", {
+  
   propertyId: uuid("propertyId").primaryKey().defaultRandom(),
 
   landLordId: uuid("landLordId").notNull().references(() => usersTable.id),

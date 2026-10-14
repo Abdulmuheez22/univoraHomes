@@ -331,7 +331,8 @@ export default function LandlordPropertyActions({ property }) {
                         </span>
                         <input
                           required
-                          min="0"
+                          min="1"
+                          step="1"
                           type="number"
                           name="targetRent"
                           value={formData?.targetRent || ""}

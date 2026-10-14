@@ -105,7 +105,10 @@ export const getConnectionRequestStatus = async (
     }
 
     const [request] = await db
-      .select({ id: connectionTable.id })
+      .select({
+        id: connectionTable.id,
+        requestStatus: connectionTable.requestStatus,
+      })
       .from(connectionTable)
       .where(
         and(
@@ -115,7 +118,11 @@ export const getConnectionRequestStatus = async (
       )
       .limit(1);
 
-    return res.status(200).json({ requested: Boolean(request) });
+    // The status drives the button label: Pending / Accepted / Declined.
+    return res.status(200).json({
+      requested: Boolean(request),
+      status: request?.requestStatus ?? null,
+    });
   } catch (error) {
     console.log("this error is from getConnectionRequestStatus: ", error);
     return res

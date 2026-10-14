@@ -2,8 +2,37 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { addProperty } from "../../../lib/services/auth.service";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { X, ArrowLeft, Building2, Upload, CheckCircle2 } from "lucide-react";
+import {
+  X,
+  ArrowLeft,
+  Building2,
+  Upload,
+  CheckCircle2,
+  ChevronDown,
+} from "lucide-react";
 import { PROPERTY_CATEGORIES } from "../../../lib/propertyCategories";
+import { NIGERIAN_STATES } from "../../../lib/nigerianStates";
+import { amountToDigits, formatAmountInput, numberToWords } from "../../../lib/numberToWords";
+
+const PROPERTY_TYPES = [
+  "Multi-Family",
+  "Single-Family",
+  "Commercial",
+  "Duplex",
+];
+
+const NAME_MIN = 10;
+const DESCRIPTION_MIN = 20;
+const DESCRIPTION_MAX = 1000;
+const MAX_PHOTOS = 5;
+const MAX_RENT = 1_000_000_000;
+const MIN_RENT = 1_000;
+
+const inputCls =
+  "w-full bg-[#F7F5F0] border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition-all duration-300 focus:border-[#00332F] focus:bg-white focus:ring-4 focus:ring-[#00332F]/10";
+
+const errorInputCls =
+  "border-red-400 focus:border-red-400 focus:ring-red-100";
 
 export default function AddPropertyPage({ onBack }) {
   const navigate = useNavigate();
@@ -11,11 +40,12 @@ export default function AddPropertyPage({ onBack }) {
   const [step, setStep] = useState(1);
   const [photos, setPhotos] = useState([]);
   const [formError, setFormError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [photoMessage, setPhotoMessage] = useState("");
   const [formData, setFormData] = useState({
     propertyName: "",
     propertyType: "Multi-Family",
-    propertyCategory: "Multi-Family",
+    propertyCategory: PROPERTY_CATEGORIES[0],
     address: "",
     city: "",
     state: "",
@@ -26,12 +56,20 @@ export default function AddPropertyPage({ onBack }) {
   const { mutate, isPending } = useMutation({
     mutationFn: addProperty,
     onSuccess: (data) => {
-      console.log("Property added success: ", data);
       queryClient.invalidateQueries({ queryKey: ["landlord-properties"] });
-      navigate("/dashboard");
+      // Straight to the property itself, where it can be edited or deleted.
+      navigate(
+        data?.propertyId
+          ? `/landlord/properties/${data.propertyId}`
+          : "/dashboard",
+      );
     },
     onError: (error) => {
-      console.error("error Adding property: ", error);
+      // The API answers with one message per field; show them all.
+      const serverFieldErrors = error.response?.data?.errors;
+      if (serverFieldErrors && typeof serverFieldErrors === "object") {
+        setFieldErrors(serverFieldErrors);
+      }
       setFormError(
         error.response?.data?.message ||
           "We couldn't save your property. Please try again.",
@@ -39,21 +77,28 @@ export default function AddPropertyPage({ onBack }) {
     },
   });
 
+  const update = (name, value) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFieldErrors((prev) => ({ ...prev, [name]: "" }));
+    setFormError("");
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    update(name, name === "targetRent" ? formatAmountInput(value) : value);
   };
 
   const handlePhotoUpload = (e) => {
     const files = Array.from(e.target.files);
-    const remainingSlots = Math.max(0, 5 - photos.length);
+    const remainingSlots = Math.max(0, MAX_PHOTOS - photos.length);
     const acceptedFiles = files.slice(0, remainingSlots);
     setPhotos((prev) => [...prev, ...acceptedFiles]);
     setPhotoMessage(
       files.length > remainingSlots
-        ? "You can upload up to 5 photos. Extra files were not added."
+        ? `You can upload up to ${MAX_PHOTOS} photos. Extra files were not added.`
         : "",
     );
+    setFieldErrors((prev) => ({ ...prev, photos: "" }));
     setFormError("");
     e.target.value = "";
   };
@@ -63,45 +108,122 @@ export default function AddPropertyPage({ onBack }) {
     setPhotoMessage("");
   };
 
+  /* The whole step is checked in one pass so every problem is listed at once. */
   const validateStep1 = () => {
-    if (!formData.propertyName.trim()) return "Property name is required";
-    if (!formData.address.trim()) return "Address is required";
-    if (!formData.city.trim()) return "City is required";
-    if (!formData.propertyCategory) return "Property category is required";
-    return null;
+    const errors = {};
+    const propertyName = formData.propertyName.trim();
+    const address = formData.address.trim();
+    const city = formData.city.trim();
+
+    if (!propertyName) errors.propertyName = "Property name is required.";
+    else if (propertyName.length < NAME_MIN)
+      errors.propertyName = `Property name must be at least ${NAME_MIN} characters.`;
+    else if (propertyName.length > 120)
+      errors.propertyName = "Property name must be at most 120 characters.";
+
+    if (!PROPERTY_TYPES.includes(formData.propertyType))
+      errors.propertyType = "Choose a property type.";
+
+    if (!address) errors.address = "Street address is required.";
+    else if (address.length < 5)
+      errors.address = "Street address must be at least 5 characters.";
+    else if (address.length > 200)
+      errors.address = "Street address must be at most 200 characters.";
+
+    if (!city) errors.city = "City is required.";
+    else if (city.length < 2) errors.city = "City must be at least 2 characters.";
+    else if (city.length > 100) errors.city = "City must be at most 100 characters.";
+
+    if (!formData.state) errors.state = "Select a state.";
+    else if (!NIGERIAN_STATES.includes(formData.state))
+      errors.state = "Select a state from the list.";
+
+    if (!PROPERTY_CATEGORIES.includes(formData.propertyCategory))
+      errors.propertyCategory = "Choose a property category.";
+
+    return errors;
+  };
+
+  const validateStep2 = () => {
+    const errors = {};
+    const description = formData.description.trim();
+    const rent = Number(amountToDigits(formData.targetRent));
+
+    if (photos.length === 0)
+      errors.photos = "Add at least one property photo before publishing.";
+
+    if (!amountToDigits(formData.targetRent))
+      errors.targetRent = "Target rent is required.";
+    else if (!Number.isFinite(rent) || rent <= 0)
+      errors.targetRent = "Enter the target rent as a number.";
+    else if (rent < MIN_RENT)
+      errors.targetRent = "Target rent looks too low — check the amount.";
+    else if (rent > MAX_RENT)
+      errors.targetRent = "Target rent is higher than this platform allows.";
+
+    if (!description) errors.description = "A description is required.";
+    else if (description.length < DESCRIPTION_MIN)
+      errors.description = `Description must be at least ${DESCRIPTION_MIN} characters.`;
+    else if (description.length > DESCRIPTION_MAX)
+      errors.description = `Description must be at most ${DESCRIPTION_MAX} characters.`;
+
+    return errors;
+  };
+
+  const applyErrors = (errors) => {
+    setFieldErrors(errors);
+    const messages = Object.values(errors);
+    if (messages.length === 0) {
+      setFormError("");
+      return true;
+    }
+    setFormError(
+      messages.length === 1
+        ? messages[0]
+        : `Please fix ${messages.length} problems: ${messages.join(" ")}`,
+    );
+    return false;
   };
 
   const handleNext = (e) => {
     e.preventDefault();
-    const error = validateStep1();
-    if (error) {
-      setFormError(error);
-      return;
-    }
-    setFormError("");
-    setStep(2);
+    if (applyErrors(validateStep1())) setStep(2);
   };
 
   const handleBackStep = () => {
     setFormError("");
+    setFieldErrors({});
     setStep(1);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    if (photos.length === 0) {
-      setFormError("Add at least one property photo before publishing.");
-      return;
-    }
+    if (!applyErrors(validateStep2())) return;
 
     const body = new FormData();
-    Object.entries(formData).forEach(([key, value]) => body.append(key, value));
+    Object.entries(formData).forEach(([key, value]) => {
+      body.append(
+        key,
+        // Rent goes to the API as digits only so it stays filterable.
+        key === "targetRent" ? amountToDigits(value) : value,
+      );
+    });
     photos.forEach((photo) => body.append("images", photo));
 
     setFormError("");
     mutate(body);
   };
+
+  const rentWords = numberToWords(formData.targetRent);
+
+  const fieldError = (name) =>
+    fieldErrors[name] ? (
+      <p className="mt-1.5 text-xs font-medium text-red-600">
+        {fieldErrors[name]}
+      </p>
+    ) : null;
+
+  const withError = (name) => (fieldErrors[name] ? errorInputCls : "");
 
   return (
     <div className="min-h-screen bg-[#F7F5F0] p-6 lg:p-10 font-sans">
@@ -178,7 +300,7 @@ export default function AddPropertyPage({ onBack }) {
           </div>
 
           {/* Form Body */}
-          <form onSubmit={handleSubmit} className="p-8 space-y-6">
+          <form onSubmit={handleSubmit} noValidate className="p-8 space-y-6">
             {formError && (
               <div
                 role="alert"
@@ -211,30 +333,34 @@ export default function AddPropertyPage({ onBack }) {
                     <input
                       type="text"
                       name="propertyName"
-                      required
                       placeholder="e.g., Lekki Phase 1 Heights"
                       value={formData.propertyName}
                       onChange={handleInputChange}
-                      className="w-full bg-[#F7F5F0] border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition-all duration-300 focus:border-[#00332F] focus:bg-white focus:ring-4 focus:ring-[#00332F]/10"
+                      className={`${inputCls} ${withError("propertyName")}`}
                     />
+                    <p className="mt-1.5 text-xs text-slate-400">
+                      {formData.propertyName.trim().length}/{NAME_MIN} characters
+                      minimum
+                    </p>
+                    {fieldError("propertyName")}
                   </div>
                   <div>
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
-                      Property Type
+                      Property Type *
                     </label>
                     <select
                       name="propertyType"
                       value={formData.propertyType}
                       onChange={handleInputChange}
-                      className="w-full bg-[#F7F5F0] border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition-all duration-300 focus:border-[#00332F] focus:bg-white focus:ring-4 focus:ring-[#00332F]/10 cursor-pointer"
+                      className={`${inputCls} cursor-pointer ${withError("propertyType")}`}
                     >
-                      <option value="Multi-Family">
-                        Multi-Family Apartments
-                      </option>
-                      <option value="Single-Family">Single-Family House</option>
-                      <option value="Commercial">Commercial Space</option>
-                      <option value="Duplex">Duplex</option>
+                      {PROPERTY_TYPES.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))}
                     </select>
+                    {fieldError("propertyType")}
                   </div>
                 </div>
 
@@ -245,12 +371,12 @@ export default function AddPropertyPage({ onBack }) {
                   <input
                     type="text"
                     name="address"
-                    required
                     placeholder="e.g., Plot 14B, Admiralty Way"
                     value={formData.address}
                     onChange={handleInputChange}
-                    className="w-full bg-[#F7F5F0] border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition-all duration-300 focus:border-[#00332F] focus:bg-white focus:ring-4 focus:ring-[#00332F]/10"
+                    className={`${inputCls} ${withError("address")}`}
                   />
+                  {fieldError("address")}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -261,35 +387,46 @@ export default function AddPropertyPage({ onBack }) {
                     <input
                       type="text"
                       name="city"
-                      required
                       placeholder="e.g., Lekki"
                       value={formData.city}
                       onChange={handleInputChange}
-                      className="w-full bg-[#F7F5F0] border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition-all duration-300 focus:border-[#00332F] focus:bg-white focus:ring-4 focus:ring-[#00332F]/10"
+                      className={`${inputCls} ${withError("city")}`}
                     />
+                    {fieldError("city")}
                   </div>
                   <div>
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
-                      State
+                      State *
                     </label>
-                    <input
-                      type="text"
-                      name="state"
-                      placeholder="e.g., Lagos"
-                      value={formData.state}
-                      onChange={handleInputChange}
-                      className="w-full bg-[#F7F5F0] border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition-all duration-300 focus:border-[#00332F] focus:bg-white focus:ring-4 focus:ring-[#00332F]/10"
-                    />
+                    <div className="relative">
+                      <select
+                        name="state"
+                        value={formData.state}
+                        onChange={handleInputChange}
+                        className={`${inputCls} cursor-pointer appearance-none ${formData.state ? "text-slate-800" : "text-slate-400"} ${withError("state")}`}
+                      >
+                        <option value="" disabled>
+                          Select state
+                        </option>
+                        {NIGERIAN_STATES.map((state) => (
+                          <option key={state} value={state}>
+                            {state}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    </div>
+                    {fieldError("state")}
                   </div>
                   <div>
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
-                      Property Category
+                      Property Category *
                     </label>
                     <select
                       name="propertyCategory"
                       value={formData.propertyCategory}
                       onChange={handleInputChange}
-                      className="w-full bg-[#F7F5F0] border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition-all duration-300 focus:border-[#00332F] focus:bg-white focus:ring-4 focus:ring-[#00332F]/10 cursor-pointer"
+                      className={`${inputCls} cursor-pointer ${withError("propertyCategory")}`}
                     >
                       {PROPERTY_CATEGORIES.map((category) => (
                         <option key={category} value={category}>
@@ -297,6 +434,7 @@ export default function AddPropertyPage({ onBack }) {
                         </option>
                       ))}
                     </select>
+                    {fieldError("propertyCategory")}
                   </div>
                 </div>
               </div>
@@ -306,7 +444,7 @@ export default function AddPropertyPage({ onBack }) {
               <div className="space-y-6 animate-in fade-in duration-300">
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
-                    Property Photos
+                    Property Photos *
                   </label>
                   <input
                     type="file"
@@ -318,7 +456,11 @@ export default function AddPropertyPage({ onBack }) {
                   />
                   <label
                     htmlFor="photo-upload"
-                    className="border-2 border-dashed border-slate-200 bg-[#F7F5F0] rounded-2xl p-8 text-center hover:border-[#00332F] transition-colors cursor-pointer block group"
+                    className={`border-2 border-dashed rounded-2xl p-8 text-center hover:border-[#00332F] transition-colors cursor-pointer block group ${
+                      fieldErrors.photos
+                        ? "border-red-300 bg-red-50/40"
+                        : "border-slate-200 bg-[#F7F5F0]"
+                    }`}
                   >
                     <span className="flex h-12 w-12 mx-auto items-center justify-center rounded-2xl bg-[#00332F]/5 text-[#00332F] mb-3 group-hover:bg-[#00332F] group-hover:text-white transition-colors">
                       <Upload className="w-5 h-5" />
@@ -363,27 +505,39 @@ export default function AddPropertyPage({ onBack }) {
                     </p>
                   )}
                   <p className="mt-2 text-xs font-medium text-slate-400">
-                    {photos.length} of 5 photos selected
+                    {photos.length} of {MAX_PHOTOS} photos selected
                   </p>
+                  {fieldError("photos")}
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
-                    Default Target Rent per Unit (₦)
+                    Default Target Rent per Unit (₦) *
                   </label>
                   <input
                     type="text"
                     name="targetRent"
+                    inputMode="numeric"
                     placeholder="e.g., 450,000"
                     value={formData.targetRent}
                     onChange={handleInputChange}
-                    className="w-full bg-[#F7F5F0] border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition-all duration-300 focus:border-[#00332F] focus:bg-white focus:ring-4 focus:ring-[#00332F]/10 font-semibold"
+                    className={`${inputCls} font-semibold ${withError("targetRent")}`}
                   />
+                  {rentWords ? (
+                    <p className="mt-1.5 text-xs font-medium text-[#00332F]">
+                      {rentWords} naira per unit, per year
+                    </p>
+                  ) : (
+                    <p className="mt-1.5 text-xs text-slate-400">
+                      Numbers only — the amount is spelled out as you type.
+                    </p>
+                  )}
+                  {fieldError("targetRent")}
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
-                    Property Description & Notes
+                    Property Description & Notes *
                   </label>
                   <textarea
                     rows="4"
@@ -391,8 +545,19 @@ export default function AddPropertyPage({ onBack }) {
                     placeholder="Enter key details about the building, facilities, or security..."
                     value={formData.description}
                     onChange={handleInputChange}
-                    className="w-full bg-[#F7F5F0] border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none transition-all duration-300 focus:border-[#00332F] focus:bg-white focus:ring-4 focus:ring-[#00332F]/10 resize-none"
+                    className={`${inputCls} resize-none ${withError("description")}`}
                   ></textarea>
+                  <p
+                    className={`mt-1.5 text-xs ${
+                      formData.description.trim().length > DESCRIPTION_MAX
+                        ? "font-medium text-red-600"
+                        : "text-slate-400"
+                    }`}
+                  >
+                    {formData.description.trim().length}/{DESCRIPTION_MAX}{" "}
+                    characters (minimum {DESCRIPTION_MIN})
+                  </p>
+                  {fieldError("description")}
                 </div>
               </div>
             )}

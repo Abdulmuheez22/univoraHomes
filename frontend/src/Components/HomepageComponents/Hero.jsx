@@ -22,6 +22,8 @@ const fadeUp = {
   }),
 };
 
+const MAGNET_MAX = 10;
+
 function MagneticButton({ children, variant = "primary", icon: Icon, to, label }) {
   const ref = useRef(null);
   const x = useMotionValue(0);
@@ -29,10 +31,14 @@ function MagneticButton({ children, variant = "primary", icon: Icon, to, label }
   const sx = useSpring(x, { stiffness: 200, damping: 16 });
   const sy = useSpring(y, { stiffness: 200, damping: 16 });
 
+  /* Measured on the padded wrapper, not the button itself: the button slides
+     toward the cursor, so a tight hit area makes it slip out from under the
+     pointer and snap back. Clamping keeps it inside that padded area. */
   const onMove = (e) => {
     const r = ref.current.getBoundingClientRect();
-    x.set((e.clientX - r.left - r.width / 2) * 0.28);
-    y.set((e.clientY - r.top - r.height / 2) * 0.28);
+    const clamp = (v) => Math.max(-MAGNET_MAX, Math.min(MAGNET_MAX, v));
+    x.set(clamp((e.clientX - r.left - r.width / 2) * 0.2));
+    y.set(clamp((e.clientY - r.top - r.height / 2) * 0.2));
   };
   const reset = () => {
     x.set(0);
@@ -49,51 +55,55 @@ function MagneticButton({ children, variant = "primary", icon: Icon, to, label }
 
   const Component = to ? MotionLink : motion.button;
   return (
-    <Component
-      {...(to ? { to } : { type: "button" })}
-      aria-label={label}
+    <motion.div
       ref={ref}
-      style={{ x: sx, y: sy }}
       onMouseMove={onMove}
       onMouseLeave={reset}
-      whileTap={{ scale: 0.97 }}
       custom={0}
       variants={fadeUp}
       initial="hidden"
       animate="visible"
-      className={`${base} ${styles}`}
+      className="-m-3 flex w-[calc(100%+1.5rem)] p-3 sm:w-auto"
     >
-      {isPrimary && (
-        <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
-      )}
-      <span className="relative flex min-w-0 items-center justify-center gap-2">
-        {Icon && (
-          <span
-            className={
-              isPrimary
-                ? "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white transition-transform duration-300 group-hover:-rotate-6"
-                : "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#F59E0B]/20 text-[#8a5a00] transition-all duration-300 group-hover:bg-[#F59E0B] group-hover:text-white group-hover:-rotate-6"
-            }
-          >
-            <Icon className="h-3.5 w-3.5" strokeWidth={2.5} />
-          </span>
+      <Component
+        {...(to ? { to } : { type: "button" })}
+        aria-label={label}
+        style={{ x: sx, y: sy }}
+        whileTap={{ scale: 0.97 }}
+        className={`${base} ${styles}`}
+      >
+        {isPrimary && (
+          <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
         )}
-        <span className="truncate">{children}</span>
-        <svg
-          className="h-4 w-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth="2.5"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M17 8l4 4m0 0l-4 4m4-4H3"
-          />
-        </svg>
-      </span>
-    </Component>
+        <span className="relative flex min-w-0 items-center justify-center gap-2">
+          {Icon && (
+            <span
+              className={
+                isPrimary
+                  ? "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white transition-transform duration-300 group-hover:-rotate-6"
+                  : "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#F59E0B]/20 text-[#8a5a00] transition-all duration-300 group-hover:bg-[#F59E0B] group-hover:text-white group-hover:-rotate-6"
+              }
+            >
+              <Icon className="h-3.5 w-3.5" strokeWidth={2.5} />
+            </span>
+          )}
+          <span className="truncate">{children}</span>
+          <svg
+            className="h-4 w-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth="2.5"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M17 8l4 4m0 0l-4 4m4-4H3"
+            />
+          </svg>
+        </span>
+      </Component>
+    </motion.div>
   );
 }
 

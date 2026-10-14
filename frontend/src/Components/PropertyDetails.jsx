@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
   Building2,
@@ -13,7 +14,7 @@ import {
   MapPin,
   Share2,
 } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import api from "../lib/axios";
 import { Bookmark } from "lucide-react";
 import {
@@ -24,17 +25,21 @@ import {
   unSaveProperty,
 } from "../lib/services/auth.service";
 
+// Rent is stored as plain digits, but older rows may still carry separators,
+// so anything that isn't a digit is dropped before formatting.
 const formatNaira = (amount) =>
-  `₦${Number(amount || 0).toLocaleString("en-NG")}`;
+  `₦${Number(String(amount ?? "").replace(/[^\d]/g, "") || 0).toLocaleString("en-NG")}`;
 
 export default function PropertyDetails() {
   const { propertyId } = useParams();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [galleryState, setGalleryState] = useState({
     propertyId,
     activeImageIndex: 0,
     failedImageIndexes: new Set(),
   });
+  const [slideDirection, setSlideDirection] = useState(1);
   const [save, setSave] = useState(()=> localStorage.getItem(`saveStatus:${propertyId}`) === "true");
   const [copied, setCopied] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -65,7 +70,7 @@ export default function PropertyDetails() {
     retry: false,
   });
   const {
-    data: hasRequestedProperty,
+    data: connectionStatus,
     isError: isConnectionStatusError,
     error: connectionStatusError,
     isFetching: isFetchingConnectionStatus,
@@ -77,11 +82,30 @@ export default function PropertyDetails() {
     refetchOnMount: "always",
   });
   const isConnectionRequestSent =
-    !isFetchingConnectionStatus && hasRequestedProperty === true;
+    !isFetchingConnectionStatus && connectionStatus?.requested === true;
+  // "Pending" | "Accepted" | "Declined" once the landlord has answered.
+  const requestStatus = connectionStatus?.status ?? null;
   const isSaved =
     savedProperties?.some(
       (savedProperty) => savedProperty.propertyId === propertyId,
     ) ?? save;
+
+  /* Messages under the buttons clear themselves after 5s so a stale notice
+     never sits on screen while the visitor keeps browsing. */
+  useEffect(() => {
+    if (!saveError && !connectionError) return;
+    const timer = setTimeout(() => {
+      setSaveError("");
+      setConnectionError("");
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [saveError, connectionError]);
+
+  /* Saving or expressing interest needs an account, so those clicks send the
+     visitor to sign in instead of only reporting an error. The notice explains
+     why they were redirected. */
+  const goToSignIn = (notice) =>
+    navigate("/signin", { state: { notice } });
 
   const images = (property?.propertyImages || [])
     .map((image) =>
@@ -102,9 +126,23 @@ export default function PropertyDetails() {
   };
 
   const showImage = (index) => {
-    updateGallery(() => ({
-      activeImageIndex: (index + images.length) % images.length,
-    }));
+    if (images.length === 0) return;
+    const nextIndex = (index + images.length) % images.length;
+    // Drives which way the photo slides in.
+    setSlideDirection(nextIndex > activeImageIndex ? 1 : -1);
+    updateGallery(() => ({ activeImageIndex: nextIndex }));
+  };
+
+  /* Left/right arrow keys move through the photos when the gallery has focus. */
+  const handleGalleryKeyDown = (event) => {
+    if (images.length < 2) return;
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      showImage(activeImageIndex - 1);
+    } else if (event.key === "ArrowRight") {
+      event.preventDefault();
+      showImage(activeImageIndex + 1);
+    }
   };
 
   const markImageFailed = (index) => {
@@ -142,10 +180,12 @@ export default function PropertyDetails() {
   } = useMutation({
     mutationFn: connectionRequest,
     onSuccess: () => {
-      queryClient.setQueryData(
-        ["connection-request-status", propertyId],
-        true,
-      );
+      // Matches the shape the status endpoint returns, so the button flips to
+      // "Pending" without waiting for a refetch.
+      queryClient.setQueryData(["connection-request-status", propertyId], {
+        requested: true,
+        status: "Pending",
+      });
     },
   });
 
@@ -171,6 +211,7 @@ export default function PropertyDetails() {
         setConnectionError("Network problem — your request wasn't sent.");
       } else if (error?.response?.status === 401) {
         setConnectionError("Please log in to express your interest.");
+        goToSignIn("Please log in to express your interest.");
       } else {
         setConnectionError(
           error?.response?.data?.message ||
@@ -231,11 +272,32 @@ export default function PropertyDetails() {
         setSaveError("Network problem — your save status wasn't changed.");
       } else if (error?.response?.status === 401) {
         setSaveError("Please log in to save properties.");
+        goToSignIn("Please log in to save properties.");
       } else {
         setSaveError("Couldn't update saved status. Please try again.");
       }
     }
   };
+
+  /* The button doubles as a status pill once a request exists. */
+  const connectionLabel = isSendingConnectionRequest
+    ? "Sending..."
+    : isFetchingConnectionStatus
+      ? "Checking..."
+      : requestStatus === "Accepted"
+        ? "Accepted"
+        : requestStatus === "Declined"
+          ? "Declined"
+          : isConnectionRequestSent
+            ? "Pending"
+            : "Interested";
+
+  const connectionButtonClass =
+    requestStatus === "Accepted"
+      ? "bg-[#004741]"
+      : requestStatus === "Declined"
+        ? "bg-slate-400"
+        : "bg-amber-500";
 
   return (
     <main className="min-h-screen bg-[#f7f5f0] px-5 py-8 sm:px-8">
@@ -286,19 +348,35 @@ export default function PropertyDetails() {
           <article className="overflow-hidden rounded-3xl bg-white shadow-sm">
             {images.length > 0 ? (
               <section aria-label="Property photos">
-                <div className="group relative flex h-64 items-center justify-center overflow-hidden bg-slate-100 sm:h-112">
+                <div
+                  className="group relative flex h-64 items-center justify-center overflow-hidden bg-slate-100 outline-none focus-visible:ring-4 focus-visible:ring-[#004741]/30 sm:h-112"
+                  tabIndex={0}
+                  role="group"
+                  aria-label={`Property photos, ${activeImageIndex + 1} of ${images.length}. Use the left and right arrow keys to move between photos.`}
+                  onKeyDown={handleGalleryKeyDown}
+                >
                   {failedImageIndexes.has(activeImageIndex) ? (
                     <div className="flex flex-col items-center gap-3 text-slate-400">
                       <Home className="h-12 w-12" />
                       <span>This photo could not be loaded</span>
                     </div>
                   ) : (
-                    <img
-                      src={images[activeImageIndex]}
-                      alt={`${property.propertyName} photo ${activeImageIndex + 1} of ${images.length}`}
-                      className="h-full w-full object-cover"
-                      onError={() => markImageFailed(activeImageIndex)}
-                    />
+                    <AnimatePresence initial={false}>
+                      <motion.img
+                        key={activeImageIndex}
+                        initial={{
+                          x: slideDirection > 0 ? 80 : -80,
+                          opacity: 0,
+                        }}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={{ x: slideDirection > 0 ? -80 : 80, opacity: 0 }}
+                        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                        src={images[activeImageIndex]}
+                        alt={`${property.propertyName} photo ${activeImageIndex + 1} of ${images.length}`}
+                        className="absolute inset-0 h-full w-full object-cover"
+                        onError={() => markImageFailed(activeImageIndex)}
+                      />
+                    </AnimatePresence>
                   )}
 
                   {images.length > 1 && (
@@ -402,7 +480,7 @@ export default function PropertyDetails() {
                 <div>
                   <p className="text-sm text-slate-500">Rent per year</p>
                   <p className="mt-1 text-2xl font-extrabold text-[#004741]">
-                    ₦ {property.target}
+                    {formatNaira(property.target)}
                   </p>
                 </div>
                 <div>
@@ -423,20 +501,14 @@ export default function PropertyDetails() {
                     isFetchingConnectionStatus ||
                     isConnectionRequestSent
                   }
-                  className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-2xl bg-amber-500 px-5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  className={`inline-flex h-11 cursor-pointer items-center gap-2 rounded-2xl px-5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60 ${connectionButtonClass}`}
                 >
                   {isSendingConnectionRequest || isFetchingConnectionStatus ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <CalendarCheck className="h-4 w-4" />
                   )}
-                  {isSendingConnectionRequest
-                    ? "Sending..."
-                    : isFetchingConnectionStatus
-                      ? "Checking..."
-                    : isConnectionRequestSent
-                      ? "Interest sent"
-                      : "Interested"}
+                  {connectionLabel}
                 </button>
                 <button
                   type="button"
@@ -495,7 +567,11 @@ export default function PropertyDetails() {
                   role="status"
                   className="mt-3 text-sm font-semibold text-[#004741]"
                 >
-                  Your interest has been sent to the landlord.
+                  {requestStatus === "Accepted"
+                    ? "Your interest was accepted — the landlord will be in touch."
+                    : requestStatus === "Declined"
+                      ? "The landlord declined this request."
+                      : "Your interest has been sent and is pending the landlord's response."}
                 </p>
               )}
 

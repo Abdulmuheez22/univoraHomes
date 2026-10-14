@@ -4,8 +4,13 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
+import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeftRight, Loader2 } from "lucide-react";
 import { switchUserRole } from "../../lib/services/auth.service";
+
+/* Matches the sidebar expand animation so the label only appears once the
+   rail has fully opened (prevents the text overflowing mid-animation). */
+const SIDEBAR_OPEN_DELAY = 0.35;
 
 export default function RoleSwitchButton({
   currentRole,
@@ -105,11 +110,19 @@ export default function RoleSwitchButton({
         ) : (
           <ArrowLeftRight className="h-5 w-5 shrink-0" />
         )}
-        {expanded && (
-          <span className="truncate">
-            {isSwitching ? "Switching..." : `Switch to ${targetLabel}`}
-          </span>
-        )}
+        <AnimatePresence>
+          {expanded && (
+            <motion.span
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -8, transition: { duration: 0.15 } }}
+              transition={{ duration: 0.2, delay: SIDEBAR_OPEN_DELAY }}
+              className="truncate"
+            >
+              {isSwitching ? "Switching..." : `Switch to ${targetLabel}`}
+            </motion.span>
+          )}
+        </AnimatePresence>
       </button>
       {expanded && errorMessage && (
         <p role="alert" className="px-3 pt-1 text-xs text-red-200">

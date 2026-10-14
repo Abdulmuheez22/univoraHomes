@@ -12,7 +12,7 @@ import {
   AlertCircle,
   Sparkles,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { signIn } from "../lib/services/auth.service";
 import GoogleAuthButton from "./GoogleAuthButton";
 import { useMutation } from "@tanstack/react-query";
@@ -31,6 +31,8 @@ const PERKS = [
 export default function SignIn({ onSignIn }) {
   // const {setSharedData } = useContext(ThemeContext)
   const navigate = useNavigate();
+  // Set when a visitor was sent here for trying to save or express interest.
+  const { state } = useLocation();
 
   const { mutateAsync } = useMutation({
     mutationFn: signIn,
@@ -43,9 +45,10 @@ export default function SignIn({ onSignIn }) {
   const inView = useInView(ref, { once: true, margin: "-60px" });
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPw, setShowPw] = useState(false);
-  const [remember, setRemember] = useState(true);
+  // "Keep me signed in on this device" is commented out below.
+  // const [remember, setRemember] = useState(true);
   const [status, setStatus] = useState("idle");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(state?.notice ?? "");
 
   const update = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -228,12 +231,12 @@ export default function SignIn({ onSignIn }) {
                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                   Password
                 </label>
-                <a
-                  href="/forgot-password"
+                <Link
+                  to="/forgot-password"
                   className="text-xs font-semibold text-[#004741] underline-offset-2 hover:underline"
                 >
                   Forgot password?
-                </a>
+                </Link>
               </div>
               <div className="relative">
                 <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -259,7 +262,7 @@ export default function SignIn({ onSignIn }) {
               </div>
             </motion.div>
 
-            <motion.div
+            {/* <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.26, duration: 0.5, ease: EASE }}
@@ -294,7 +297,7 @@ export default function SignIn({ onSignIn }) {
               <span className="text-sm text-slate-500">
                 Keep me signed in on this device
               </span>
-            </motion.div>
+            </motion.div> */}
 
             <AnimatePresence>
               {error && (
@@ -341,7 +344,7 @@ export default function SignIn({ onSignIn }) {
               </span>
             </motion.button>
 
-            <motion.div
+            {/* <motion.div
               initial={{ opacity: 0 }}
               animate={inView ? { opacity: 1 } : {}}
               transition={{ delay: 0.42, duration: 0.5 }}
@@ -352,7 +355,7 @@ export default function SignIn({ onSignIn }) {
                 or continue with
               </span>
               <span className="h-px flex-1 bg-slate-200" />
-            </motion.div>
+            </motion.div> */}
 
             {/* <motion.div
               initial={{ opacity: 0, y: 16 }}

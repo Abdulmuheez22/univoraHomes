@@ -42,6 +42,9 @@ import RoleSwitchButton from "./RoleSwitchButton";
 import SavedPropertyDetails from "./SavedPropertyDetails";
 
 const EASE = [0.22, 1, 0.36, 1];
+/* Sidebar labels stay hidden until the rail finishes expanding so they never
+   overflow while the width is still animating (matches the 0.35s width tween). */
+const SIDEBAR_OPEN_DELAY = 0.35;
 const MOBILE_TAB_LABELS = [
   "Overview",
   "Properties",
@@ -683,7 +686,7 @@ export default function LandlordDashboard() {
           transition={{ duration: 0.35, ease: EASE }}
           onMouseEnter={() => setSidebar(true)}
           onMouseLeave={() => setSidebar(false)}
-          className="sticky top-0 z-40 hidden h-screen flex-col bg-[#00332F] py-6 md:flex"
+          className="sticky top-0 z-40 hidden h-screen flex-col overflow-hidden bg-[#00332F] py-6 md:flex"
         >
           <Link to="/">
             <div className="mb-8 flex items-center gap-3 px-5">
@@ -699,8 +702,8 @@ export default function LandlordDashboard() {
                   <motion.span
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -8 }}
-                    transition={{ duration: 0.2 }}
+                    exit={{ opacity: 0, x: -8, transition: { duration: 0.15 } }}
+                    transition={{ duration: 0.2, delay: SIDEBAR_OPEN_DELAY }}
                     className="whitespace-nowrap text-lg font-extrabold text-white"
                   >
                     Univora<span className="text-[#F59E0B]"> Homes</span>
@@ -731,8 +734,8 @@ export default function LandlordDashboard() {
                     <motion.span
                       initial={{ opacity: 0, x: -8 }}
                       animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -8 }}
-                      transition={{ duration: 0.2 }}
+                      exit={{ opacity: 0, x: -8, transition: { duration: 0.15 } }}
+                      transition={{ duration: 0.2, delay: SIDEBAR_OPEN_DELAY }}
                       className="flex-1 whitespace-nowrap text-left"
                     >
                       {n.label}
@@ -768,7 +771,18 @@ export default function LandlordDashboard() {
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-white/60 transition-colors hover:bg-white/5 hover:text-white cursor-pointer"
               >
                 <LogOut className="h-5 w-5 flex-shrink-0" />
-                {sidebar && <span>Sign out</span>}
+                <AnimatePresence>
+                  {sidebar && (
+                    <motion.span
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -8, transition: { duration: 0.15 } }}
+                      transition={{ duration: 0.2, delay: SIDEBAR_OPEN_DELAY }}
+                    >
+                      Sign out
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </button>
             </motion.div>
           </div>

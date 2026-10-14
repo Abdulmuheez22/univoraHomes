@@ -22,6 +22,7 @@ import { signUp } from "../lib/services/auth.service";
 import GoogleAuthButton from "./GoogleAuthButton";
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
+import { NIGERIAN_STATES } from "../lib/nigerianStates";
 
 const EASE = [0.22, 1, 0.36, 1];
 
@@ -40,46 +41,6 @@ const PERKS = [
   "Free for up to 5 properties",
   "No credit card required",
   "Set up in under 5 minutes",
-];
-
-const NIGERIAN_STATES = [
-  "Abia",
-  "Adamawa",
-  "Akwa Ibom",
-  "Anambra",
-  "Bauchi",
-  "Bayelsa",
-  "Benue",
-  "Borno",
-  "Cross River",
-  "Delta",
-  "Ebonyi",
-  "Edo",
-  "Ekiti",
-  "Enugu",
-  "FCT - Abuja",
-  "Gombe",
-  "Imo",
-  "Jigawa",
-  "Kaduna",
-  "Kano",
-  "Katsina",
-  "Kebbi",
-  "Kogi",
-  "Kwara",
-  "Lagos",
-  "Nasarawa",
-  "Niger",
-  "Ogun",
-  "Ondo",
-  "Osun",
-  "Oyo",
-  "Plateau",
-  "Rivers",
-  "Sokoto",
-  "Taraba",
-  "Yobe",
-  "Zamfara",
 ];
 
 function strengthOf(pw) {
@@ -111,6 +72,9 @@ export default function SignUp() {
       if (data?.message === "Email already exists") {
         setStatus("idle");
         setExistingAccount(true);
+        if (data?.errors) {
+          setFieldErrors((prev) => ({ ...prev, ...data.errors }));
+        }
         setError(
           "An account already exists for this email. Sign in or verify the existing account.",
         );
@@ -122,6 +86,12 @@ export default function SignUp() {
     onError: (error) => {
       setStatus("idle");
       setExistingAccount(false);
+      // The API sends back one message per field, so every problem gets shown
+      // next to the input it belongs to.
+      const serverFieldErrors = error.response?.data?.errors;
+      if (serverFieldErrors && typeof serverFieldErrors === "object") {
+        setFieldErrors((prev) => ({ ...prev, ...serverFieldErrors }));
+      }
       setError(
         error.response?.data?.message ||
           "Unable to create your account. Please try again.",
@@ -143,7 +113,9 @@ export default function SignUp() {
 
   const [role, setRole] = useState(null);
   const [showPw, setShowPw] = useState(false);
-  const [agree, setAgree] = useState(false);
+  // The guidelines checkbox is commented out in the form; uncomment this
+  // together with the checkbox block if it comes back.
+  // const [agree, setAgree] = useState(false);
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
   const [existingAccount, setExistingAccount] = useState(false);
@@ -156,36 +128,74 @@ export default function SignUp() {
     setExistingAccount(false);
   };
 
-  const setFieldError = (key, message) => {
-    setFieldErrors((prev) => ({ ...prev, [key]: message }));
-  };
-
   const strength = strengthOf(form.password);
+
+  /* Every rule runs before anything is returned, so the form lists all of the
+     problems at once instead of one per attempt. The API runs the same rules
+     again — this pass is only there to give faster feedback. */
+  const validateForm = () => {
+    const errors = {};
+    const fullName = form.fullName.trim();
+    const email = form.email.trim();
+    const city = form.city.trim();
+    const phoneDigits = form.phoneNumber.replace(/\D/g, "");
+
+    if (!role) {
+      errors.role = "Choose whether you are a landlord, agent or tenant.";
+    }
+
+    if (!fullName) errors.fullName = "Full name is required.";
+    else if (fullName.length < 2)
+      errors.fullName = "Full name must be at least 2 characters.";
+    else if (fullName.length > 100)
+      errors.fullName = "Full name must be at most 100 characters.";
+
+    if (!email) errors.email = "Email address is required.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      errors.email = "Enter a valid email address.";
+    else if (!email.toLowerCase().endsWith(".com"))
+      errors.email = "Email address must end with .com";
+
+    if (!phoneDigits) errors.phoneNumber = "Phone number is required.";
+    else if (phoneDigits.length < 10 || phoneDigits.length > 11)
+      errors.phoneNumber = "Phone number must be 10 or 11 digits.";
+
+    if (!form.state) errors.state = "Select your state.";
+
+    if (!city) errors.city = "City is required.";
+    else if (city.length < 2) errors.city = "City must be at least 2 characters.";
+
+    if (!form.password) errors.password = "Password is required.";
+    else if (form.password.length < 8)
+      errors.password = "Password must be at least 8 characters.";
+    else if (form.password.length > 128)
+      errors.password = "Password must be at most 128 characters.";
+
+    if (!form.confirm) errors.confirm = "Confirm your password.";
+    else if (form.password !== form.confirm)
+      errors.confirm = "Passwords do not match.";
+
+    return errors;
+  };
 
   const submit = (e) => {
     e.preventDefault();
     setError("");
-    setFieldErrors({});
     setExistingAccount(false);
 
-    if (!role) return setError("Please select your role to continue.");
+    const errors = validateForm();
+    setFieldErrors(errors);
 
-    const phoneDigits = form.phoneNumber.replace(/\D/g, "");
-    if (phoneDigits.length < 7 || phoneDigits.length > 11) {
-      setFieldError(
-        "phoneNumber",
-        "Phone number must be between 7 and 11 digits.",
+    const messages = Object.values(errors);
+    if (messages.length > 0) {
+      setError(
+        messages.length === 1
+          ? messages[0]
+          : `Please fix ${messages.length} problems: ${messages.join(" ")}`,
       );
-      return setError("Please enter a valid phone number.");
+      return;
     }
 
-    if (!form.state) return setError("Please select your state.");
-    if (!form.city.trim()) return setError("Please enter your city.");
-    if (form.password.length < 8)
-      return setError("Password must be at least 8 characters.");
-    if (form.password !== form.confirm)
-      return setError("Passwords do not match.");
-    if (!agree) return setError("Please accept the terms to continue.");
     setStatus("loading");
     const payload = { ...form, role };
     mutate(payload);
@@ -370,7 +380,7 @@ export default function SignUp() {
                   </p>
                 </motion.div>
 
-                <form onSubmit={submit} className="mt-8 space-y-5">
+                <form onSubmit={submit} noValidate className="mt-8 space-y-5">
                   <motion.div
                     initial={{ opacity: 0, y: 16 }}
                     animate={inView ? { opacity: 1, y: 0 } : {}}
@@ -387,7 +397,11 @@ export default function SignUp() {
                           <button
                             key={r.id}
                             type="button"
-                            onClick={() => setRole(r.id)}
+                            onClick={() => {
+                              setRole(r.id);
+                              setFieldErrors((prev) => ({ ...prev, role: "" }));
+                              setError("");
+                            }}
                             className={`w-40 h-18 flex justify-between cursor-pointer flex-col items-center mt-3.5  gap-1.5 rounded-xl border-2 py-3.5 transition-all duration-300 ${
                               active
                                 ? "border-[#004741] bg-[#004741]/5 shadow-sm"
@@ -436,6 +450,11 @@ export default function SignUp() {
                       {ROLES.find((r) => r.id === role)?.desc ||
                         "Choose the role that fits you"}
                     </p>
+                    {fieldErrors.role && (
+                      <p className="mt-1 text-center text-xs font-medium text-red-600">
+                        {fieldErrors.role}
+                      </p>
+                    )}
                   </motion.div>
 
                   <motion.div
@@ -453,9 +472,14 @@ export default function SignUp() {
                         value={form.fullName}
                         onChange={update("fullName")}
                         placeholder="John Doe"
-                        className={inputCls}
+                        className={`${inputCls} ${fieldErrors.fullName ? "border-red-400 focus:border-red-400 focus:ring-red-100" : ""}`}
                       />
                     </div>
+                    {fieldErrors.fullName && (
+                      <p className="mt-1 text-xs font-medium text-red-600">
+                        {fieldErrors.fullName}
+                      </p>
+                    )}
                   </motion.div>
 
                   <div className="grid gap-5 sm:grid-cols-2">
@@ -475,9 +499,14 @@ export default function SignUp() {
                           value={form.email}
                           onChange={update("email")}
                           placeholder="john@example.com"
-                          className={inputCls}
+                          className={`${inputCls} ${fieldErrors.email ? "border-red-400 focus:border-red-400 focus:ring-red-100" : ""}`}
                         />
                       </div>
+                      {fieldErrors.email && (
+                        <p className="mt-1 text-xs font-medium text-red-600">
+                          {fieldErrors.email}
+                        </p>
+                      )}
                     </motion.div>
 
                     <motion.div
@@ -499,8 +528,11 @@ export default function SignUp() {
                           value={form.phoneNumber}
                           maxLength={11}
                           onChange={(e) => {
+                            /* 090 / 080 / 070 are the local prefixes. The field
+                               already shows +234, so the leading 0 is dropped. */
                             const v = e.target.value
                               .replace(/[^\d\s]/g, "")
+                              .replace(/^0(?=[789])/, "")
                               .slice(0, 11);
                             setForm((f) => ({ ...f, phoneNumber: v }));
                             setFieldErrors((prev) => ({
@@ -510,12 +542,12 @@ export default function SignUp() {
                             setError("");
                           }}
                           placeholder="801 234 5678"
-                          className={`${inputCls} pl-[76px] ${fieldErrors.phone ? "border-red-400 focus:border-red-400 focus:ring-red-100" : ""}`}
+                          className={`${inputCls} pl-[76px] ${fieldErrors.phoneNumber ? "border-red-400 focus:border-red-400 focus:ring-red-100" : ""}`}
                         />
                       </div>
-                      {fieldErrors.phone && (
+                      {fieldErrors.phoneNumber && (
                         <p className="mt-1 text-xs font-medium text-red-600">
-                          {fieldErrors.phone}
+                          {fieldErrors.phoneNumber}
                         </p>
                       )}
                     </motion.div>
@@ -550,6 +582,11 @@ export default function SignUp() {
                         </select>
                         <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 transition-transform duration-300 group-focus-within:rotate-180" />
                       </div>
+                      {fieldErrors.state && (
+                        <p className="mt-1 text-xs font-medium text-red-600">
+                          {fieldErrors.state}
+                        </p>
+                      )}
                     </motion.div>
 
                     <motion.div
@@ -567,9 +604,14 @@ export default function SignUp() {
                           value={form.city}
                           onChange={update("city")}
                           placeholder="e.g. Lekki, Ikeja, Wuse"
-                          className={inputCls}
+                          className={`${inputCls} ${fieldErrors.city ? "border-red-400 focus:border-red-400 focus:ring-red-100" : ""}`}
                         />
                       </div>
+                      {fieldErrors.city && (
+                        <p className="mt-1 text-xs font-medium text-red-600">
+                          {fieldErrors.city}
+                        </p>
+                      )}
                     </motion.div>
                   </div>
 
@@ -590,7 +632,7 @@ export default function SignUp() {
                           value={form.password}
                           onChange={update("password")}
                           placeholder="Min. 8 characters"
-                          className={`${inputCls} pr-11`}
+                          className={`${inputCls} pr-11 ${fieldErrors.password ? "border-red-400 focus:border-red-400 focus:ring-red-100" : ""}`}
                         />
                         <button
                           type="button"
@@ -634,6 +676,11 @@ export default function SignUp() {
                           </p>
                         </div>
                       )}
+                      {fieldErrors.password && (
+                        <p className="mt-1 text-xs font-medium text-red-600">
+                          {fieldErrors.password}
+                        </p>
+                      )}
                     </motion.div>
 
                     <motion.div
@@ -649,10 +696,10 @@ export default function SignUp() {
                         <input
                           required
                           type={showPw ? "text" : "password"}
-                          // value={form.confirm}
+                          value={form.confirm}
                           onChange={update("confirm")}
                           placeholder="Repeat password"
-                          className={`${inputCls} ${form.confirm && form.confirm !== form.password ? "border-red-400 focus:border-red-400 focus:ring-red-100" : ""}`}
+                          className={`${inputCls} ${fieldErrors.confirm || (form.confirm && form.confirm !== form.password) ? "border-red-400 focus:border-red-400 focus:ring-red-100" : ""}`}
                         />
                         {form.confirm && form.confirm === form.password && (
                           <motion.span
@@ -667,65 +714,15 @@ export default function SignUp() {
                           </motion.span>
                         )}
                       </div>
+                      {fieldErrors.confirm && (
+                        <p className="mt-1 text-xs font-medium text-red-600">
+                          {fieldErrors.confirm}
+                        </p>
+                      )}
                     </motion.div>
                   </div>
 
-                  <motion.label
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={inView ? { opacity: 1, y: 0 } : {}}
-                    transition={{ delay: 0.58, duration: 0.5, ease: EASE }}
-                    className="flex cursor-pointer items-start gap-3"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setAgree(!agree)}
-                      className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border-2 transition-all duration-300 ${
-                        agree
-                          ? "border-[#004741] bg-[#004741]"
-                          : "border-slate-300 bg-white"
-                      }`}
-                    >
-                      <AnimatePresence>
-                        {agree && (
-                          <motion.span
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            exit={{ scale: 0 }}
-                            transition={{
-                              type: "spring",
-                              stiffness: 400,
-                              damping: 20,
-                            }}
-                          >
-                            <Check
-                              className="h-3 w-4 text-white"
-                              strokeWidth={3.5}
-                            />
-                          </motion.span>
-                        )}
-                      </AnimatePresence>
-                    </button>
-                    <span className="text-xs leading-relaxed text-slate-500">
-                      I agree to the{" "}
-                      <Link
-                        to="/terms"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-semibold text-[#004741] underline-offset-2 hover:underline"
-                      >
-                        Terms of Service
-                      </Link>{" "}
-                      and{" "}
-                      <Link
-                        to="/privacy"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-semibold text-[#004741] underline-offset-2 hover:underline"
-                      >
-                        Privacy Policy
-                      </Link>
-                    </span>
-                  </motion.label>
+                  {/* Consent checkbox for the Univora Homes platform guidelines; currently disabled. */}
 
                   <AnimatePresence>
                     {error && (

@@ -7,6 +7,9 @@ import {
   signOut,
   resendOtp,
   userProfile,
+  forgotPassword,
+  verifyResetOtp,
+  resetPassword,
 } from "../controller/user.controller.js";
 import { googleSignIn } from "../controller/googleAuth.controller.js";
 import { authmiddleware } from "../middleware/auth.middleware.js";
@@ -29,6 +32,13 @@ auth.post("/signOut", signOut);
 auth.post("/verifyOtp", verifyOtp);
 
 auth.post("/resendOtp", resendOtp);
+
+// Password reset: request a code, confirm it, then set the new password.
+auth.post("/forgotPassword", forgotPassword);
+
+auth.post("/verifyResetOtp", verifyResetOtp);
+
+auth.post("/resetPassword", resetPassword);
 
 auth.get("/userProfile", authmiddleware, userProfile);
 

@@ -37,6 +37,25 @@ export const signOut = async () => {
   return response.data;
 };
 
+/* Password reset: request a code, confirm it, then set the new password. */
+export const requestPasswordReset = async (email) => {
+  const response = await api.post("/auth/forgotPassword", { email });
+  return response.data;
+};
+
+export const verifyPasswordResetOtp = async ({ email, otp }) => {
+  const response = await api.post("/auth/verifyResetOtp", { email, otp });
+  return response.data;
+};
+
+export const resetPassword = async ({ resetToken, password }) => {
+  const response = await api.post("/auth/resetPassword", {
+    resetToken,
+    password,
+  });
+  return response.data;
+};
+
 export const addProperty = async (body) => {
   const response = await api.post("/property/addProperty", body, {withCredentials: true})
   return response.data
@@ -134,7 +153,11 @@ export const fetchConnectionRequestStatus = async (propertyId) => {
     `/connection/connectionRequest/status/${propertyId}`,
     { withCredentials: true },
   );
-  return response.data.requested;
+  // `status` is Pending / Accepted / Declined, or null when nothing was sent.
+  return {
+    requested: Boolean(response.data?.requested),
+    status: response.data?.status ?? null,
+  };
 };
 
 export const fetchLandlordConnectionRequests = async () => {

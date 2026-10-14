@@ -16,6 +16,18 @@ export const sendOtpEmail = async (userEmail: string, otp: string) => {
 };
 
 
+export const sendPasswordResetEmail = async (userEmail: string, otp: string) => {
+  const info = await transporter.sendMail({
+    from: `<${env.appEmail}>`,
+    to: userEmail,
+    subject: "PASSWORD RESET CODE",
+    html: `<b>Your password reset code is: ${otp}</b><p>This code expires in 10 minutes. If you did not request it, you can safely ignore this email.</p>`,
+  });
+
+  console.log("Message sent: %s", info.message);
+};
+
+
 
 export const notifyTenant = async (tenantEmail: string, tenantName: string, propertyName: string, propertyAddress: string) => {
   try {

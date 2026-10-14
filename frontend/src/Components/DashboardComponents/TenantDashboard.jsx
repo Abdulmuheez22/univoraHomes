@@ -35,6 +35,7 @@ import {
   fetchTenantConnectionRequests,
   fetchUserProfile,
   fetchTenantLandLord,
+  fetchLandlordConnectionRequests,
   unSaveProperty,
 } from "../../lib/services/auth.service";
 import ProfileModal from "./ProfileModal";
@@ -43,6 +44,9 @@ import TenantPropertyBrowser from "./TenantPropertyBrowser";
 import RoleSwitchButton from "./RoleSwitchButton";
 
 const EASE = [0.22, 1, 0.36, 1];
+/* Sidebar labels stay hidden until the rail finishes expanding so they never
+   overflow while the width is still animating (matches the 0.35s width tween). */
+const SIDEBAR_OPEN_DELAY = 0.35;
 
 const toWhatsAppNumber = (number) => {
   const digits = String(number).replace(/\D/g, "");
@@ -102,6 +106,18 @@ export default function TenantDashboard({ accountData }) {
       queryClient.invalidateQueries({ queryKey: ["saved-properties"] }),
     onError: () => notify("Couldn't remove saved property. Please try again."),
   });
+
+  /* Requests other people sent to this account. Only the landlord workspace can
+     answer them, so the tenant view only needs to know they exist. */
+  const { data: receivedRequests = [] } = useQuery({
+    queryKey: ["landlord-connection-requests"],
+    queryFn: fetchLandlordConnectionRequests,
+    retry: false,
+  });
+  const pendingReceivedRequests = receivedRequests.filter(
+    (request) =>
+      String(request.requestStatus || "").toLowerCase() === "pending",
+  );
 
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedBrowsePropertyId, setSelectedBrowsePropertyId] = useState(null);
@@ -262,7 +278,7 @@ export default function TenantDashboard({ accountData }) {
           transition={{ duration: 0.35, ease: EASE }}
           onMouseEnter={() => setSidebar(true)}
           onMouseLeave={() => setSidebar(false)}
-          className="sticky top-0 z-40 hidden h-screen flex-col bg-[#00332F] py-6 md:flex"
+          className="sticky top-0 z-40 hidden h-screen flex-col overflow-hidden bg-[#00332F] py-6 md:flex"
         >
           <Link to="/">
             <div className="mb-8 flex items-center gap-3 px-5">
@@ -278,8 +294,8 @@ export default function TenantDashboard({ accountData }) {
                   <motion.span
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -8 }}
-                    transition={{ duration: 0.2 }}
+                    exit={{ opacity: 0, x: -8, transition: { duration: 0.15 } }}
+                    transition={{ duration: 0.2, delay: SIDEBAR_OPEN_DELAY }}
                     className="whitespace-nowrap text-lg font-extrabold text-white"
                   >
                     Univora<span className="text-[#F59E0B]"> Homes</span>
@@ -312,8 +328,8 @@ export default function TenantDashboard({ accountData }) {
                       <motion.span
                         initial={{ opacity: 0, x: -8 }}
                         animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -8 }}
-                        transition={{ duration: 0.2 }}
+                        exit={{ opacity: 0, x: -8, transition: { duration: 0.15 } }}
+                        transition={{ duration: 0.2, delay: SIDEBAR_OPEN_DELAY }}
                         className="flex-1 whitespace-nowrap text-left"
                       >
                         {n.label}
@@ -350,7 +366,18 @@ export default function TenantDashboard({ accountData }) {
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-white/60 transition-colors hover:bg-white/5 hover:text-white"
               >
                 <LogOut className="h-5 w-5 flex-shrink-0" />
-                {sidebar && <span>Sign out</span>}
+                <AnimatePresence>
+                  {sidebar && (
+                    <motion.span
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -8, transition: { duration: 0.15 } }}
+                      transition={{ duration: 0.2, delay: SIDEBAR_OPEN_DELAY }}
+                    >
+                      Sign out
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </button>
             </motion.div>
           </div>
@@ -453,6 +480,42 @@ export default function TenantDashboard({ accountData }) {
                 </button>
               </motion.div>
             </motion.div>
+
+            {pendingReceivedRequests.length > 0 && (
+              <motion.div
+                key="received-requests"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: EASE }}
+                className="space-y-4"
+              >
+                <div className="flex items-start gap-3.5 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+                    <Bell className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="font-bold text-amber-900">
+                      {pendingReceivedRequests.length === 1
+                        ? "You have 1 connection request waiting"
+                        : `You have ${pendingReceivedRequests.length} connection requests waiting`}
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-amber-800">
+                      These came in on your landlord side, so they can only be
+                      accepted or declined from your landlord workspace. Switch
+                      roles to respond to{" "}
+                      {pendingReceivedRequests.length === 1
+                        ? "that tenant"
+                        : "those tenants"}
+                      .
+                    </p>
+                  </div>
+                </div>
+                <RoleSwitchButton
+                  currentRole={profile?.userRole || accountData?.role}
+                  variant="profile"
+                />
+              </motion.div>
+            )}
 
             {activeTab === "browse" && (
               <TenantPropertyBrowser
@@ -801,12 +864,13 @@ export default function TenantDashboard({ accountData }) {
                       <p className="mt-1 text-sm text-slate-500">
                         Save a property while browsing to find it here.
                       </p>
-                      <Link
-                        to="/properties"
-                        className="mt-4 inline-flex rounded-xl bg-[#004741] px-4 py-2.5 text-sm font-bold text-white"
+                      <button
+                        type="button"
+                        onClick={() => activateTab("browse")}
+                        className="mt-4 inline-flex cursor-pointer rounded-xl bg-[#004741] px-4 py-2.5 text-sm font-bold text-white"
                       >
                         Browse properties
-                      </Link>
+                      </button>
                     </div>
                   ) : (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

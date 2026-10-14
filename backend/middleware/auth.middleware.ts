@@ -25,6 +25,11 @@ const authenticate = (
     if (typeof decodedjwt === "string") {
       return res.status(401).json({ message: "Unauthorized" });
     }
+    // A password reset token is signed with the same secret, so it must be
+    // refused here — it is only meant for /auth/resetPassword.
+    if (decodedjwt.purpose === "password-reset") {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
     req.user = decodedjwt;
     next();
   } catch (error) {

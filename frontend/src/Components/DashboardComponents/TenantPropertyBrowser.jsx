@@ -25,6 +25,7 @@ import {
   unSaveProperty,
 } from "../../lib/services/auth.service";
 import { PROPERTY_CATEGORIES } from "../../lib/propertyCategories";
+import { NIGERIAN_STATES } from "../../lib/nigerianStates";
 
 const PAGE_SIZE = 12;
 const PROPERTY_CATEGORY_FILTERS = [
@@ -33,14 +34,24 @@ const PROPERTY_CATEGORY_FILTERS = [
   "Uncategorized",
 ];
 const PRICE_RANGES = ["All prices", "Under ₦5M", "₦5M - ₦10M", "Above ₦10M"];
+// Every state is offered, not just the ones on the pages already loaded.
+const LOCATIONS = ["All locations", ...NIGERIAN_STATES];
+
+const normalize = (value) => String(value ?? "").trim().toLocaleLowerCase();
+
+// Rent is stored as plain digits, but older rows may carry separators.
+const toDigits = (amount) =>
+  String(amount ?? "").replace(/[^\d]/g, "");
 
 const formatNaira = (amount) =>
-  `₦${(amount || 0).toLocaleString("en-NG")}`;
+  `₦${Number(toDigits(amount) || 0).toLocaleString("en-NG")}`;
 
 const getPropertyPrice = (property) => {
-  const amount = property.target ?? property.targetRent ?? property.rent;
-  if (amount === null || amount === undefined || amount === "") return null;
-  const price = Number(amount);
+  const amount =
+    property.target ?? property.targetRent ?? property.rent;
+  const digits = toDigits(amount);
+  if (!digits) return null;
+  const price = Number(digits);
   return Number.isFinite(price) ? price : null;
 };
 
@@ -127,13 +138,7 @@ export default function TenantPropertyBrowser({
     () => data?.pages.flatMap((page) => page.properties || []) || [],
     [data],
   );
-  const locations = useMemo(
-    () => [
-      "All locations",
-      ...new Set(allProperties.map((property) => property.state).filter(Boolean)),
-    ],
-    [allProperties],
-  );
+  const locations = useMemo(() => LOCATIONS, []);
   const properties = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase();
     const filteredProperties = allProperties.filter((property) => {
@@ -152,11 +157,12 @@ export default function TenantPropertyBrowser({
           .toLocaleLowerCase();
         return (
           (!normalizedSearch || searchable.includes(normalizedSearch)) &&
-          (selectedType === "All types" || type === selectedType) &&
+          (selectedType === "All types" ||
+            normalize(type) === normalize(selectedType)) &&
           (selectedLocation === "All locations" ||
-            property.state === selectedLocation) &&
+            normalize(property.state) === normalize(selectedLocation)) &&
           (selectedCategory === "All categories" ||
-            category === selectedCategory) &&
+            normalize(category) === normalize(selectedCategory)) &&
           matchesPriceRange(getPropertyPrice(property), priceRange)
         );
       });
@@ -757,7 +763,7 @@ export default function TenantPropertyBrowser({
                       <div className="mt-4 flex items-end justify-between border-t border-slate-100 pt-4">
                         <div>
                           <p className="text-lg font-extrabold tracking-tight text-[#004741]">
-                           ₦ {property.target}
+                            {formatNaira(property.target)}
                           </p>
                           <p className="text-[11px] text-slate-400">
                             per year · {property.propertyCategory || "Uncategorized"}
