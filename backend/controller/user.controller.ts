@@ -34,8 +34,6 @@ export const signUp = async (req: any, res: any) => {
   try {
     const validatedUser = signUpValidation.safeParse(req.body);
     if (!validatedUser.success) {
-      // Every field is validated in one pass so the form can highlight all of
-      // them at once instead of one problem per submit.
       const fieldErrors = collectFieldErrors(validatedUser.error);
       return res.status(400).json({
         message: summarizeFieldErrors(fieldErrors),
