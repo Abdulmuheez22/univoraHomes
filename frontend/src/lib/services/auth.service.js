@@ -21,17 +21,6 @@ export const signIn = async (user) => {
   return response.data
 }
 
-// `credential` is the Google ID token from <GoogleLogin>. The backend verifies
-// it and answers with our own httpOnly session cookie.
-export const signInWithGoogle = async ({ credential, role }) => {
-  const response = await api.post(
-    "/auth/google",
-    { credential, role },
-    { withCredentials: true },
-  );
-  return response.data;
-};
-
 export const signOut = async () => {
   const response = await api.post("/auth/logout", {}, { withCredentials: true });
   return response.data;

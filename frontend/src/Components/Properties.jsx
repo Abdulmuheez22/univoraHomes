@@ -332,12 +332,12 @@ export default function Properties() {
   return (
     <div className="min-h-screen bg-[#f7f5f0] pb-20">
       <header className="border-b border-slate-100 bg-white/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-2 sm:px-6">
           <Link to="/" className="flex items-center gap-2.5">
             {/* <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#004741]">
               <Home className="h-4.5 w-4.5 text-[#F59E0B]" strokeWidth={2.5} />
             </span> */}
-            <span className="text-2xl font-extrabold tracking-tighter text-[#0C3530]">
+            <span className="text-[1rem] whitespace-nowrap sm:text-2xl font-extrabold tracking-tighter text-[#0C3530]">
               Univora<span className="text-[#F59E0B]"> Homes</span>
             </span>
           </Link>
@@ -351,7 +351,7 @@ export default function Properties() {
             </Link>
             <Link
               to="/signup"
-              className="rounded-xl bg-[#004741] px-4 py-2.5 text-sm font-bold text-white transition-all hover:bg-[#003530] sm:px-5"
+              className="rounded-xl bg-[#004741] px-4 py-2.5 text-[0.7rem] whitespace-nowrap sm:text-sm font-bold text-white transition-all hover:bg-[#003530] sm:px-5"
             >
               Get Started
             </Link>

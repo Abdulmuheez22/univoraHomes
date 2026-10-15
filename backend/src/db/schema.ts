@@ -23,8 +23,6 @@ export const usersTable = pgTable("users", {
 
   otpExpiry: timestamp("otpExpiry"),
 
-  // Password reset uses its own fields so a reset request can never clobber a
-  // pending sign-up verification code (and vice versa).
   resetOtp: varchar("resetOtp", { length: 255 }),
 
   resetOtpExpiry: timestamp("resetOtpExpiry"),

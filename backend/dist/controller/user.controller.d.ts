@@ -5,4 +5,7 @@ export declare const verifyOtp: (req: any, res: any) => Promise<any>;
 export declare const signIn: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
 export declare const userProfile: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
 export declare const signOut: (_req: Request, res: Response) => Response<any, Record<string, any>>;
+export declare const forgotPassword: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const verifyResetOtp: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
+export declare const resetPassword: (req: Request, res: Response) => Promise<Response<any, Record<string, any>>>;
 //# sourceMappingURL=user.controller.d.ts.map

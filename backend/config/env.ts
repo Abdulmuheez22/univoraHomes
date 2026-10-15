@@ -10,7 +10,6 @@ const env: {
   appEmail: string;
   appPassword: string;
   frontendUrl: string;
-  googleClientId: string;
   cloudName: string;
   cloudinaryApiKey: string;
   cloudinaryApiSecret: string;
@@ -22,7 +21,6 @@ const env: {
   appEmail: String(process.env.SMTP_USER),
   appPassword: String(process.env.SMTP_PASS),
   frontendUrl: String(process.env.FRONTEND_URL),
-  googleClientId: String(process.env.GOOGLE_CLIENT_ID),
   cloudName: String(process.env.CLOUD_NAME),
   cloudinaryApiKey: String(
     process.env.CLOUDINARY_API_KEY ??

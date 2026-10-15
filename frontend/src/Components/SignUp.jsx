@@ -19,7 +19,6 @@ import {
 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { signUp } from "../lib/services/auth.service";
-import GoogleAuthButton from "./GoogleAuthButton";
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { NIGERIAN_STATES } from "../lib/nigerianStates";
@@ -780,28 +779,6 @@ export default function SignUp() {
                       )}
                     </span>
                   </motion.button>
-
-                  {/* <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={inView ? { opacity: 1 } : {}}
-                    transition={{ delay: 0.68, duration: 0.5 }}
-                    className="flex items-center gap-4 py-1"
-                  >
-                    <span className="h-px flex-1 bg-slate-200" />
-                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                      or continue with
-                    </span>
-                    <span className="h-px flex-1 bg-slate-200" />
-                  </motion.div> */}
-
-                  {/* <motion.div
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={inView ? { opacity: 1, y: 0 } : {}}
-                    transition={{ delay: 0.7, duration: 0.5, ease: EASE }}
-                    className="flex items-center justify-center"
-                  >
-                    <GoogleAuthButton role={role || "tenant"} />
-                  </motion.div> */}
 
                   <motion.div
                     initial={{ opacity: 0 }}

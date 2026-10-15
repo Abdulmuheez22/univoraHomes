@@ -249,7 +249,7 @@ export const signIn = async (req: Request, res: Response) => {
     if (!userDb.password) {
       return res
         .status(400)
-        .json({ message: "This account uses Google sign in." });
+        .json({ message: "This account has no password set." });
     }
 
     const verifyPassword = await confrimHashPassword(
@@ -345,8 +345,8 @@ export const forgotPassword = async (req: Request, res: Response) => {
       .from(usersTable)
       .where(eq(usersTable.email, validatedData.data.email));
 
-    // Accounts created with Google have no password to reset, so nothing is
-    // sent for them either.
+    // Accounts without a password have nothing to reset, so nothing is sent
+    // for them either.
     if (user?.password) {
       const otp = crypto.randomInt(100000, 1000000).toString();
       const hashedOtp = await hashPassword(otp);

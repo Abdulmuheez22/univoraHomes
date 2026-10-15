@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, LogOut, ShieldCheck, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { googleLogout } from "@react-oauth/google";
 import { signOut } from "../../lib/services/auth.service";
 
 export default function SignOutConfirmation({ open, onClose }) {
@@ -17,9 +16,6 @@ export default function SignOutConfirmation({ open, onClose }) {
     setError("");
     try {
       await signOut();
-      // Also drop Google's own session, otherwise the next visitor to this
-      // device is signed straight back in with the account still selected.
-      googleLogout();
       queryClient.clear();
       navigate("/signin", { replace: true });
     } catch {
