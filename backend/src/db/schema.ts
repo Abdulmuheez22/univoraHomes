@@ -31,7 +31,7 @@ export const usersTable = pgTable("users", {
 
   isVerified: boolean("isVerified").default(false).notNull(),
 
-  phoneNumber: varchar("phoneNumber", { length: 20 }).unique(),
+  phoneNumber: varchar("phoneNumber", { length: 20 }),
 
   state: varchar("state", { length: 255 }),
 

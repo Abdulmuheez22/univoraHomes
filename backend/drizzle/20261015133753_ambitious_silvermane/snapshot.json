@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "f6edd52e-bb7e-4799-9be6-add604896c2d",
+  "id": "6e507a44-e67b-4164-b2ca-a0233ba74ad9",
   "prevIds": [
     "00000000-0000-0000-0000-000000000000"
   ],
@@ -605,17 +605,6 @@
       ],
       "nullsNotDistinct": false,
       "name": "users_email_key",
-      "schema": "public",
-      "table": "users",
-      "entityType": "uniques"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "phoneNumber"
-      ],
-      "nullsNotDistinct": false,
-      "name": "users_phoneNumber_key",
       "schema": "public",
       "table": "users",
       "entityType": "uniques"
