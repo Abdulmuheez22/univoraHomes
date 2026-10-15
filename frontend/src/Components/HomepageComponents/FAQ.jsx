@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
-import { HelpCircle, Plus, MessageCircleQuestion, Mail } from "lucide-react";
+import { Plus, MessageCircleQuestion, Mail } from "lucide-react";
 import { SUPPORT_EMAIL, mailtoWithSubject } from "../../lib/site";
 
 const EASE = [0.22, 1, 0.36, 1];
@@ -28,7 +28,7 @@ const FAQS = [
   },
   {
     q: "Where can I get help?",
-    a: "Use the contact form or email our support team. The contact form opens a prefilled email draft for you to review and send.",
+    a: "Use the contact form on the homepage or email our support team directly. Our team reviews every message and responds as soon as possible.",
   },
 ];
 
