@@ -89,7 +89,9 @@ export const signUp = async (req: any, res: any) => {
 
 export const resendOtp = async (req: Request, res: Response) => {
   try {
-    const validateEmailData = otpValidator.pick({ email: true }).safeParse(req.body);
+    const validateEmailData = otpValidator
+      .pick({ email: true })
+      .safeParse(req.body);
     if (!validateEmailData.success) {
       return res.status(400).json({ message: "Enter a valid email address." });
     }
@@ -106,14 +108,12 @@ export const resendOtp = async (req: Request, res: Response) => {
 
     if (!user || user.isVerified) {
       return res.status(200).json({
-        message:
-          "User not found ",
+        message: "User not found ",
       });
     }
 
     if (user.otpExpiry) {
-      const issuedAt =
-        new Date(user.otpExpiry).getTime() - OTP_LIFETIME_MS;
+      const issuedAt = new Date(user.otpExpiry).getTime() - OTP_LIFETIME_MS;
       const retryAfterMs = OTP_RESEND_COOLDOWN_MS - (Date.now() - issuedAt);
       if (retryAfterMs > 0) {
         return res.status(429).json({
@@ -135,8 +135,7 @@ export const resendOtp = async (req: Request, res: Response) => {
       .where(eq(usersTable.email, user.email));
 
     return res.status(200).json({
-      message:
-        "A new code has been sent.",
+      message: "A new code has been sent.",
     });
   } catch (error) {
     console.error("resendOtp error:", error);
@@ -208,7 +207,7 @@ export const verifyOtp = async (req: any, res: any) => {
       .cookie("token", token, {
         httpOnly: true,
         secure: isProduction,
-        sameSite: isProduction ? "strict" : "lax",
+        sameSite: isProduction ? ("none" as const) : ("lax" as const),
       })
       .json({ message: true, token: token, role: user.role });
   } catch (error) {
@@ -274,24 +273,26 @@ export const signIn = async (req: Request, res: Response) => {
       .cookie("token", token, {
         httpOnly: true,
         secure: isProduction,
-        sameSite: isProduction ? "strict" : "lax",
+  sameSite: isProduction ? ("none" as const) : ("lax" as const),
       })
-      .json({ message: "SignIn Successful", role: userDb.role});
+      .json({ message: "SignIn Successful", role: userDb.role });
   } catch (error) {
     console.log("this error is from signIn catch: ", error);
-    res.status(500).json({ message: "error", error });
+   return res.status(500).json({ message: "error", error });
   }
 };
 
-
-
-
 export const userProfile = async (req: Request, res: Response) => {
   try {
-    const userId = req.user.id
-    if(!userId){return res.status(401).json({message: "Unautorized"})}
+    const userId = req.user.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unautorized" });
+    }
 
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId))
+    const [user] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, userId));
 
     const frontendUser = {
       userName: user?.fullName,
@@ -300,15 +301,12 @@ export const userProfile = async (req: Request, res: Response) => {
       userState: user?.state,
       userCity: user?.city,
       userRole: user?.role,
-
-
-    }
-    return res.status(200).json({user: frontendUser})
-    
+    };
+    return res.status(200).json({ user: frontendUser });
   } catch (error) {
-    console.log("this error is from the userProfile catch: ", error)
+    console.log("this error is from the userProfile catch: ", error);
   }
-}
+};
 
 export const signOut = (_req: Request, res: Response) => {
   const isProduction = process.env.NODE_ENV === "production";
@@ -317,7 +315,7 @@ export const signOut = (_req: Request, res: Response) => {
     .clearCookie("token", {
       httpOnly: true,
       secure: isProduction,
-      sameSite: isProduction ? "strict" : "lax",
+  sameSite: isProduction ? "none" : "lax",
     })
     .status(200)
     .json({ message: "Signed out successfully" });
@@ -482,9 +480,7 @@ export const resetPassword = async (req: Request, res: Response) => {
       decoded.purpose !== RESET_TOKEN_PURPOSE ||
       !decoded.id
     ) {
-      return res
-        .status(401)
-        .json({ message: "This reset link is not valid." });
+      return res.status(401).json({ message: "This reset link is not valid." });
     }
 
     const [user] = await db
