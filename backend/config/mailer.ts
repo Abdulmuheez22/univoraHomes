@@ -1,19 +1,16 @@
 import nodemailer from "nodemailer";
-import { configDotenv } from "dotenv";
-import dns from "node:dns";
-dns.setDefaultResultOrder("ipv4first");
 
-const transportOptions = {
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  family: 4,
+const transporter = nodemailer.createTransport({
+  host: "smtp-relay.brevo.com",
+  port: 2525,
+  secure: false,
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 15000,
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    user: process.env.SMTP_USER, // Brevo Login
+    pass: process.env.SMTP_PASS, // Brevo SMTP key (Standard)
   },
-};
-
-const transporter = nodemailer.createTransport(transportOptions as any);
+});
 
 export default transporter;
