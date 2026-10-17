@@ -71,6 +71,7 @@ const propertyImage = (property) => {
 export default function TenantPropertyBrowser({
   selectedPropertyId,
   setSelectedPropertyId,
+  onNotify,
 }) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -229,10 +230,12 @@ export default function TenantPropertyBrowser({
   });
   const interestMutation = useMutation({
     mutationFn: connectionRequest,
-    onSuccess: () =>
+    onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["tenant-connection-requests"],
-      }),
+      });
+      onNotify?.("Request sent — we've emailed the landlord for you.");
+    },
   });
   const closePropertyDetails = () => {
     setSelectedPropertyId(null);

@@ -42,8 +42,11 @@ function Header() {
 
   return (
     <>
+      {/* Pinned to the viewport, not the page: with the drawer open the body
+          scroll is locked, which would let a sticky header drift out of step
+          with the fixed panel sitting right under it. */}
       <header
-        className={`sticky top-0 z-40 w-full border-b border-gray-100 bg-white/85 backdrop-blur-md transition-all duration-300 ${
+        className={`fixed inset-x-0 top-0 z-40 w-full border-b border-gray-100 bg-white/85 backdrop-blur-md transition-all duration-300 ${
           scrolled ? "h-16 shadow-sm" : "h-[4.5rem] sm:h-20"
         }`}
       >
@@ -129,6 +132,15 @@ function Header() {
           </div>
         </div>
       </header>
+
+      {/* Takes the header's place in the flow and shrinks in step with it, so
+          the page content never jumps. */}
+      <div
+        aria-hidden="true"
+        className={`w-full transition-all duration-300 ${
+          scrolled ? "h-16" : "h-[4.5rem] sm:h-20"
+        }`}
+      />
 
       <AnimatePresence>
         {open && (

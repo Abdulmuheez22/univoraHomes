@@ -409,6 +409,7 @@ export default function VerifyOTP() {
                           type="text"
                           inputMode="numeric"
                           autoComplete={i === 0 ? "one-time-code" : "off"}
+                          autoFocus
                           maxLength={1}
                           value={digit}
                           disabled={status === "loading"}

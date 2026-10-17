@@ -101,8 +101,10 @@ export default function RoleSwitchButton({
         disabled={isSwitching}
         title={isSwitching ? "Switching workspace..." : `Switch to ${targetLabel}`}
         aria-label={`Switch to ${targetLabel} workspace`}
-        className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-white/70 transition hover:bg-white/10 hover:text-white disabled:cursor-wait disabled:opacity-60 ${
-          expanded ? "" : "justify-center"
+        className={`flex items-center rounded-xl font-semibold text-white/70 transition hover:bg-white/10 hover:text-white disabled:cursor-wait disabled:opacity-60 ${
+          expanded
+            ? "w-full gap-3 px-3 py-3 text-sm"
+            : "mx-auto h-11 w-11 justify-center bg-white/5 text-white/80 ring-1 ring-inset ring-white/10 hover:bg-white/10 hover:text-white"
         }`}
       >
         {isSwitching ? (

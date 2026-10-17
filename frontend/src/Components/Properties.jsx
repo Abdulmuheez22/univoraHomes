@@ -384,7 +384,9 @@ export default function Properties() {
           </p>
         </motion.div>
 
-        <div className="w-full max-w-7xl mx-auto px-6 py-6 font-sans">
+        {/* Sits directly in the page container so the filters line up with the
+            property cards below and use the full width on small screens. */}
+        <div className="w-full py-6 font-sans">
       <motion.div 
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -449,7 +451,7 @@ export default function Properties() {
             Filters
           </motion.button>
 
-          <div className="flex items-center gap-2 bg-[#004741]/5 rounded-xl px-3 py-1.5 flex-1 sm:flex-initial">
+          <div className="flex items-center gap-2 bg-[#004741]/5 rounded-xl px-3 py-3 lg:py-1.5 flex-1 sm:flex-initial">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#004741]/60 whitespace-nowrap">Sort:</span>
             <select
               value={sortBy}

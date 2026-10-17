@@ -14,6 +14,13 @@ import {
 import { useNavigate } from "react-router-dom";
 import { PROPERTY_CATEGORIES } from "../lib/propertyCategories";
 import {
+  IMAGE_FORMAT_LABEL,
+  MAX_PHOTOS,
+  isImageFile,
+  logRejectedFiles,
+  rejectedFilesMessage,
+} from "../lib/imageFiles";
+import {
   deleteLandlordProperty,
   updateLandlordProperty,
 } from "../lib/services/auth.service";
@@ -25,13 +32,16 @@ const PROPERTY_TYPES = [
   "Commercial",
 ];
 
-export default function LandlordPropertyActions({ property }) {
+/* `onDeleted` lets a host view (the dashboard) handle the removal itself
+   instead of bouncing the landlord to a separate page. */
+export default function LandlordPropertyActions({ property, onDeleted }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [modal, setModal] = useState(null);
   const [formError, setFormError] = useState("");
   const [notice, setNotice] = useState("");
   const [newPhotos, setNewPhotos] = useState([]);
+  const [photoError, setPhotoError] = useState("");
   const [formData, setFormData] = useState(null);
   const photoCount = property.propertyImages?.length || 0;
 
@@ -73,6 +83,10 @@ export default function LandlordPropertyActions({ property }) {
         }),
         queryClient.invalidateQueries({ queryKey: ["landlord-tenants"] }),
       ]);
+      if (onDeleted) {
+        onDeleted(response);
+        return;
+      }
       navigate("/dashboard", { state: { propertyNotice: response.message } });
     },
     onError: (error) => {
@@ -95,6 +109,7 @@ export default function LandlordPropertyActions({ property }) {
       targetRent: property.targetRent || "",
     });
     setNewPhotos([]);
+    setPhotoError("");
     setFormError("");
     setNotice("");
     setModal("edit");
@@ -103,19 +118,33 @@ export default function LandlordPropertyActions({ property }) {
   const closeModal = () => {
     if (updateMutation.isPending || deleteMutation.isPending) return;
     setModal(null);
+    setPhotoError("");
     setFormError("");
   };
 
+  /* Images only: anything else is logged to the console and refused with a
+     message on the form instead of being silently attached. */
   const handlePhotoSelection = (event) => {
     const selectedPhotos = Array.from(event.target.files || []);
-    const remainingSlots = Math.max(0, 5 - photoCount - newPhotos.length);
+    const imagePhotos = selectedPhotos.filter(isImageFile);
+    const rejectedPhotos = selectedPhotos.filter((file) => !isImageFile(file));
+
+    logRejectedFiles(rejectedPhotos, "on the edit-property form");
+
+    const remainingSlots = Math.max(
+      0,
+      MAX_PHOTOS - photoCount - newPhotos.length,
+    );
     setNewPhotos((previous) => [
       ...previous,
-      ...selectedPhotos.slice(0, remainingSlots),
+      ...imagePhotos.slice(0, remainingSlots),
     ]);
+    setPhotoError(
+      rejectedPhotos.length ? rejectedFilesMessage(rejectedPhotos) : "",
+    );
     setFormError(
-      selectedPhotos.length > remainingSlots
-        ? `You can add ${remainingSlots} more photo${remainingSlots === 1 ? "" : "s"} (5 maximum per property).`
+      imagePhotos.length > remainingSlots
+        ? `You can add ${remainingSlots} more photo${remainingSlots === 1 ? "" : "s"} (${MAX_PHOTOS} maximum per property).`
         : "",
     );
     event.target.value = "";
@@ -366,7 +395,11 @@ export default function LandlordPropertyActions({ property }) {
                             Add more photos
                           </p>
                           <p className="mt-1 text-xs text-slate-500">
-                            {photoCount + newPhotos.length} of 5 photos selected
+                            {photoCount + newPhotos.length} of {MAX_PHOTOS} photos
+                            selected
+                          </p>
+                          <p className="mt-1 text-[11px] text-slate-400">
+                            {IMAGE_FORMAT_LABEL} images only
                           </p>
                         </div>
                         <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-[#004741] shadow-sm ring-1 ring-slate-200 transition hover:bg-emerald-50">
@@ -377,11 +410,22 @@ export default function LandlordPropertyActions({ property }) {
                             accept="image/*"
                             multiple
                             onChange={handlePhotoSelection}
-                            disabled={photoCount + newPhotos.length >= 5}
+                            disabled={
+                              photoCount + newPhotos.length >= MAX_PHOTOS
+                            }
                             className="sr-only"
                           />
                         </label>
                       </div>
+                      {photoError && (
+                        <p
+                          role="alert"
+                          className="mt-3 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700"
+                        >
+                          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                          {photoError}
+                        </p>
+                      )}
                       {newPhotos.length > 0 && (
                         <ul className="mt-3 space-y-1 text-xs text-slate-600">
                           {newPhotos.map((photo, index) => (

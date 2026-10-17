@@ -16,13 +16,13 @@ import {
   Users,
   CheckCircle2,
   X,
-  ExternalLink,
   MapPin,
   LogOut,
   MessageCircle,
   Phone,
   Trash2,
   Menu,
+  MailCheck,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
@@ -38,10 +38,11 @@ import {
   fetchLandlordConnectionRequests,
   unSaveProperty,
 } from "../../lib/services/auth.service";
-import ProfileModal from "./ProfileModal";
+import ProfilePanel from "./ProfilePanel";
 import SignOutConfirmation from "./SignOutConfirmation";
 import TenantPropertyBrowser from "./TenantPropertyBrowser";
 import RoleSwitchButton from "./RoleSwitchButton";
+import { firstNameOf, formattedToday, timeGreeting } from "../../lib/greeting";
 
 const EASE = [0.22, 1, 0.36, 1];
 /* Sidebar labels stay hidden until the rail finishes expanding so they never
@@ -125,7 +126,6 @@ export default function TenantDashboard({ accountData }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [toast, setToast] = useState(null);
   const [dismissedNotificationIds, setDismissedNotificationIds] = useState([]);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSignOutOpen, setIsSignOutOpen] = useState(false);
   const mainRef = useRef(null);
   const inView = useInView(mainRef, { once: true, margin: "-40px" });
@@ -159,6 +159,11 @@ export default function TenantDashboard({ accountData }) {
     (item) => !dismissedNotificationIds.includes(item.requestId),
   );
 
+  /* Name shown in the header and the overview greeting; falls back to the
+     account payload while the profile query is still in flight. */
+  const tenantName = profile?.userName || accountData?.userName || "";
+  const tenantFirstName = firstNameOf(tenantName);
+
   const NAV = [
     { icon: LayoutDashboard, label: "Overview", id: "overview", active: activeTab === "overview" },
     { icon: Building2, label: "Browse Homes", id: "browse", active: activeTab === "browse" },
@@ -170,9 +175,19 @@ export default function TenantDashboard({ accountData }) {
   ];
 
   const activateTab = (id) => {
+    // Sidebar clicks always land on the section root, never a stale detail view.
+    if (id === "browse") setSelectedBrowsePropertyId(null);
     setActiveTab(id);
     setMobileNavOpen(false);
-    if (id === "profile") setIsProfileOpen(true);
+  };
+
+  /* Opens a listing inside the browse tab so tenants never leave the
+     dashboard for a public listing page. */
+  const openBrowsedProperty = (propertyId) => {
+    if (!propertyId) return;
+    setSelectedBrowsePropertyId(propertyId);
+    setActiveTab("browse");
+    setMobileNavOpen(false);
   };
 
   useEffect(() => {
@@ -393,11 +408,16 @@ export default function TenantDashboard({ accountData }) {
             >
               <Menu className="h-5 w-5" />
             </button>
-            <div>
-              <p className="text-[11px] font-medium text-slate-400">Welcome back,</p>
-              <h1 className="-mt-0.5 text-sm font-bold text-slate-900">
-                {profile?.userName || accountData?.userName || ""}
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium text-slate-400">
+                {timeGreeting()},
+              </p>
+              <h1 className="-mt-0.5 truncate text-sm font-bold text-slate-900">
+                {tenantName}
               </h1>
+              <p className="hidden truncate text-[10px] text-slate-400 lg:block">
+                {profile?.userEmail || accountData?.userEmail || formattedToday()}
+              </p>
             </div>
             <div className="ml-auto flex items-center gap-2">
               <motion.button 
@@ -420,10 +440,7 @@ export default function TenantDashboard({ accountData }) {
                 aria-label="Open your profile"
                 title="My profile"
                 whileHover={{ scale: 1.05 }}
-                onClick={() => {
-                  setActiveTab("profile");
-                  setIsProfileOpen(true);
-                }}
+                onClick={() => activateTab("profile")}
                 className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#004741] text-xs font-bold text-white shadow-md shadow-[#004741]/20"
               >
                 {(profile?.userName || accountData?.userName || "U")
@@ -451,7 +468,10 @@ export default function TenantDashboard({ accountData }) {
                   transition={{ duration: 0.3 }}
                   className="text-2xl font-extrabold tracking-tight text-slate-900"
                 >
-                  {activeTab === "overview" && "Tenant Dashboard"}
+                  {activeTab === "overview" &&
+                    (tenantFirstName
+                      ? `${timeGreeting()}, ${tenantFirstName}`
+                      : "Tenant Dashboard")}
                   {activeTab === "browse" && "Find Your Next Home"}
                   {activeTab === "inquiries" && "My Property Inquiries"}
                   {activeTab === "landlord" && "My Landlord"}
@@ -460,7 +480,12 @@ export default function TenantDashboard({ accountData }) {
                   {activeTab === "profile" && "My Profile"}
                 </motion.h2>
                 <p className="mt-0.5 text-sm text-slate-500">
-                  {activeTab === "overview" && "Track your inquiries, saved properties, and landlord messages."}
+                  {activeTab === "overview" && (
+                    <>
+                      {formattedToday()} — track your inquiries, saved
+                      properties, and landlord messages.
+                    </>
+                  )}
                   {activeTab === "browse" && "Discover and shortlist properties without leaving your dashboard."}
                   {activeTab === "inquiries" && "Monitor the real-time status of properties you've reached out about."}
                   {activeTab === "landlord" && "Contact the landlords for properties whose connection requests were accepted."}
@@ -472,7 +497,7 @@ export default function TenantDashboard({ accountData }) {
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
                 <button
                   type="button"
-                  onClick={() => setActiveTab("browse")}
+                  onClick={() => activateTab("browse")}
                   className="flex items-center gap-2 rounded-xl bg-[#004741] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-[#004741]/25 hover:bg-[#00332F] transition-colors"
                 >
                   <Search className="h-4 w-4" strokeWidth={2.5} />
@@ -521,6 +546,7 @@ export default function TenantDashboard({ accountData }) {
               <TenantPropertyBrowser
                 selectedPropertyId={selectedBrowsePropertyId}
                 setSelectedPropertyId={setSelectedBrowsePropertyId}
+                onNotify={notify}
               />
             )}
 
@@ -794,17 +820,18 @@ export default function TenantDashboard({ accountData }) {
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
                             >
-                              <Link
-                                to={
-                                  item.propertyId
-                                    ? `/properties/${item.propertyId}`
-                                    : "/properties"
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openBrowsedProperty(item.propertyId)
                                 }
+                                disabled={!item.propertyId}
                                 aria-label={`View ${item.propertyName || "property"}`}
-                                className="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-[#004741] hover:border-[#004741] transition-colors flex items-center justify-center shadow-sm"
+                                title="View details"
+                                className="flex cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white p-2 text-slate-600 shadow-sm transition-colors hover:border-[#004741] hover:text-[#004741] disabled:cursor-not-allowed disabled:opacity-50"
                               >
-                                <ExternalLink className="h-4 w-4" />
-                              </Link>
+                                <ChevronRight className="h-4 w-4" />
+                              </button>
                             </motion.div>
                           </div>
                         </motion.div>
@@ -905,10 +932,7 @@ export default function TenantDashboard({ accountData }) {
                           <motion.button
                             type="button"
                             whileHover={{ x: 2 }}
-                            onClick={() => {
-                              setSelectedBrowsePropertyId(property.propertyId);
-                              activateTab("browse");
-                            }}
+                            onClick={() => openBrowsedProperty(property.propertyId)}
                             className="flex items-center gap-1 text-xs font-bold text-[#004741] hover:underline"
                           >
                             View details <ChevronRight className="h-3 w-3" />
@@ -932,14 +956,20 @@ export default function TenantDashboard({ accountData }) {
                   transition={{ duration: 0.4, ease: EASE }}
                   className="rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]"
                 >
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-slate-900">
-                      Connection Request Updates
-                    </h3>
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h3 className="font-bold text-slate-900">
+                        Connection Request Updates
+                      </h3>
+                      <p className="mt-1 text-sm text-slate-500">
+                        The outcome of each request, plus the email we sent the
+                        landlord on your behalf.
+                      </p>
+                    </div>
                     {activeTab === "overview" && (
-                      <motion.button 
+                      <motion.button
                         whileHover={{ x: 2 }}
-                        onClick={() => setActiveTab("notifications")} 
+                        onClick={() => setActiveTab("notifications")}
                         className="text-xs font-semibold text-[#004741] hover:underline cursor-pointer flex items-center gap-1"
                       >
                         View all <ChevronRight className="h-3 w-3" />
@@ -977,6 +1007,8 @@ export default function TenantDashboard({ accountData }) {
                       {visibleNotifications.map((item, idx) => {
                         const accepted =
                           String(item.requestStatus).toLowerCase() === "accepted";
+                        const landlordName =
+                          item.landlordName || "the landlord";
                         return (
                           <motion.div
                             key={item.requestId}
@@ -1018,13 +1050,13 @@ export default function TenantDashboard({ accountData }) {
                                 </span>
                               </div>
                               <p className="mt-1 text-xs text-slate-600">
-                                Your request for{" "}
+                                {item.landlordName
+                                  ? `${landlordName} ${accepted ? "accepted" : "declined"} your request for `
+                                  : "Your request for "}
                                 <span className="font-semibold">
                                   {item.propertyName || "this property"}
                                 </span>
-                                {item.landlordName
-                                  ? ` was ${accepted ? "accepted" : "declined"} by ${item.landlordName}.`
-                                  : ` was ${accepted ? "accepted" : "declined"}.`}
+                                .
                               </p>
                               {(item.propertyAddress || item.city || item.state) && (
                                 <p className="mt-1 flex items-center gap-1 text-[11px] text-slate-500">
@@ -1034,6 +1066,12 @@ export default function TenantDashboard({ accountData }) {
                                     .join(", ")}
                                 </p>
                               )}
+                              <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">
+                                <MailCheck className="h-3.5 w-3.5 text-[#0F766E]" />
+                                {accepted
+                                  ? `We've emailed ${landlordName} to introduce you.`
+                                  : `We've emailed ${landlordName} to confirm the outcome.`}
+                              </p>
                             </div>
                             <button
                               type="button"
@@ -1061,49 +1099,19 @@ export default function TenantDashboard({ accountData }) {
 
             <AnimatePresence mode="wait">
               {activeTab === "profile" && (
-                <motion.section
+                <motion.div
                   key="profile-section"
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -16 }}
                   transition={{ duration: 0.35, ease: EASE }}
-                  className="rounded-2xl border border-slate-100 bg-white p-8 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]"
                 >
-                  <h3 className="font-bold text-slate-900">Account details</h3>
-                  {isProfileLoading ? (
-                    <p className="mt-3 text-sm text-slate-500">Loading profile...</p>
-                  ) : isProfileError ? (
-                    <p className="mt-3 text-sm text-red-600">Couldn't load your profile.</p>
-                  ) : (
-                    <dl className="mt-5 grid gap-4 sm:grid-cols-2">
-                      <div>
-                        <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Name</dt>
-                        <dd className="mt-1 text-sm font-semibold text-slate-800">{profile?.userName || "—"}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Email</dt>
-                        <dd className="mt-1 text-sm font-semibold text-slate-800">{profile?.userEmail || "—"}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Phone</dt>
-                        <dd className="mt-1 text-sm font-semibold text-slate-800">{profile?.userPhone || "—"}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Location</dt>
-                        <dd className="mt-1 text-sm font-semibold text-slate-800">
-                          {[profile?.userCity, profile?.userState].filter(Boolean).join(", ") || "—"}
-                        </dd>
-                      </div>
-                    </dl>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setIsProfileOpen(true)}
-                    className="mt-6 rounded-xl bg-[#004741] px-5 py-3 text-sm font-bold text-white"
-                  >
-                    Open profile settings
-                  </button>
-                </motion.section>
+                  <ProfilePanel
+                    profile={profile}
+                    isLoading={isProfileLoading}
+                    isError={isProfileError}
+                  />
+                </motion.div>
               )}
             </AnimatePresence>
 
@@ -1133,13 +1141,6 @@ export default function TenantDashboard({ accountData }) {
           )}
         </AnimatePresence>
       </div>
-      <ProfileModal
-        open={isProfileOpen}
-        onClose={() => setIsProfileOpen(false)}
-        profile={profile}
-        isLoading={isProfileLoading}
-        isError={isProfileError}
-      />
       <SignOutConfirmation
         open={isSignOutOpen}
         onClose={() => setIsSignOutOpen(false)}

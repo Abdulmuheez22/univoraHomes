@@ -13,6 +13,13 @@ import {
 import { PROPERTY_CATEGORIES } from "../../../lib/propertyCategories";
 import { NIGERIAN_STATES } from "../../../lib/nigerianStates";
 import { amountToDigits, formatAmountInput, numberToWords } from "../../../lib/numberToWords";
+import {
+  IMAGE_FORMAT_LABEL,
+  MAX_PHOTOS,
+  isImageFile,
+  logRejectedFiles,
+  rejectedFilesMessage,
+} from "../../../lib/imageFiles";
 
 const PROPERTY_TYPES = [
   "Multi-Family",
@@ -24,7 +31,6 @@ const PROPERTY_TYPES = [
 const NAME_MIN = 10;
 const DESCRIPTION_MIN = 20;
 const DESCRIPTION_MAX = 1000;
-const MAX_PHOTOS = 5;
 const MAX_RENT = 1_000_000_000;
 const MIN_RENT = 1_000;
 
@@ -34,7 +40,10 @@ const inputCls =
 const errorInputCls =
   "border-red-400 focus:border-red-400 focus:ring-red-100";
 
-export default function AddPropertyPage({ onBack }) {
+/* `onCreated` lets the dashboard keep the landlord in their workspace: instead
+   of navigating to a standalone page, the new property is opened inside the
+   dashboard's own property detail view. */
+export default function AddPropertyPage({ onBack, onCreated }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
@@ -58,6 +67,10 @@ export default function AddPropertyPage({ onBack }) {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["landlord-properties"] });
       // Straight to the property itself, where it can be edited or deleted.
+      if (onCreated) {
+        onCreated(data?.propertyId);
+        return;
+      }
       navigate(
         data?.propertyId
           ? `/landlord/properties/${data.propertyId}`
@@ -88,17 +101,28 @@ export default function AddPropertyPage({ onBack }) {
     update(name, name === "targetRent" ? formatAmountInput(value) : value);
   };
 
+  /* Only real image files make it into the list. Anything else is logged to
+     the console (so a bad upload is easy to trace) and reported on the form. */
   const handlePhotoUpload = (e) => {
-    const files = Array.from(e.target.files);
+    const files = Array.from(e.target.files || []);
+    const imageFiles = files.filter(isImageFile);
+    const rejectedFiles = files.filter((file) => !isImageFile(file));
+
+    logRejectedFiles(rejectedFiles, "on the add-property form");
+
     const remainingSlots = Math.max(0, MAX_PHOTOS - photos.length);
-    const acceptedFiles = files.slice(0, remainingSlots);
+    const acceptedFiles = imageFiles.slice(0, remainingSlots);
     setPhotos((prev) => [...prev, ...acceptedFiles]);
+
     setPhotoMessage(
-      files.length > remainingSlots
+      imageFiles.length > remainingSlots
         ? `You can upload up to ${MAX_PHOTOS} photos. Extra files were not added.`
         : "",
     );
-    setFieldErrors((prev) => ({ ...prev, photos: "" }));
+    setFieldErrors((prev) => ({
+      ...prev,
+      photos: rejectedFiles.length ? rejectedFilesMessage(rejectedFiles) : "",
+    }));
     setFormError("");
     e.target.value = "";
   };
@@ -231,14 +255,24 @@ export default function AddPropertyPage({ onBack }) {
         {/* Page Header & Navigation */}
         <div className="flex items-center justify-between">
           <div>
-            <Link
-              to="/dashboard"
-              onClick={onBack}
-              className="inline-flex items-center text-xs font-semibold text-slate-500 hover:text-[#00332F] mb-2 transition-colors group"
-            >
-              <ArrowLeft className="w-4 h-4 mr-1 transition-transform group-hover:-translate-x-0.5" />
-              Back to Dashboard
-            </Link>
+            {onBack ? (
+              <button
+                type="button"
+                onClick={onBack}
+                className="inline-flex cursor-pointer items-center text-xs font-semibold text-slate-500 hover:text-[#00332F] mb-2 transition-colors group"
+              >
+                <ArrowLeft className="w-4 h-4 mr-1 transition-transform group-hover:-translate-x-0.5" />
+                Back to Dashboard
+              </button>
+            ) : (
+              <Link
+                to="/dashboard"
+                className="inline-flex items-center text-xs font-semibold text-slate-500 hover:text-[#00332F] mb-2 transition-colors group"
+              >
+                <ArrowLeft className="w-4 h-4 mr-1 transition-transform group-hover:-translate-x-0.5" />
+                Back to Dashboard
+              </Link>
+            )}
             <h1 className="text-2xl font-extrabold tracking-tight text-[#00332F]">
               Add New Property
             </h1>
@@ -469,7 +503,8 @@ export default function AddPropertyPage({ onBack }) {
                       Click to upload or drag and drop property images
                     </p>
                     <p className="text-xs text-slate-400 mt-1">
-                      PNG, JPG or GIF (max. 5MB each)
+                      {IMAGE_FORMAT_LABEL} images only — any other file type is
+                      refused
                     </p>
                   </label>
 
@@ -575,7 +610,7 @@ export default function AddPropertyPage({ onBack }) {
               ) : (
                 <button
                   type="button"
-                  onClick={onBack}
+                  onClick={onBack || (() => navigate("/dashboard"))}
                   className="px-6 py-3 rounded-xl text-slate-500 font-bold text-sm hover:text-slate-700 transition-colors cursor-pointer"
                 >
                   Cancel

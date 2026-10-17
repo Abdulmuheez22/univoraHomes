@@ -10,3 +10,4 @@ export const upload = multer({
     else cb(new Error("Only images are allowed"));
   },
 });
+

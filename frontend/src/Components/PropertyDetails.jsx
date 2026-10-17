@@ -290,7 +290,7 @@ export default function PropertyDetails() {
           ? "Declined"
           : isConnectionRequestSent
             ? "Pending"
-            : "Interested";
+            : "Send a connection request";
 
   const connectionButtonClass =
     requestStatus === "Accepted"

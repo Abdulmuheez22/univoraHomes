@@ -22,6 +22,8 @@ import {
   Phone,
   MapPin,
   Menu,
+  Handshake,
+  MailCheck,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import api from "../../lib/axios";
@@ -36,10 +38,13 @@ import {
   fetchLandlordConnectionRequests,
   respondToConnectionRequest,
 } from "../../lib/services/auth.service";
-import ProfileModal from "./ProfileModal";
+import ProfilePanel from "./ProfilePanel";
 import SignOutConfirmation from "./SignOutConfirmation";
 import RoleSwitchButton from "./RoleSwitchButton";
 import SavedPropertyDetails from "./SavedPropertyDetails";
+import AddPropertyModal from "./Landlorddashboard/AddPropertyModal";
+import LandlordPropertyDetailPanel from "./Landlorddashboard/LandlordPropertyDetailPanel";
+import { firstNameOf, formattedToday, timeGreeting } from "../../lib/greeting";
 
 const EASE = [0.22, 1, 0.36, 1];
 /* Sidebar labels stay hidden until the rail finishes expanding so they never
@@ -146,6 +151,8 @@ function LandlordOverview({
   responding,
   onRespond,
   onNavigate,
+  onAddProperty,
+  onOpenProperty,
 }) {
   const stats = [
     {
@@ -159,7 +166,7 @@ function LandlordOverview({
     {
       label: "Pending Requests",
       value: pendingRequests.length,
-      icon: Bell,
+      icon: Handshake,
       accent: "#0F766E",
       isLoading: requestsLoading,
       isError: requestsError,
@@ -184,20 +191,22 @@ function LandlordOverview({
               Landlord workspace
             </p>
             <h2 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">
-              Welcome back{name ? `, ${name.split(" ")[0]}` : ""}
+              {timeGreeting()}
+              {name ? `, ${firstNameOf(name)}` : ""}
             </h2>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/70">
               Keep your listings and tenant connection requests moving from one
               place.
             </p>
           </div>
-          <Link
-            to="/addproperty"
-            className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-[#F59E0B] px-5 py-3 text-sm font-bold text-[#00332F] shadow-md transition hover:bg-amber-300 sm:w-auto"
+          <button
+            type="button"
+            onClick={onAddProperty}
+            className="inline-flex w-full shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#F59E0B] px-5 py-3 text-sm font-bold text-[#00332F] shadow-md transition hover:bg-amber-300 sm:w-auto"
           >
             <Plus className="h-4 w-4" strokeWidth={2.5} />
             Add property
-          </Link>
+          </button>
         </div>
       </section>
 
@@ -249,20 +258,22 @@ function LandlordOverview({
               <p className="mt-1 text-sm text-slate-500">
                 Add a listing to start connecting with tenants.
               </p>
-              <Link
-                to="/addproperty"
-                className="mt-4 inline-flex rounded-lg bg-[#004741] px-4 py-2.5 text-sm font-bold text-white"
+              <button
+                type="button"
+                onClick={onAddProperty}
+                className="mt-4 inline-flex cursor-pointer rounded-lg bg-[#004741] px-4 py-2.5 text-sm font-bold text-white"
               >
                 Add your first property
-              </Link>
+              </button>
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
               {properties.slice(0, 3).map((property) => (
-                <Link
+                <button
                   key={property.propertyId}
-                  to={`/landlord/properties/${property.propertyId}`}
-                  className="flex min-w-0 items-center gap-3 py-3 first:pt-0 last:pb-0"
+                  type="button"
+                  onClick={() => onOpenProperty(property.propertyId)}
+                  className="flex w-full min-w-0 cursor-pointer items-center gap-3 py-3 text-left first:pt-0 last:pb-0"
                 >
                   {property.propertyImages?.[0] ? (
                     <img
@@ -284,7 +295,7 @@ function LandlordOverview({
                     </span>
                   </span>
                   <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
-                </Link>
+                </button>
               ))}
             </div>
           )}
@@ -436,7 +447,8 @@ export default function LandlordDashboard() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [toast, setToast] = useState(null);
   const [dismissedNotifications, setDismissedNotifications] = useState([]);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isAddPropertyOpen, setIsAddPropertyOpen] = useState(false);
+  const [selectedPropertyId, setSelectedPropertyId] = useState(null);
   const [isSignOutOpen, setIsSignOutOpen] = useState(false);
   const queryClient = useQueryClient();
   const {
@@ -508,18 +520,36 @@ export default function LandlordDashboard() {
     onError: () => notify("Couldn't remove saved property. Please try again."),
   });
 
+  /* The tenant is emailed the outcome by the API, so both the toast and the
+     notification list say so explicitly instead of a generic "updated". */
   const respondToRequest = useMutation({
     mutationFn: respondToConnectionRequest,
-    onSuccess: (data, variables) =>
-      Promise.all([
+    onSuccess: (data, variables) => {
+      const cachedRequests =
+        queryClient.getQueryData(["landlord-connection-requests"]) || [];
+      const tenantName =
+        data?.tenantName ||
+        cachedRequests.find(
+          (request) => request.requestId === variables.requestId,
+        )?.tenantName ||
+        "The tenant";
+      const accepted = variables.status === "Accepted";
+
+      return Promise.all([
         queryClient.invalidateQueries({
           queryKey: ["landlord-connection-requests"],
         }),
-        variables.status === "Accepted"
+        accepted
           ? queryClient.invalidateQueries({ queryKey: ["landlord-tenants"] })
           : Promise.resolve(),
-      ])
-        .then(() => notify(data?.message || "Connection request updated.")),
+      ]).then(() =>
+        notify(
+          accepted
+            ? `Request accepted — we've emailed ${tenantName} your contact details.`
+            : `Request declined — we've emailed ${tenantName} to let them know.`,
+        ),
+      );
+    },
     onError: () =>
       notify("Couldn't update connection request. Please try again."),
   });
@@ -532,7 +562,7 @@ export default function LandlordDashboard() {
     { icon: LayoutDashboard, label: "Overview" },
     { icon: Building2, label: "Properties" },
     {
-      icon: Bell,
+      icon: Handshake,
       label: "Connection Requests",
       badge: pendingConnectionRequests.length || null,
     },
@@ -552,10 +582,20 @@ export default function LandlordDashboard() {
   ];
 
   const activateNav = (label) => {
+    // Sidebar clicks always land on the section root, never a stale detail view.
+    if (label === "Properties") setSelectedPropertyId(null);
     setActiveNav(label);
     setMobileNavOpen(false);
-    if (label === "Profile") setIsProfileOpen(true);
   };
+
+  /* Opens a listing inside the dashboard instead of the public listing page. */
+  const openProperty = (propertyId) => {
+    setSelectedPropertyId(propertyId);
+    setActiveNav("Properties");
+    setMobileNavOpen(false);
+  };
+
+  const closeProperty = () => setSelectedPropertyId(null);
 
   const shortTabLabel = (label) =>
     label === "Connection Requests" ? "Requests" : label;
@@ -799,17 +839,15 @@ export default function LandlordDashboard() {
               <Menu className="h-5 w-5" />
             </button>
             <div className="min-w-0">
-              <p className="hidden text-[11px] font-medium text-slate-400 sm:block">
-                Good morning,
+              <p className="text-[11px] font-medium text-slate-400">
+                {timeGreeting()},
               </p>
               <h1 className="truncate text-sm font-bold text-slate-900 sm:-mt-0.5">
                 {profile?.userName || userData.userName}
               </h1>
-              {profile?.userEmail && (
-                <p className="hidden truncate text-[10px] text-slate-400 lg:block">
-                  {profile.userEmail}
-                </p>
-              )}
+              <p className="hidden truncate text-[10px] text-slate-400 lg:block">
+                {profile?.userEmail || formattedToday()}
+              </p>
               {isProfileLoading && (
                 <p className="hidden text-[10px] text-slate-400 sm:block">
                   Loading profile...
@@ -843,10 +881,7 @@ export default function LandlordDashboard() {
                 aria-label="Open your profile"
                 title="My profile"
                 whileHover={{ scale: 1.05 }}
-                onClick={() => {
-                  setActiveNav("Profile");
-                  setIsProfileOpen(true);
-                }}
+                onClick={() => activateNav("Profile")}
                 className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#004741] text-xs font-bold text-white shadow-md shadow-[#004741]/20"
               >
                 {(profile?.userName || userData.userName || "U")
@@ -888,99 +923,132 @@ export default function LandlordDashboard() {
                 responding={respondToRequest}
                 onRespond={(variables) => respondToRequest.mutate(variables)}
                 onNavigate={activateNav}
+                onAddProperty={() => setIsAddPropertyOpen(true)}
+                onOpenProperty={openProperty}
               />
             )}
 
             {activeNav === "Properties" && (
-            <section
-              id="landlord-properties"
-              className="scroll-mt-20 rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]"
-            >
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-slate-900">My Properties</h3>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Properties listed under your account.
-                  </p>
-                </div>
-                <Building2 className="h-5 w-5 text-[#004741]" />
-              </div>
-              {landLordPropertiesIsLoading ? (
-                <p className="py-8 text-center text-sm text-slate-500">
-                  Loading your properties...
-                </p>
-              ) : landLordPropertiesIsError ? (
-                <div className="py-8 text-center">
-                  <p className="text-sm text-red-600">
-                    Couldn't load your properties.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => refetchLandLordProperties()}
-                    className="mt-2 text-sm font-semibold text-[#004741] hover:underline"
-                  >
-                    Try again
-                  </button>
-                </div>
-              ) : landLordPropertiesData?.properties?.length === 0 ? (
-                <div className="rounded-xl bg-slate-50 px-5 py-10 text-center">
-                  <p className="font-semibold text-slate-700">
-                    You haven't listed any properties yet
-                  </p>
-                  <Link
-                    to="/addproperty"
-                    className="mt-4 inline-flex rounded-xl bg-[#004741] px-4 py-2.5 text-sm font-bold text-white"
-                  >
-                    Add your first property
-                  </Link>
-                </div>
-              ) : (
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                  {landLordPropertiesData?.properties?.map((property) => (
-                    <Link
-                      key={property.propertyId}
-                      to={`/landlord/properties/${property.propertyId}`}
-                      className="group block overflow-hidden rounded-xl border border-slate-100 bg-slate-50/50 transition hover:border-[#004741]/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#004741] focus-visible:ring-offset-2"
-                    >
-                      <article>
-                        {property.propertyImages?.[0] ? (
-                          <img
-                            src={property.propertyImages[0]}
-                            alt={property.propertyName}
-                            className="h-40 w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-                          />
-                        ) : (
-                          <div className="flex h-40 items-center justify-center bg-slate-100 text-sm text-slate-400">
-                            No property photo
-                          </div>
-                        )}
-                        <div className="p-4">
-                          <h3 className="font-bold text-slate-900 group-hover:text-[#004741]">
-                            {property.propertyName}
-                          </h3>
-                          <p className="mt-1 text-xs text-slate-500">
-                            {property.propertyType} · {property.city},{" "}
-                            {property.state}
-                          </p>
-                          <p className="mt-3 text-sm font-semibold text-slate-600">
-                            Category:{" "}
-                            {property.propertyCategory || "Uncategorized"}
-                          </p>
-                          <p className="mt-1 text-sm font-extrabold text-[#004741]">
-                            ₦ {property.targetRent || 0}
-                          </p>
-                        </div>
-                      </article>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </section>
+              <section id="landlord-properties" className="scroll-mt-20">
+                {selectedPropertyId &&
+                landLordPropertiesData?.properties?.some(
+                  (item) => item.propertyId === selectedPropertyId,
+                ) ? (
+                  <LandlordPropertyDetailPanel
+                    property={landLordPropertiesData.properties.find(
+                      (item) => item.propertyId === selectedPropertyId,
+                    )}
+                    onBack={closeProperty}
+                    onDeleted={() => {
+                      closeProperty();
+                      notify("Property deleted.");
+                    }}
+                  />
+                ) : (
+                  <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]">
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h3 className="font-bold text-slate-900">
+                          My Properties
+                        </h3>
+                        <p className="mt-1 text-sm text-slate-500">
+                          Open a listing to view, edit, or delete it without
+                          leaving your dashboard.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddPropertyOpen(true)}
+                        className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl bg-[#004741] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#00332F]"
+                      >
+                        <Plus className="h-4 w-4" strokeWidth={2.5} />
+                        Add property
+                      </button>
+                    </div>
+                    {landLordPropertiesIsLoading ? (
+                      <p className="py-8 text-center text-sm text-slate-500">
+                        Loading your properties...
+                      </p>
+                    ) : landLordPropertiesIsError ? (
+                      <div className="py-8 text-center">
+                        <p className="text-sm text-red-600">
+                          Couldn't load your properties.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => refetchLandLordProperties()}
+                          className="mt-2 text-sm font-semibold text-[#004741] hover:underline"
+                        >
+                          Try again
+                        </button>
+                      </div>
+                    ) : landLordPropertiesData?.properties?.length === 0 ? (
+                      <div className="rounded-xl bg-slate-50 px-5 py-10 text-center">
+                        <p className="font-semibold text-slate-700">
+                          You haven't listed any properties yet
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setIsAddPropertyOpen(true)}
+                          className="mt-4 inline-flex cursor-pointer rounded-xl bg-[#004741] px-4 py-2.5 text-sm font-bold text-white"
+                        >
+                          Add your first property
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                        {landLordPropertiesData?.properties?.map((property) => (
+                          <article
+                            key={property.propertyId}
+                            className="overflow-hidden rounded-xl border border-slate-100 bg-slate-50/50 transition hover:border-[#004741]/30 hover:shadow-md"
+                          >
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSelectedPropertyId(property.propertyId)
+                              }
+                              className="group block w-full cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#004741] focus-visible:ring-inset"
+                            >
+                              {property.propertyImages?.[0] ? (
+                                <img
+                                  src={property.propertyImages[0]}
+                                  alt={property.propertyName}
+                                  className="h-40 w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                                />
+                              ) : (
+                                <div className="flex h-40 items-center justify-center bg-slate-100 text-sm text-slate-400">
+                                  No property photo
+                                </div>
+                              )}
+                              <div className="p-4">
+                                <h3 className="font-bold text-slate-900 group-hover:text-[#004741]">
+                                  {property.propertyName}
+                                </h3>
+                                <p className="mt-1 text-xs text-slate-500">
+                                  {property.propertyType} · {property.city},{" "}
+                                  {property.state}
+                                </p>
+                                <p className="mt-3 text-sm font-semibold text-slate-600">
+                                  Category:{" "}
+                                  {property.propertyCategory || "Uncategorized"}
+                                </p>
+                                <p className="mt-1 text-sm font-extrabold text-[#004741]">
+                                  ₦ {property.targetRent || 0}
+                                </p>
+                              </div>
+                            </button>
+                          </article>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </section>
             )}
 
             {activeNav === "Connection Requests" && (
               <section className="rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]">
-                <div className="mb-5 flex items-center justify-between">
+                <div className="mb-5 flex items-center justify-between gap-3">
                   <div>
                     <h2 className="font-bold text-slate-900">
                       Connection Requests
@@ -989,7 +1057,9 @@ export default function LandlordDashboard() {
                       Pending tenant interest in your properties.
                     </p>
                   </div>
-                  <Bell className="h-5 w-5 text-[#004741]" />
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#0F766E]/15 to-[#004741]/10 text-[#004741]">
+                    <Handshake className="h-5 w-5" />
+                  </span>
                 </div>
 
                 {areConnectionRequestsLoading ? (
@@ -1042,12 +1112,13 @@ export default function LandlordDashboard() {
                           <p className="mt-3 text-sm text-slate-600">
                             Interested in{" "}
                             {request.propertyId ? (
-                              <Link
-                                to={`/properties/${request.propertyId}`}
-                                className="font-semibold text-[#004741] hover:underline"
+                              <button
+                                type="button"
+                                onClick={() => openProperty(request.propertyId)}
+                                className="cursor-pointer font-semibold text-[#004741] hover:underline"
                               >
                                 {request.propertyName || "a property"}
-                              </Link>
+                              </button>
                             ) : (
                               <span className="font-semibold">
                                 {request.propertyName || "a property"}
@@ -1123,14 +1194,15 @@ export default function LandlordDashboard() {
 
             {activeNav === "Notifications" && (
               <section className="rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]">
-                <div className="mb-5 flex items-center justify-between">
+                <div className="mb-5 flex items-center justify-between gap-3">
                   <div>
                     <h2 className="font-bold text-slate-900">Notifications</h2>
                     <p className="mt-1 text-sm text-slate-500">
-                      Recent accepted and declined connection requests.
+                      Every accepted and declined request, plus the email we
+                      sent the tenant.
                     </p>
                   </div>
-                  <span className="rounded-full bg-[#004741]/10 px-3 py-1 text-xs font-bold text-[#004741]">
+                  <span className="shrink-0 rounded-full bg-[#004741]/10 px-3 py-1 text-xs font-bold text-[#004741]">
                     {connectionNotifications.length} new
                   </span>
                 </div>
@@ -1144,60 +1216,106 @@ export default function LandlordDashboard() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {connectionNotifications.map((request) => (
-                      <article
-                        key={request.requestId}
-                        className={`flex flex-wrap items-start justify-between gap-4 rounded-xl border p-4 ${
-                          request.requestStatus?.toLowerCase() === "accepted"
-                            ? "border-emerald-200 bg-emerald-50/60"
-                            : "border-rose-200 bg-rose-50/60"
-                        }`}
-                      >
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
+                    {connectionNotifications.map((request) => {
+                      const isAccepted =
+                        String(request.requestStatus).toLowerCase() ===
+                        "accepted";
+                      const tenantName = request.tenantName || "the tenant";
+                      const location = [
+                        request.propertyAddress,
+                        request.city,
+                        request.state,
+                      ]
+                        .filter(Boolean)
+                        .join(", ");
+
+                      return (
+                        <article
+                          key={request.requestId}
+                          className={`flex flex-wrap items-start justify-between gap-4 rounded-xl border p-4 ${
+                            isAccepted
+                              ? "border-emerald-200 bg-emerald-50/60"
+                              : "border-rose-200 bg-rose-50/60"
+                          }`}
+                        >
+                          <div className="flex min-w-0 gap-3.5">
                             <span
-                              className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
-                                request.requestStatus?.toLowerCase() === "accepted"
-                                  ? "bg-emerald-600 text-white"
-                                  : "bg-rose-600 text-white"
+                              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                                isAccepted
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : "bg-rose-100 text-rose-700"
                               }`}
                             >
-                              {request.requestStatus}
+                              {isAccepted ? (
+                                <CheckCircle2 className="h-5 w-5" />
+                              ) : (
+                                <X className="h-5 w-5" />
+                              )}
                             </span>
-                            <p className="font-semibold text-slate-900">
-                              {request.tenantName || "Tenant"}
-                            </p>
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h3 className="text-sm font-bold text-slate-900">
+                                  {isAccepted
+                                    ? "Request accepted"
+                                    : "Request declined"}
+                                </h3>
+                                <span
+                                  className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
+                                    isAccepted
+                                      ? "bg-emerald-600 text-white"
+                                      : "bg-rose-600 text-white"
+                                  }`}
+                                >
+                                  {request.requestStatus}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-sm text-slate-600">
+                                {isAccepted
+                                  ? `You accepted ${tenantName}'s request to view `
+                                  : `You declined ${tenantName}'s request to view `}
+                                {request.propertyId ? (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      openProperty(request.propertyId)
+                                    }
+                                    className="cursor-pointer font-semibold text-slate-800 hover:underline"
+                                  >
+                                    {request.propertyName || "this property"}
+                                  </button>
+                                ) : (
+                                  <span className="font-semibold text-slate-800">
+                                    {request.propertyName || "this property"}
+                                  </span>
+                                )}
+                                .
+                              </p>
+                              {location && (
+                                <p className="mt-1 text-xs text-slate-500">
+                                  {location}
+                                </p>
+                              )}
+                              <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">
+                                <MailCheck className="h-3.5 w-3.5 text-[#0F766E]" />
+                                {isAccepted
+                                  ? `We've emailed ${tenantName} your contact details.`
+                                  : `We've emailed ${tenantName} to let them know.`}
+                              </p>
+                            </div>
                           </div>
-                          <p className="mt-2 text-sm text-slate-600">
-                            {request.requestStatus?.toLowerCase() === "accepted"
-                              ? "Accepted request to view"
-                              : "Declined request to view"}{" "}
-                            <span className="font-semibold text-slate-800">
-                              {request.propertyName || "this property"}
-                            </span>
-                          </p>
-                          <p className="mt-1 text-xs text-slate-500">
-                            {[
-                              request.propertyAddress,
-                              request.city,
-                              request.state,
-                            ]
-                              .filter(Boolean)
-                              .join(", ")}
-                          </p>
-                        </div>
 
-                        <button
-                          type="button"
-                          onClick={() => removeNotification(request.requestId)}
-                          className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition-colors hover:border-rose-200 hover:text-rose-600"
-                          aria-label="Remove notification"
-                          title="Remove notification"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </article>
-                    ))}
+                          <button
+                            type="button"
+                            onClick={() => removeNotification(request.requestId)}
+                            className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition-colors hover:border-rose-200 hover:text-rose-600"
+                            aria-label="Remove notification"
+                            title="Remove notification"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </article>
+                      );
+                    })}
                   </div>
                 )}
               </section>
@@ -1248,12 +1366,6 @@ export default function LandlordDashboard() {
                   <p className="mt-1 text-sm text-slate-500">
                     Bookmark a property while browsing to find it here.
                   </p>
-                  <Link
-                    to="/properties"
-                    className="mt-4 inline-flex rounded-xl bg-[#004741] px-4 py-2.5 text-sm font-bold text-white"
-                  >
-                    Browse properties
-                  </Link>
                 </div>
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -1454,19 +1566,11 @@ export default function LandlordDashboard() {
             )}
 
             {activeNav === "Profile" && (
-              <section className="rounded-2xl border border-slate-100 bg-white p-8 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.06)]">
-                <h2 className="text-xl font-bold text-slate-900">Profile</h2>
-                <p className="mt-2 text-sm text-slate-500">
-                  View and update your account details.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setIsProfileOpen(true)}
-                  className="mt-5 rounded-xl bg-[#004741] px-5 py-3 text-sm font-bold text-white"
-                >
-                  Open profile details
-                </button>
-              </section>
+              <ProfilePanel
+                profile={profile}
+                isLoading={isProfileLoading}
+                isError={isProfileError}
+              />
             )}
               </motion.div>
             </AnimatePresence>
@@ -1539,13 +1643,26 @@ export default function LandlordDashboard() {
             </motion.div>
           )}
         </AnimatePresence>
-        <ProfileModal
-          open={isProfileOpen}
-          onClose={() => setIsProfileOpen(false)}
-          profile={profile}
-          isLoading={isProfileLoading}
-          isError={isProfileError}
-        />
+        <AnimatePresence>
+          {isAddPropertyOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] overflow-y-auto bg-[#F7F5F0]"
+            >
+              <AddPropertyModal
+                onBack={() => setIsAddPropertyOpen(false)}
+                onCreated={(propertyId) => {
+                  setIsAddPropertyOpen(false);
+                  // Land straight on the new listing inside the dashboard.
+                  if (propertyId) openProperty(propertyId);
+                  notify("Property published — it's now visible to tenants.");
+                }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
         <SignOutConfirmation
           open={isSignOutOpen}
           onClose={() => setIsSignOutOpen(false)}
